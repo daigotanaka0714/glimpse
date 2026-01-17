@@ -1,139 +1,138 @@
-# Glimpse - 高速写真チェッカー
+# Glimpse - High-Speed Photo Checker
 
-[English](./README.en.md)
+[日本語](./README.ja.md)
 
-舞台写真の選別作業に特化した、高速・軽量なデスクトップアプリケーション。
-数千〜数万枚の大容量画像（NEF/JPEG）をストレスなく閲覧・選別できます。
+A fast, lightweight desktop application specialized for selecting stage photography. Designed to browse and select thousands to tens of thousands of large images (NEF/JPEG) without stress.
 
-## 特徴
+## Features
 
-- **爆速** - 数千〜数万枚の画像をストレスなく閲覧
-- **NEF対応** - Nikon RAWファイルをネイティブサポート
-- **キーボード操作** - 矢印キーとラベルキーで高速選別
-- **中断・再開** - 作業途中でも安心して中断可能
-- **軽量** - Tauri + Rustで低メモリ消費
+- **Blazing Fast** - Browse thousands to tens of thousands of images without stress
+- **NEF Support** - Native support for Nikon RAW files
+- **Keyboard-Driven** - Quick selection using arrow keys and label keys
+- **Pause & Resume** - Safely pause and resume your work anytime
+- **Lightweight** - Low memory consumption with Tauri + Rust
 
-## 機能一覧
+## Feature List
 
-### 基本機能
-- フォルダ選択・画像一覧取得
-- サムネイル生成（バックグラウンド・マルチスレッド）
-- サムネイルキャッシュ
-- 仮想スクロールによる一覧表示
-- キーボードナビゲーション（矢印キー）
-- 不採用ラベル付与（1キー）
-- 詳細表示モード（Enter/Space）
-- セッション保存・復元（中断・再開）
-- 採用ファイルを別フォルダにコピー（エクスポート）
+### Core Features
+- Folder selection and image list retrieval
+- Background thumbnail generation (multi-threaded)
+- Thumbnail caching
+- Virtual scrolling for large image collections
+- Keyboard navigation (arrow keys)
+- Rejection labeling (press `1`)
+- Detail view mode (Enter/Space)
+- Session persistence (pause & resume)
+- Export selected (non-rejected) files to another folder
 
-### 高度な機能
-- サムネイルサイズ調整（スライダー）
-- フィルタリング表示（不採用のみ/採用のみ）
-- 複数選択（Ctrl/Cmd+クリック、Shift+クリック）
-- ドラッグ&ドロップでフォルダ読み込み
-- ダークモード/ライトモード切り替え
-- EXIF情報表示
-- 画像の回転
-- 簡易比較モード（2枚並べて表示）
-- エクスポート設定（コピー/移動の選択）
+### Advanced Features
+- Adjustable thumbnail size (slider)
+- Filtering (rejected only / adopted only)
+- Multi-select (Ctrl/Cmd+Click, Shift+Click)
+- Drag & drop folder loading
+- Dark mode / Light mode toggle
+- EXIF information display
+- Image rotation
+- Comparison mode (side-by-side view)
+- Export settings (copy / move option)
 
-## キーボードショートカット
+## Keyboard Shortcuts
 
-| キー | 動作 |
-|------|------|
-| `←` | 前の画像を選択 |
-| `→` | 次の画像を選択 |
-| `↑` | 上の行の画像を選択 |
-| `↓` | 下の行の画像を選択 |
-| `1` | 不採用ラベルをトグル |
-| `Enter` / `Space` | 詳細表示モードへ |
-| `Esc` | 詳細表示から一覧へ戻る |
-| `C` | 比較モードへ |
-| `Ctrl+O` | フォルダを開く |
-| `Ctrl+E` | エクスポート |
-| `Home` | 最初の画像へ |
-| `End` | 最後の画像へ |
-| `PageUp` | 1ページ上へ |
-| `PageDown` | 1ページ下へ |
+| Key | Action |
+|-----|--------|
+| `←` | Select previous image |
+| `→` | Select next image |
+| `↑` | Select image above |
+| `↓` | Select image below |
+| `1` | Toggle rejection label |
+| `Enter` / `Space` | Enter detail view |
+| `Esc` | Exit detail view |
+| `C` | Enter comparison mode |
+| `Ctrl+O` | Open folder |
+| `Ctrl+E` | Export |
+| `Home` | Go to first image |
+| `End` | Go to last image |
+| `PageUp` | Page up |
+| `PageDown` | Page down |
 
-## システム要件
+## System Requirements
 
 ### Windows
 - Windows 10/11 64bit
-- WebView2 Runtime（Windows 11は標準搭載）
+- WebView2 Runtime (included by default in Windows 11)
 
 ### macOS
-- macOS 10.15 (Catalina) 以降
+- macOS 10.15 (Catalina) or later
 
-## インストール
+## Installation
 
-### ダウンロード
+### Download
 
-[Releases](https://github.com/daigotanaka0714/glimpse/releases)から最新版をダウンロードしてください。
+Download the latest release from the [Releases](https://github.com/daigotanaka0714/glimpse/releases) page.
 
-- **macOS**: `Glimpse_x.x.x_aarch64.dmg`（Apple Silicon）または `Glimpse_x.x.x_x64.dmg`（Intel）
+- **macOS**: `Glimpse_x.x.x_aarch64.dmg` (Apple Silicon) or `Glimpse_x.x.x_x64.dmg` (Intel)
 - **Windows**: `Glimpse_x.x.x_x64-setup.exe`
 
-### ソースからビルド
+### Build from Source
 
-#### 必要な環境
+#### Prerequisites
 
-- [Node.js](https://nodejs.org/) 20.x 以降
-- [pnpm](https://pnpm.io/) 9.x 以降
-- [Rust](https://www.rust-lang.org/) （最新安定版）
+- [Node.js](https://nodejs.org/) 20.x or later
+- [pnpm](https://pnpm.io/) 9.x or later
+- [Rust](https://www.rust-lang.org/) (latest stable)
 
-#### 手順
+#### Steps
 
 ```bash
-# リポジトリをクローン
+# Clone the repository
 git clone https://github.com/daigotanaka0714/glimpse.git
 cd glimpse
 
-# 依存関係をインストール
+# Install dependencies
 pnpm install
 
-# 開発モードで実行
+# Run in development mode
 pnpm tauri dev
 
-# プロダクションビルド
+# Build for production
 pnpm tauri build
 ```
 
-## 使い方
+## Usage
 
-1. アプリを起動
-2. 「フォルダを開く」ボタン or `Ctrl+O` で写真フォルダを選択（またはフォルダをドラッグ&ドロップ）
-3. サムネイルが表示されたら、矢印キーで移動
-4. `1` キーで不採用マーク
-5. `Enter` or `Space` で詳細表示
-6. 作業完了後、`Ctrl+E` でエクスポート
+1. Launch the app
+2. Click "Open Folder" button or press `Ctrl+O` to select a photo folder (or drag & drop a folder)
+3. Once thumbnails are displayed, navigate with arrow keys
+4. Press `1` to mark as rejected
+5. Press `Enter` or `Space` for detail view
+6. When finished, press `Ctrl+E` to export
 
-## 技術スタック
+## Tech Stack
 
-| レイヤー | 技術 | 理由 |
-|---------|------|------|
-| フレームワーク | Tauri 2.0 | 軽量、Rustバックエンド、クロスプラットフォーム |
-| フロントエンド | React 18 + TypeScript | 仮想スクロール、状態管理が容易 |
-| スタイリング | Tailwind CSS | 高速な開発、一貫したデザイン |
-| 画像処理 | Rust (image, rawloader) | マルチスレッド、NEF対応 |
-| データ永続化 | SQLite (rusqlite) | セッション管理、キャッシュ管理 |
-| 仮想スクロール | @tanstack/react-virtual | 大量アイテムの効率的レンダリング |
+| Layer | Technology | Reason |
+|-------|------------|--------|
+| Framework | Tauri 2.0 | Lightweight, Rust backend, cross-platform |
+| Frontend | React 18 + TypeScript | Virtual scrolling, easy state management |
+| Styling | Tailwind CSS | Fast development, consistent design |
+| Image Processing | Rust (image, rawloader) | Multi-threaded, NEF support |
+| Data Persistence | SQLite (rusqlite) | Session management, cache management |
+| Virtual Scrolling | @tanstack/react-virtual | Efficient rendering of large lists |
 
-## パフォーマンス目標
+## Performance Goals
 
-| 指標 | 目標値 |
-|------|--------|
-| 初回起動（5000枚） | < 3秒で一覧表示開始 |
-| サムネイル生成速度 | > 100枚/秒 |
-| 2回目以降起動 | < 1秒で一覧表示 |
-| 詳細表示切替 | < 200ms |
-| キー入力応答 | < 50ms |
-| メモリ使用量（10000枚時） | < 500MB |
+| Metric | Target |
+|--------|--------|
+| Initial load (5000 images) | < 3 seconds to start displaying |
+| Thumbnail generation speed | > 100 images/second |
+| Subsequent loads | < 1 second |
+| Detail view switch | < 200ms |
+| Key input response | < 50ms |
+| Memory usage (10000 images) | < 500MB |
 
-## ライセンス
+## License
 
 MIT License
 
-## 貢献
+## Contributing
 
-プルリクエストを歓迎します！
+Pull requests are welcome!
