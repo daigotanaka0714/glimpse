@@ -321,8 +321,7 @@ export default function App() {
   const handleExport = useCallback(async (options: { destinationPath: string; mode: 'copy' | 'move' }) => {
     if (!folderPath) return;
 
-    const result = await exportAdopted(folderPath, options.destinationPath, options.mode);
-    console.log('Export result:', result);
+    await exportAdopted(folderPath, options.destinationPath, options.mode);
   }, [folderPath]);
 
   const handleSelectExportFolder = useCallback(async (): Promise<string | null> => {

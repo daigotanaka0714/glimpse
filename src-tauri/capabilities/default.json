@@ -20,8 +20,8 @@
       "allow": [
         { "path": "$HOME/**" },
         { "path": "$APPDATA/**" },
-        { "path": "$TEMP/**" },
-        { "path": "/**" }
+        { "path": "$LOCALAPPDATA/**" },
+        { "path": "$TEMP/**" }
       ]
     }
   ]
