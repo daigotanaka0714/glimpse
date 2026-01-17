@@ -61,6 +61,7 @@ export interface GridConfig {
   columns: number;
   thumbnailSize: number;
   gap: number;
+  rowGap: number;
 }
 
 // フィルター設定

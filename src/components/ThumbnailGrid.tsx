@@ -21,10 +21,10 @@ export function ThumbnailGrid({
   onEnterDetail,
 }: ThumbnailGridProps) {
   const parentRef = useRef<HTMLDivElement>(null);
-  const { columns, thumbnailSize, gap } = gridConfig;
+  const { columns, thumbnailSize, gap, rowGap } = gridConfig;
 
   const rowCount = Math.ceil(items.length / columns);
-  const rowHeight = thumbnailSize + gap;
+  const rowHeight = thumbnailSize + rowGap;
 
   const virtualizer = useVirtualizer({
     count: rowCount,

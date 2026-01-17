@@ -8,6 +8,7 @@ describe('useKeyboardNavigation', () => {
     columns: 4,
     thumbnailSize: 180,
     gap: 8,
+    rowGap: 12,
   };
 
   const mockHandlers = {

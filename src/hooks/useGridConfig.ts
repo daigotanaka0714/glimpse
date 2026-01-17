@@ -5,6 +5,7 @@ const MIN_THUMBNAIL_SIZE = 100;
 const MAX_THUMBNAIL_SIZE = 300;
 const DEFAULT_THUMBNAIL_SIZE = 180;
 const GAP = 8;
+const ROW_GAP = 12; // 縦のgap（横より少し広め）
 const PADDING = 16;
 
 interface UseGridConfigReturn {
@@ -20,6 +21,7 @@ export function useGridConfig(): UseGridConfigReturn {
     columns: 16,
     thumbnailSize: DEFAULT_THUMBNAIL_SIZE,
     gap: GAP,
+    rowGap: ROW_GAP,
   });
 
   const calculateGrid = useCallback(() => {
@@ -38,6 +40,7 @@ export function useGridConfig(): UseGridConfigReturn {
       columns: actualColumns,
       thumbnailSize,
       gap: GAP,
+      rowGap: ROW_GAP,
     });
   }, [baseThumbnailSize]);
 
