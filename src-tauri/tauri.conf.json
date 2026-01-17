@@ -47,10 +47,5 @@
       }
     }
   },
-  "plugins": {
-    "dialog": {},
-    "fs": {
-      "scope": ["**"]
-    }
-  }
+  "plugins": {}
 }
