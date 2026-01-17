@@ -1,43 +1,88 @@
+import { FolderOpen, Download, Loader2 } from 'lucide-react';
+
 interface HeaderProps {
   folderPath: string | null;
+  totalFiles: number;
+  rejectedCount: number;
+  thumbnailProgress: {
+    completed: number;
+    total: number;
+  };
   onOpenFolder: () => void;
   onExport: () => void;
-  hasImages: boolean;
 }
 
-export function Header({ folderPath, onOpenFolder, onExport, hasImages }: HeaderProps) {
-  return (
-    <header className="header">
-      <h1 className="text-lg font-semibold">Glimpse</h1>
+export function Header({
+  folderPath,
+  totalFiles,
+  rejectedCount,
+  thumbnailProgress,
+  onOpenFolder,
+  onExport,
+}: HeaderProps) {
+  const isGeneratingThumbnails =
+    thumbnailProgress.total > 0 &&
+    thumbnailProgress.completed < thumbnailProgress.total;
 
-      <div className="flex-1 flex items-center gap-2">
+  const adoptedCount = totalFiles - rejectedCount;
+
+  return (
+    <header className="flex items-center justify-between h-14 px-4 bg-bg-secondary border-b border-white/10">
+      {/* 左側: フォルダを開く */}
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onOpenFolder}
+          className="flex items-center gap-2 px-4 py-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
+        >
+          <FolderOpen size={18} />
+          <span>フォルダを開く</span>
+        </button>
+
         {folderPath && (
-          <span className="text-sm text-gray-400 truncate max-w-md">
+          <span className="text-sm text-white/50 truncate max-w-md">
             {folderPath}
           </span>
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-        <button className="btn btn-secondary" onClick={onOpenFolder}>
-          <span className="flex items-center gap-2">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z" />
-            </svg>
-            Open (Ctrl+O)
-          </span>
-        </button>
-
-        {hasImages && (
-          <button className="btn btn-primary" onClick={onExport}>
-            <span className="flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z" />
-              </svg>
-              Export (Ctrl+E)
+      {/* 中央: 進捗 */}
+      <div className="flex items-center gap-6">
+        {isGeneratingThumbnails && (
+          <div className="flex items-center gap-2 text-sm text-white/70">
+            <Loader2 size={16} className="animate-spin" />
+            <span>
+              サムネイル生成中... {thumbnailProgress.completed} /{' '}
+              {thumbnailProgress.total}
             </span>
-          </button>
+          </div>
         )}
+
+        {totalFiles > 0 && (
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-white/70">
+              合計: <span className="text-white font-medium">{totalFiles}</span>
+              枚
+            </span>
+            <span className="text-green-400">
+              採用: <span className="font-medium">{adoptedCount}</span>枚
+            </span>
+            <span className="text-rejected">
+              不採用: <span className="font-medium">{rejectedCount}</span>枚
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* 右側: エクスポート */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onExport}
+          disabled={totalFiles === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-sm font-medium"
+        >
+          <Download size={18} />
+          <span>エクスポート</span>
+        </button>
       </div>
     </header>
   );

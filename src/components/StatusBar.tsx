@@ -1,45 +1,50 @@
+import type { ImageItem } from '@/types';
+
 interface StatusBarProps {
-  total: number;
-  rejected: number;
+  selectedItem: ImageItem | null;
   selectedIndex: number;
-  generatingThumbnails: boolean;
-  thumbnailProgress: number;
+  totalItems: number;
 }
 
 export function StatusBar({
-  total,
-  rejected,
+  selectedItem,
   selectedIndex,
-  generatingThumbnails,
-  thumbnailProgress,
+  totalItems,
 }: StatusBarProps) {
-  const approved = total - rejected;
+  if (!selectedItem) {
+    return (
+      <footer className="h-10 px-4 bg-bg-secondary border-t border-white/10 flex items-center">
+        <span className="text-sm text-white/50">
+          ← → ↑ ↓: 移動 | 1: 不採用 | Enter: 詳細表示 | Ctrl+O: フォルダを開く
+        </span>
+      </footer>
+    );
+  }
+
+  const isRejected = selectedItem.label === 'rejected';
 
   return (
-    <div className="status-bar">
-      <div className="flex items-center gap-4">
-        {generatingThumbnails ? (
-          <span className="flex items-center gap-2">
-            <span className="inline-block w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            Generating thumbnails... {thumbnailProgress}/{total}
-          </span>
-        ) : total > 0 ? (
-          <>
-            <span>Total: {total}</span>
-            <span className="text-green-400">Approved: {approved}</span>
-            <span className="text-red-400">Rejected: {rejected}</span>
-            <span>Selected: {selectedIndex + 1}/{total}</span>
-          </>
-        ) : (
-          <span>No images loaded</span>
-        )}
+    <footer className="h-10 px-4 bg-bg-secondary border-t border-white/10 flex items-center justify-between">
+      <div className="flex items-center gap-4 text-sm">
+        <span className="font-mono text-white">{selectedItem.filename}</span>
+        <span className="text-white/50">
+          {(selectedItem.size / 1024 / 1024).toFixed(1)} MB
+        </span>
+        <span className="text-white/50">{selectedItem.modifiedAt}</span>
       </div>
 
-      <div className="flex items-center gap-4">
-        <span className="text-xs">
-          ← → ↑ ↓ Navigate | 1 Toggle Reject | Enter/Space Detail | Esc Close
+      <div className="flex items-center gap-4 text-sm">
+        <span
+          className={`px-2 py-0.5 rounded ${
+            isRejected ? 'bg-rejected/20 text-rejected' : 'text-white/50'
+          }`}
+        >
+          {isRejected ? '不採用' : '-'}
+        </span>
+        <span className="text-white/50">
+          {selectedIndex + 1} / {totalItems}
         </span>
       </div>
-    </div>
+    </footer>
   );
 }

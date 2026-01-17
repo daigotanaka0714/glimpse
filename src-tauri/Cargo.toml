@@ -2,39 +2,45 @@
 name = "glimpse"
 version = "0.1.0"
 description = "High-speed photo checker for stage photography"
-authors = ["you"]
+authors = ["Daigo"]
+license = "MIT"
+repository = ""
 edition = "2021"
 
 [lib]
 name = "glimpse_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
-tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-# Image processing
+# 画像処理
 image = { version = "0.25", features = ["jpeg", "png"] }
 rawloader = "0.37"
 imagepipe = "0.5"
 
-# Database
+# 非同期・並列処理
+tokio = { version = "1", features = ["full"] }
+rayon = "1.10"
+
+# データベース
 rusqlite = { version = "0.32", features = ["bundled"] }
 
-# Async & parallelism
-rayon = "1.10"
-tokio = { version = "1", features = ["fs", "sync"] }
-
-# Utilities
+# ユーティリティ
 sha2 = "0.10"
 hex = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 dirs = "5"
 walkdir = "2"
 thiserror = "2"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
