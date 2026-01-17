@@ -9,6 +9,12 @@ use std::sync::mpsc;
 
 const THUMBNAIL_SIZE: u32 = 300;
 
+/// パスを正規化（バックスラッシュをフォワードスラッシュに変換）
+/// Windowsパスをasset://プロトコルで使用可能な形式に変換
+pub fn normalize_path(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
+}
+
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ImageInfo {
     pub filename: String,
@@ -160,7 +166,7 @@ pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
 
         images.push(ImageInfo {
             filename: path.file_name().unwrap().to_string_lossy().to_string(),
-            path: path.to_string_lossy().to_string(),
+            path: normalize_path(&path),
             size: metadata.len(),
             modified_at: modified,
         });
@@ -280,7 +286,7 @@ where
                 // キャッシュが存在する場合はスキップ
                 ThumbnailResult {
                     filename: image.filename.clone(),
-                    thumbnail_path: thumbnail_path.to_string_lossy().to_string(),
+                    thumbnail_path: normalize_path(&thumbnail_path),
                     success: true,
                     error: None,
                 }
@@ -288,7 +294,7 @@ where
                 match generate_thumbnail(Path::new(&image.path), &thumbnail_path) {
                     Ok(_) => ThumbnailResult {
                         filename: image.filename.clone(),
-                        thumbnail_path: thumbnail_path.to_string_lossy().to_string(),
+                        thumbnail_path: normalize_path(&thumbnail_path),
                         success: true,
                         error: None,
                     },

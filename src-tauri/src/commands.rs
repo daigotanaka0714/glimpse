@@ -1,8 +1,8 @@
 use crate::database::{Database, Label, Session};
 use crate::error::Result;
 use crate::image_processor::{
-    extract_exif, generate_session_id, generate_thumbnails_parallel, get_cache_dir, scan_folder,
-    ExifInfo, ImageInfo,
+    extract_exif, generate_session_id, generate_thumbnails_parallel, get_cache_dir, normalize_path,
+    scan_folder, ExifInfo, ImageInfo,
 };
 use std::path::Path;
 use std::sync::Mutex;
@@ -102,7 +102,7 @@ pub async fn open_folder(
         images,
         labels,
         last_selected_index: last_selected,
-        cache_dir: cache_dir.to_string_lossy().to_string(),
+        cache_dir: normalize_path(&cache_dir),
     })
 }
 
