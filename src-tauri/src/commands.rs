@@ -2,11 +2,10 @@ use crate::database::{Database, Label, Session};
 use crate::error::Result;
 use crate::image_processor::{
     generate_session_id, generate_thumbnails_parallel, get_cache_dir, scan_folder, ImageInfo,
-    ThumbnailResult,
 };
 use std::path::Path;
 use std::sync::Mutex;
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, State};
 
 pub struct AppState {
     pub db: Mutex<Database>,
@@ -84,16 +83,17 @@ pub async fn open_folder(
 
     // バックグラウンドでサムネイル生成
     let images_clone = images.clone();
-    let app_clone = app.clone();
+    let app_for_progress = app.clone();
+    let app_for_complete = app.clone();
     let cache_dir_clone = cache_dir.clone();
 
     tokio::spawn(async move {
-        let results = generate_thumbnails_parallel(&images_clone, &cache_dir_clone, |completed, total| {
-            let _ = app_clone.emit("thumbnail-progress", ProgressPayload { completed, total });
+        let results = generate_thumbnails_parallel(&images_clone, &cache_dir_clone, move |completed, total| {
+            let _ = app_for_progress.emit("thumbnail-progress", ProgressPayload { completed, total });
         });
 
         // 完了通知
-        let _ = app_clone.emit("thumbnails-complete", results);
+        let _ = app_for_complete.emit("thumbnails-complete", results);
     });
 
     Ok(OpenFolderResult {

@@ -122,12 +122,16 @@ fn load_raw_image(path: &Path) -> Result<DynamicImage> {
         .map_err(|e| GlimpseError::RawProcessing(e.to_string()))?;
 
     // RAWデータを処理してRGB画像に変換
-    let pipeline = imagepipe::Pipeline::new_from_source(imagepipe::ImageSource::Raw(raw_image))
+    let mut pipeline = imagepipe::Pipeline::new_from_source(imagepipe::ImageSource::Raw(raw_image))
         .map_err(|e| GlimpseError::RawProcessing(e.to_string()))?;
 
-    let (width, height, pixels) = pipeline
+    let srgb_image = pipeline
         .output_8bit(None)
         .map_err(|e| GlimpseError::RawProcessing(e.to_string()))?;
+
+    let width = srgb_image.width;
+    let height = srgb_image.height;
+    let pixels = srgb_image.data;
 
     let img = image::RgbImage::from_raw(width as u32, height as u32, pixels)
         .ok_or_else(|| GlimpseError::RawProcessing("Failed to create image from raw data".into()))?;
@@ -142,7 +146,7 @@ pub fn generate_thumbnails_parallel<F>(
     progress_callback: F,
 ) -> Vec<ThumbnailResult>
 where
-    F: Fn(usize, usize) + Sync,
+    F: Fn(usize, usize) + Sync + Send + 'static,
 {
     let total = images.len();
     let (tx, rx) = mpsc::channel();
@@ -201,4 +205,115 @@ where
         .collect();
 
     results
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_generate_session_id() {
+        let session_id1 = generate_session_id("/path/to/folder1");
+        let session_id2 = generate_session_id("/path/to/folder2");
+        let session_id3 = generate_session_id("/path/to/folder1");
+
+        // 同じパスは同じIDを生成
+        assert_eq!(session_id1, session_id3);
+
+        // 異なるパスは異なるIDを生成
+        assert_ne!(session_id1, session_id2);
+
+        // IDは32文字（16バイトの16進数表現）
+        assert_eq!(session_id1.len(), 32);
+    }
+
+    #[test]
+    fn test_scan_folder_empty() {
+        let dir = tempdir().unwrap();
+        let result = scan_folder(dir.path()).unwrap();
+        assert_eq!(result.len(), 0);
+    }
+
+    #[test]
+    fn test_scan_folder_with_images() {
+        let dir = tempdir().unwrap();
+
+        // テスト用の画像ファイルを作成（中身は空でもOK）
+        fs::write(dir.path().join("image1.jpg"), b"fake jpg").unwrap();
+        fs::write(dir.path().join("image2.JPG"), b"fake jpg").unwrap();
+        fs::write(dir.path().join("image3.png"), b"fake png").unwrap();
+        fs::write(dir.path().join("image4.NEF"), b"fake nef").unwrap();
+
+        let result = scan_folder(dir.path()).unwrap();
+
+        assert_eq!(result.len(), 4);
+
+        // ファイル名でソートされていることを確認
+        assert_eq!(result[0].filename, "image1.jpg");
+        assert_eq!(result[1].filename, "image2.JPG");
+        assert_eq!(result[2].filename, "image3.png");
+        assert_eq!(result[3].filename, "image4.NEF");
+    }
+
+    #[test]
+    fn test_scan_folder_ignores_non_images() {
+        let dir = tempdir().unwrap();
+
+        fs::write(dir.path().join("image.jpg"), b"fake jpg").unwrap();
+        fs::write(dir.path().join("document.txt"), b"text file").unwrap();
+        fs::write(dir.path().join("script.js"), b"javascript").unwrap();
+
+        let result = scan_folder(dir.path()).unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].filename, "image.jpg");
+    }
+
+    #[test]
+    fn test_scan_folder_ignores_directories() {
+        let dir = tempdir().unwrap();
+
+        fs::write(dir.path().join("image.jpg"), b"fake jpg").unwrap();
+        fs::create_dir(dir.path().join("subdir")).unwrap();
+        fs::write(dir.path().join("subdir").join("nested.jpg"), b"fake jpg").unwrap();
+
+        let result = scan_folder(dir.path()).unwrap();
+
+        // サブディレクトリ内のファイルはスキャンしない
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].filename, "image.jpg");
+    }
+
+    #[test]
+    fn test_get_cache_dir() {
+        let session_id = "test_session_123";
+        let result = get_cache_dir(session_id);
+
+        assert!(result.is_ok());
+        let cache_dir = result.unwrap();
+
+        // パスにセッションIDが含まれていることを確認
+        assert!(cache_dir.to_string_lossy().contains(session_id));
+        assert!(cache_dir.to_string_lossy().contains("thumbnails"));
+    }
+
+    #[test]
+    fn test_image_info_has_correct_fields() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.jpg");
+        fs::write(&file_path, b"fake jpg content with some size").unwrap();
+
+        let result = scan_folder(dir.path()).unwrap();
+
+        assert_eq!(result.len(), 1);
+        let info = &result[0];
+
+        assert_eq!(info.filename, "test.jpg");
+        assert!(info.path.ends_with("test.jpg"));
+        assert!(info.size > 0);
+        // modified_atは空でないこと
+        assert!(!info.modified_at.is_empty());
+    }
 }

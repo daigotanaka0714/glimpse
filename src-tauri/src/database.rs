@@ -218,3 +218,162 @@ pub struct Label {
     pub filename: String,
     pub label: Option<String>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+
+    fn create_test_db() -> Database {
+        let conn = Connection::open_in_memory().unwrap();
+        let db = Database { conn };
+        db.init_schema().unwrap();
+        db
+    }
+
+    #[test]
+    fn test_init_schema() {
+        let db = create_test_db();
+        // スキーマが正常に作成されたことを確認
+        let count: i32 = db
+            .conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='sessions'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_upsert_and_get_session() {
+        let db = create_test_db();
+
+        let session = Session {
+            id: "test_session_id".to_string(),
+            folder_path: "/test/path".to_string(),
+            last_opened: Some("2024-12-15T14:00:00".to_string()),
+            last_selected_index: 10,
+            total_files: 100,
+        };
+
+        db.upsert_session(&session).unwrap();
+
+        let retrieved = db.get_session("test_session_id").unwrap().unwrap();
+        assert_eq!(retrieved.id, "test_session_id");
+        assert_eq!(retrieved.folder_path, "/test/path");
+        assert_eq!(retrieved.last_selected_index, 10);
+        assert_eq!(retrieved.total_files, 100);
+    }
+
+    #[test]
+    fn test_update_last_selected() {
+        let db = create_test_db();
+
+        let session = Session {
+            id: "test_session_id".to_string(),
+            folder_path: "/test/path".to_string(),
+            last_opened: None,
+            last_selected_index: 0,
+            total_files: 50,
+        };
+
+        db.upsert_session(&session).unwrap();
+        db.update_last_selected("test_session_id", 25).unwrap();
+
+        let retrieved = db.get_session("test_session_id").unwrap().unwrap();
+        assert_eq!(retrieved.last_selected_index, 25);
+    }
+
+    #[test]
+    fn test_set_and_get_label() {
+        let db = create_test_db();
+
+        // セッションを作成
+        let session = Session {
+            id: "test_session".to_string(),
+            folder_path: "/test".to_string(),
+            last_opened: None,
+            last_selected_index: 0,
+            total_files: 10,
+        };
+        db.upsert_session(&session).unwrap();
+
+        // ラベルを設定
+        db.set_label("test_session", "image1.jpg", Some("rejected"))
+            .unwrap();
+        db.set_label("test_session", "image2.jpg", Some("rejected"))
+            .unwrap();
+
+        // ラベルを取得
+        let labels = db.get_labels("test_session").unwrap();
+        assert_eq!(labels.len(), 2);
+
+        let image1_label = labels.iter().find(|l| l.filename == "image1.jpg").unwrap();
+        assert_eq!(image1_label.label, Some("rejected".to_string()));
+    }
+
+    #[test]
+    fn test_remove_label() {
+        let db = create_test_db();
+
+        // セッションを作成
+        let session = Session {
+            id: "test_session".to_string(),
+            folder_path: "/test".to_string(),
+            last_opened: None,
+            last_selected_index: 0,
+            total_files: 10,
+        };
+        db.upsert_session(&session).unwrap();
+
+        // ラベルを設定
+        db.set_label("test_session", "image1.jpg", Some("rejected"))
+            .unwrap();
+
+        // ラベルを削除
+        db.set_label("test_session", "image1.jpg", None).unwrap();
+
+        // ラベルを取得
+        let labels = db.get_labels("test_session").unwrap();
+        assert_eq!(labels.len(), 0);
+    }
+
+    #[test]
+    fn test_get_nonexistent_session() {
+        let db = create_test_db();
+        let result = db.get_session("nonexistent").unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_thumbnail_cache() {
+        let db = create_test_db();
+
+        // セッションを作成
+        let session = Session {
+            id: "test_session".to_string(),
+            folder_path: "/test".to_string(),
+            last_opened: None,
+            last_selected_index: 0,
+            total_files: 10,
+        };
+        db.upsert_session(&session).unwrap();
+
+        // サムネイルキャッシュを設定
+        db.set_thumbnail_cache(
+            "test_session",
+            "image1.jpg",
+            "/cache/image1.thumb.jpg",
+            "2024-12-15T14:00:00",
+        )
+        .unwrap();
+
+        // キャッシュを取得
+        let cache_path = db
+            .get_thumbnail_cache("test_session", "image1.jpg")
+            .unwrap();
+        assert_eq!(cache_path, Some("/cache/image1.thumb.jpg".to_string()));
+    }
+}

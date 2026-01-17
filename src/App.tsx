@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   Header,
   ThumbnailGrid,
@@ -9,20 +9,18 @@ import {
 } from '@/components';
 import { useKeyboardNavigation, useGridConfig } from '@/hooks';
 import type { ImageItem, LabelStatus } from '@/types';
-
-// モックデータ（開発用 - 後でTauri APIに置き換え）
-const generateMockImages = (count: number): ImageItem[] => {
-  return Array.from({ length: count }, (_, i) => ({
-    filename: `DSC_${String(i + 1).padStart(4, '0')}.NEF`,
-    path: `/mock/path/DSC_${String(i + 1).padStart(4, '0')}.NEF`,
-    size: 20 * 1024 * 1024 + Math.random() * 10 * 1024 * 1024,
-    modifiedAt: '2024/12/15 14:32',
-    thumbnailPath: `https://picsum.photos/seed/${i}/300/200`,
-    thumbnailLoaded: true,
-    label: null,
-    index: i,
-  }));
-};
+import {
+  selectFolder,
+  openFolder,
+  setLabel as setLabelApi,
+  saveSelection,
+  exportAdopted,
+  selectExportFolder,
+  onThumbnailProgress,
+  onThumbnailsComplete,
+  toImageItem,
+  type ThumbnailResult,
+} from '@/utils/tauri';
 
 export default function App() {
   // 状態管理
@@ -35,8 +33,51 @@ export default function App() {
     completed: 0,
     total: 0,
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const gridConfig = useGridConfig();
+
+  // セッション情報を保持
+  const sessionRef = useRef<{ id: string; cacheDir: string } | null>(null);
+
+  // サムネイル進捗イベントのリスナー設定
+  useEffect(() => {
+    let unlistenProgress: (() => void) | null = null;
+    let unlistenComplete: (() => void) | null = null;
+
+    const setupListeners = async () => {
+      unlistenProgress = await onThumbnailProgress((progress) => {
+        setThumbnailProgress(progress);
+      });
+
+      unlistenComplete = await onThumbnailsComplete((results: ThumbnailResult[]) => {
+        // サムネイル生成完了後、thumbnailLoadedをtrueに更新
+        setImages((prev) =>
+          prev.map((img) => {
+            const result = results.find((r) => r.filename === img.filename);
+            if (result && result.success) {
+              return { ...img, thumbnailLoaded: true };
+            }
+            return img;
+          })
+        );
+      });
+    };
+
+    setupListeners();
+
+    return () => {
+      unlistenProgress?.();
+      unlistenComplete?.();
+    };
+  }, []);
+
+  // 選択変更時にバックエンドに保存
+  useEffect(() => {
+    if (sessionRef.current && images.length > 0) {
+      saveSelection(selectedIndex).catch(console.error);
+    }
+  }, [selectedIndex, images.length]);
 
   // ラベル集計
   const { rejectedCount, adoptedCount } = useMemo(() => {
@@ -55,18 +96,34 @@ export default function App() {
     setSelectedIndex(index);
   }, []);
 
-  const handleToggleLabel = useCallback(() => {
+  const handleToggleLabel = useCallback(async () => {
     if (selectedIndex < 0 || selectedIndex >= images.length) return;
 
+    const currentImage = images[selectedIndex];
+    const newLabel: LabelStatus = currentImage.label === 'rejected' ? null : 'rejected';
+
+    // UI即時更新
     setImages((prev) =>
       prev.map((img, i) => {
         if (i !== selectedIndex) return img;
-        const newLabel: LabelStatus =
-          img.label === 'rejected' ? null : 'rejected';
         return { ...img, label: newLabel };
       })
     );
-  }, [selectedIndex, images.length]);
+
+    // バックエンドに保存
+    try {
+      await setLabelApi(currentImage.filename, newLabel);
+    } catch (error) {
+      console.error('Failed to set label:', error);
+      // エラー時はUIを戻す
+      setImages((prev) =>
+        prev.map((img, i) => {
+          if (i !== selectedIndex) return img;
+          return { ...img, label: currentImage.label };
+        })
+      );
+    }
+  }, [selectedIndex, images]);
 
   const handleEnterDetail = useCallback(() => {
     if (images.length > 0) {
@@ -79,24 +136,55 @@ export default function App() {
   }, []);
 
   const handleOpenFolder = useCallback(async () => {
-    // TODO: Tauri dialog APIを使用
-    // 開発用モックデータ
-    const mockPath = 'D:/Photos/2024-12-Stage';
-    setFolderPath(mockPath);
-    setImages(generateMockImages(500));
-    setSelectedIndex(0);
-    setThumbnailProgress({ completed: 500, total: 500 });
+    try {
+      // フォルダ選択ダイアログを開く
+      const path = await selectFolder();
+      if (!path) return;
+
+      setIsLoading(true);
+      setFolderPath(path);
+
+      // バックエンドでフォルダを開く
+      const result = await openFolder(path);
+
+      // セッション情報を保存
+      sessionRef.current = {
+        id: result.session_id,
+        cacheDir: result.cache_dir,
+      };
+
+      // ラベル情報をマップに変換
+      const labelsMap = new Map<string, LabelStatus>();
+      result.labels.forEach((l) => {
+        if (l.label === 'rejected') {
+          labelsMap.set(l.filename, 'rejected');
+        }
+      });
+
+      // 画像情報をImageItemに変換
+      const imageItems = result.images.map((info, index) =>
+        toImageItem(info, index, labelsMap, result.cache_dir)
+      );
+
+      setImages(imageItems);
+      setSelectedIndex(result.last_selected_index);
+      setThumbnailProgress({ completed: 0, total: result.images.length });
+    } catch (error) {
+      console.error('Failed to open folder:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   const handleExport = useCallback(async (destinationPath: string) => {
-    // TODO: Tauri APIでファイルコピー実装
-    console.log('Exporting to:', destinationPath);
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // 模擬遅延
-  }, []);
+    if (!folderPath) return;
+
+    const result = await exportAdopted(folderPath, destinationPath);
+    console.log('Export result:', result);
+  }, [folderPath]);
 
   const handleSelectExportFolder = useCallback(async (): Promise<string | null> => {
-    // TODO: Tauri dialog APIを使用
-    return 'D:/Photos/2024-12-Stage-Selected';
+    return await selectExportFolder();
   }, []);
 
   // キーボードナビゲーション
@@ -124,7 +212,14 @@ export default function App() {
         onExport={() => setShowExportDialog(true)}
       />
 
-      {images.length === 0 ? (
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-white/50">
+            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p>読み込み中...</p>
+          </div>
+        </div>
+      ) : images.length === 0 ? (
         <EmptyState onOpenFolder={handleOpenFolder} />
       ) : (
         <ThumbnailGrid
