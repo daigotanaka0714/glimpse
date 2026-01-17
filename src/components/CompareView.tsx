@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ImageItem } from '@/types';
+import { toAssetUrl } from '@/utils/tauri';
 
 interface CompareViewProps {
   leftItem: ImageItem;
@@ -126,7 +127,7 @@ function ComparePanel({
             </div>
           )}
           <img
-            src={`asset://localhost/${item.path}`}
+            src={toAssetUrl(item.path)}
             alt={item.filename}
             className={`
               max-w-full max-h-[calc(100vh-160px)] object-contain

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, Info, RotateCcw, RotateCw } from 'lucide-react';
 import type { ImageItem } from '@/types';
-import { getExif, type ExifInfo } from '@/utils/tauri';
+import { getExif, toAssetUrl, type ExifInfo } from '@/utils/tauri';
 
 interface DetailViewProps {
   item: ImageItem;
@@ -76,7 +76,7 @@ export function DetailView({
             </div>
           )}
           <img
-            src={`asset://localhost/${item.path}`}
+            src={toAssetUrl(item.path)}
             alt={item.filename}
             className={`
               max-w-full max-h-[calc(100vh-120px)] object-contain

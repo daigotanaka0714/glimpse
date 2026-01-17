@@ -1,7 +1,12 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import type { ImageItem, LabelStatus } from '@/types';
+
+// ファイルパスをasset URLに変換（クロスプラットフォーム対応）
+export function toAssetUrl(filePath: string): string {
+  return convertFileSrc(filePath);
+}
 
 export interface ImageInfo {
   filename: string;

@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { X } from 'lucide-react';
 import type { ImageItem } from '@/types';
+import { toAssetUrl } from '@/utils/tauri';
 
 interface ThumbnailItemProps {
   item: ImageItem;
@@ -35,7 +36,7 @@ export const ThumbnailItem = memo(function ThumbnailItem({
       {/* サムネイル画像 */}
       {item.thumbnailLoaded && item.thumbnailPath ? (
         <img
-          src={`asset://localhost/${item.thumbnailPath}`}
+          src={toAssetUrl(item.thumbnailPath)}
           alt={item.filename}
           className={`
             w-full h-full object-cover rounded-lg
