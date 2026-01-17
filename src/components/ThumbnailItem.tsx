@@ -43,6 +43,13 @@ export const ThumbnailItem = memo(function ThumbnailItem({
             ${isRejected ? 'opacity-40' : ''}
           `}
           loading="lazy"
+          onError={() => {
+            console.error('Thumbnail load error:', {
+              originalPath: item.thumbnailPath,
+              assetUrl: item.thumbnailPath ? toAssetUrl(item.thumbnailPath) : 'undefined',
+              filename: item.filename,
+            });
+          }}
         />
       ) : (
         <div className="w-full h-full rounded-lg thumbnail-loading" />
