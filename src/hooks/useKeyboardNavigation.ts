@@ -15,6 +15,7 @@ interface UseKeyboardNavigationProps {
   onExitDetail: () => void;
   onEnterCompare?: () => void;
   onExitCompare?: () => void;
+  onClearSelection?: () => void;
   onOpenFolder: () => void;
   onExport: () => void;
 }
@@ -33,6 +34,7 @@ export function useKeyboardNavigation({
   onExitDetail,
   onEnterCompare,
   onExitCompare,
+  onClearSelection,
   onOpenFolder,
   onExport,
 }: UseKeyboardNavigationProps) {
@@ -130,6 +132,11 @@ export function useKeyboardNavigation({
       const { columns } = gridConfig;
 
       switch (e.key) {
+        case 'Escape':
+          e.preventDefault();
+          onClearSelection?.();
+          break;
+
         case 'ArrowLeft':
           e.preventDefault();
           if (selectedIndex > 0) {
@@ -218,6 +225,7 @@ export function useKeyboardNavigation({
       onExitDetail,
       onEnterCompare,
       onExitCompare,
+      onClearSelection,
       onOpenFolder,
       onExport,
     ]

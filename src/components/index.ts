@@ -7,3 +7,4 @@ export { CompareView } from './CompareView';
 export { StatusBar } from './StatusBar';
 export { EmptyState } from './EmptyState';
 export { ExportDialog } from './ExportDialog';
+export { BatchActionBar } from './BatchActionBar';

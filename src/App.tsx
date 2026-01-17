@@ -8,6 +8,7 @@ import {
   StatusBar,
   EmptyState,
   ExportDialog,
+  BatchActionBar,
 } from '@/components';
 import { useKeyboardNavigation, useGridConfig, useDragAndDrop } from '@/hooks';
 import type { ImageItem, LabelStatus, FilterMode, ThemeMode } from '@/types';
@@ -242,6 +243,121 @@ export default function App() {
     }
   }, [selectedIndex, selectedIndices, filteredImages]);
 
+  // 一括で不採用ラベルを設定
+  const handleBatchMarkRejected = useCallback(async () => {
+    if (selectedIndices.size === 0) return;
+
+    const indicesToMark = Array.from(selectedIndices);
+
+    // UI即時更新
+    setImages((prev) =>
+      prev.map((img) => {
+        const filteredIndex = filteredImages.findIndex(fi => fi.filename === img.filename);
+        if (indicesToMark.includes(filteredIndex)) {
+          return { ...img, label: 'rejected' };
+        }
+        return img;
+      })
+    );
+
+    // バックエンドに保存
+    try {
+      for (const idx of indicesToMark) {
+        const img = filteredImages[idx];
+        if (img) {
+          await setLabelApi(img.filename, 'rejected');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to set labels:', error);
+    }
+  }, [selectedIndices, filteredImages]);
+
+  // 一括で不採用ラベルを解除
+  const handleBatchRemoveRejected = useCallback(async () => {
+    if (selectedIndices.size === 0) return;
+
+    const indicesToMark = Array.from(selectedIndices);
+
+    // UI即時更新
+    setImages((prev) =>
+      prev.map((img) => {
+        const filteredIndex = filteredImages.findIndex(fi => fi.filename === img.filename);
+        if (indicesToMark.includes(filteredIndex)) {
+          return { ...img, label: null };
+        }
+        return img;
+      })
+    );
+
+    // バックエンドに保存
+    try {
+      for (const idx of indicesToMark) {
+        const img = filteredImages[idx];
+        if (img) {
+          await setLabelApi(img.filename, null);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to remove labels:', error);
+    }
+  }, [selectedIndices, filteredImages]);
+
+  // フィルター中の全画像に不採用ラベルを設定
+  const handleBatchMarkAllRejected = useCallback(async () => {
+    if (filteredImages.length === 0) return;
+
+    // UI即時更新
+    const filteredFilenames = new Set(filteredImages.map(fi => fi.filename));
+    setImages((prev) =>
+      prev.map((img) => {
+        if (filteredFilenames.has(img.filename)) {
+          return { ...img, label: 'rejected' };
+        }
+        return img;
+      })
+    );
+
+    // バックエンドに保存
+    try {
+      for (const img of filteredImages) {
+        await setLabelApi(img.filename, 'rejected');
+      }
+    } catch (error) {
+      console.error('Failed to set labels:', error);
+    }
+  }, [filteredImages]);
+
+  // フィルター中の全画像から不採用ラベルを解除
+  const handleBatchRemoveAllRejected = useCallback(async () => {
+    if (filteredImages.length === 0) return;
+
+    // UI即時更新
+    const filteredFilenames = new Set(filteredImages.map(fi => fi.filename));
+    setImages((prev) =>
+      prev.map((img) => {
+        if (filteredFilenames.has(img.filename)) {
+          return { ...img, label: null };
+        }
+        return img;
+      })
+    );
+
+    // バックエンドに保存
+    try {
+      for (const img of filteredImages) {
+        await setLabelApi(img.filename, null);
+      }
+    } catch (error) {
+      console.error('Failed to remove labels:', error);
+    }
+  }, [filteredImages]);
+
+  // 選択をクリア
+  const handleClearSelection = useCallback(() => {
+    setSelectedIndices(new Set());
+  }, []);
+
   const handleEnterDetail = useCallback(() => {
     if (filteredImages.length > 0) {
       setViewMode('detail');
@@ -364,6 +480,7 @@ export default function App() {
     onExitDetail: handleExitDetail,
     onEnterCompare: handleEnterCompare,
     onExitCompare: handleExitCompare,
+    onClearSelection: handleClearSelection,
     onOpenFolder: handleOpenFolder,
     onExport: () => setShowExportDialog(true),
   });
@@ -397,6 +514,18 @@ export default function App() {
           }}
         />
       )}
+
+      {/* 複数選択時のバッチアクションバー */}
+      <BatchActionBar
+        selectedCount={selectedIndices.size}
+        filteredCount={filteredImages.length}
+        filterMode={filterMode}
+        onMarkRejected={handleBatchMarkRejected}
+        onRemoveRejected={handleBatchRemoveRejected}
+        onMarkAllRejected={handleBatchMarkAllRejected}
+        onRemoveAllRejected={handleBatchRemoveAllRejected}
+        onClearSelection={handleClearSelection}
+      />
 
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">

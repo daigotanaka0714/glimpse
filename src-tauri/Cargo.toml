@@ -1,6 +1,6 @@
 [package]
 name = "glimpse"
-version = "0.1.5"
+version = "0.1.6"
 description = "High-speed photo checker for stage photography"
 authors = ["Daigo"]
 license = "MIT"
