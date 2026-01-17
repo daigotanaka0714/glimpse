@@ -26,3 +26,6 @@ src-tauri/Cargo.lock
 *.njsproj
 *.sln
 *.sw?
+
+# Internal design documents
+DESIGN.md
