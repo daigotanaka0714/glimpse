@@ -73,6 +73,19 @@ Download the latest release from the [Releases](https://github.com/daigotanaka07
 - **macOS**: `Glimpse_x.x.x_aarch64.dmg` (Apple Silicon) or `Glimpse_x.x.x_x64.dmg` (Intel)
 - **Windows**: `Glimpse_x.x.x_x64-setup.exe`
 
+#### macOS Note
+
+Since the app is not code-signed, macOS Gatekeeper may prevent it from opening. To run the app:
+
+1. Open the DMG file and drag Glimpse to your Applications folder
+2. Right-click (or Control-click) on Glimpse.app and select "Open"
+3. Click "Open" in the security dialog
+
+Alternatively, you can remove the quarantine attribute via Terminal:
+```bash
+xattr -cr /Applications/Glimpse.app
+```
+
 ### Build from Source
 
 #### Prerequisites

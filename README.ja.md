@@ -74,6 +74,19 @@
 - **macOS**: `Glimpse_x.x.x_aarch64.dmg`（Apple Silicon）または `Glimpse_x.x.x_x64.dmg`（Intel）
 - **Windows**: `Glimpse_x.x.x_x64-setup.exe`
 
+#### macOS の注意事項
+
+アプリはコード署名されていないため、macOS Gatekeeper によって起動がブロックされる場合があります。以下の手順でアプリを起動できます：
+
+1. DMGファイルを開き、GlimpseをApplicationsフォルダにドラッグ
+2. Glimpse.appを右クリック（またはControlキーを押しながらクリック）し、「開く」を選択
+3. セキュリティダイアログで「開く」をクリック
+
+または、ターミナルで検疫属性を削除することもできます：
+```bash
+xattr -cr /Applications/Glimpse.app
+```
+
 ### ソースからビルド
 
 #### 必要な環境

@@ -41,6 +41,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "macOS": {
+      "minimumSystemVersion": "10.15",
+      "entitlements": "entitlements.plist",
+      "exceptionDomain": null
+    },
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper"
