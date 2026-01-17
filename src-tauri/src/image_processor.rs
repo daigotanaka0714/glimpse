@@ -1,6 +1,9 @@
 use crate::error::{GlimpseError, Result};
+use exif::{In, Reader, Tag};
 use image::{DynamicImage, ImageFormat};
 use rayon::prelude::*;
+use std::fs::File;
+use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 
@@ -20,6 +23,107 @@ pub struct ThumbnailResult {
     pub thumbnail_path: String,
     pub success: bool,
     pub error: Option<String>,
+}
+
+/// EXIF情報
+#[derive(Debug, Clone, serde::Serialize, Default)]
+pub struct ExifInfo {
+    pub camera_make: Option<String>,
+    pub camera_model: Option<String>,
+    pub lens_model: Option<String>,
+    pub focal_length: Option<String>,
+    pub aperture: Option<String>,
+    pub shutter_speed: Option<String>,
+    pub iso: Option<String>,
+    pub exposure_compensation: Option<String>,
+    pub date_taken: Option<String>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub orientation: Option<u16>,
+}
+
+/// 画像からEXIF情報を抽出
+pub fn extract_exif(image_path: &Path) -> Result<ExifInfo> {
+    let file = File::open(image_path)?;
+    let mut bufreader = BufReader::new(file);
+
+    let exif = Reader::new()
+        .read_from_container(&mut bufreader)
+        .map_err(|e| GlimpseError::ExifError(e.to_string()))?;
+
+    let mut info = ExifInfo::default();
+
+    // カメラメーカー
+    if let Some(field) = exif.get_field(Tag::Make, In::PRIMARY) {
+        info.camera_make = Some(field.display_value().to_string().trim_matches('"').to_string());
+    }
+
+    // カメラモデル
+    if let Some(field) = exif.get_field(Tag::Model, In::PRIMARY) {
+        info.camera_model = Some(field.display_value().to_string().trim_matches('"').to_string());
+    }
+
+    // レンズモデル
+    if let Some(field) = exif.get_field(Tag::LensModel, In::PRIMARY) {
+        info.lens_model = Some(field.display_value().to_string().trim_matches('"').to_string());
+    }
+
+    // 焦点距離
+    if let Some(field) = exif.get_field(Tag::FocalLength, In::PRIMARY) {
+        info.focal_length = Some(field.display_value().to_string());
+    }
+
+    // 絞り値
+    if let Some(field) = exif.get_field(Tag::FNumber, In::PRIMARY) {
+        info.aperture = Some(format!("f/{}", field.display_value()));
+    }
+
+    // シャッタースピード
+    if let Some(field) = exif.get_field(Tag::ExposureTime, In::PRIMARY) {
+        info.shutter_speed = Some(format!("{}s", field.display_value()));
+    }
+
+    // ISO感度
+    if let Some(field) = exif.get_field(Tag::PhotographicSensitivity, In::PRIMARY) {
+        info.iso = Some(format!("ISO {}", field.display_value()));
+    }
+
+    // 露出補正
+    if let Some(field) = exif.get_field(Tag::ExposureBiasValue, In::PRIMARY) {
+        info.exposure_compensation = Some(format!("{} EV", field.display_value()));
+    }
+
+    // 撮影日時
+    if let Some(field) = exif.get_field(Tag::DateTimeOriginal, In::PRIMARY) {
+        info.date_taken = Some(field.display_value().to_string().trim_matches('"').to_string());
+    }
+
+    // 画像サイズ
+    if let Some(field) = exif.get_field(Tag::PixelXDimension, In::PRIMARY) {
+        if let exif::Value::Long(ref v) = field.value {
+            if !v.is_empty() {
+                info.width = Some(v[0]);
+            }
+        }
+    }
+    if let Some(field) = exif.get_field(Tag::PixelYDimension, In::PRIMARY) {
+        if let exif::Value::Long(ref v) = field.value {
+            if !v.is_empty() {
+                info.height = Some(v[0]);
+            }
+        }
+    }
+
+    // 回転情報
+    if let Some(field) = exif.get_field(Tag::Orientation, In::PRIMARY) {
+        if let exif::Value::Short(ref v) = field.value {
+            if !v.is_empty() {
+                info.orientation = Some(v[0]);
+            }
+        }
+    }
+
+    Ok(info)
 }
 
 /// フォルダ内の画像ファイルをスキャン

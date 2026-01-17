@@ -1,7 +1,8 @@
 use crate::database::{Database, Label, Session};
 use crate::error::Result;
 use crate::image_processor::{
-    generate_session_id, generate_thumbnails_parallel, get_cache_dir, scan_folder, ImageInfo,
+    extract_exif, generate_session_id, generate_thumbnails_parallel, get_cache_dir, scan_folder,
+    ExifInfo, ImageInfo,
 };
 use std::path::Path;
 use std::sync::Mutex;
@@ -153,6 +154,7 @@ pub async fn export_adopted(
     state: State<'_, AppState>,
     source_folder: String,
     destination_folder: String,
+    mode: String,
 ) -> std::result::Result<ExportResult, String> {
     let session_id = {
         let current = state.current_session_id.lock().unwrap();
@@ -176,16 +178,25 @@ pub async fn export_adopted(
     // 出力先フォルダを作成
     std::fs::create_dir_all(&destination_folder).map_err(|e| e.to_string())?;
 
+    let is_move = mode == "move";
     let mut copied = 0;
     let mut failed = 0;
 
     for image in &images {
-        // 不採用でない場合のみコピー
+        // 不採用でない場合のみエクスポート
         if !rejected_files.contains(&image.filename) {
             let src = Path::new(&image.path);
             let dst = Path::new(&destination_folder).join(&image.filename);
 
-            match std::fs::copy(src, dst) {
+            let result = if is_move {
+                // 移動モード: まずコピーしてから元ファイルを削除
+                std::fs::copy(&src, &dst).and_then(|_| std::fs::remove_file(&src))
+            } else {
+                // コピーモード
+                std::fs::copy(&src, &dst).map(|_| ())
+            };
+
+            match result {
                 Ok(_) => copied += 1,
                 Err(_) => failed += 1,
             }
@@ -206,4 +217,10 @@ pub struct ExportResult {
     copied: usize,
     skipped: usize,
     failed: usize,
+}
+
+/// EXIF情報を取得
+#[tauri::command]
+pub fn get_exif(image_path: String) -> std::result::Result<ExifInfo, String> {
+    extract_exif(std::path::Path::new(&image_path)).map_err(|e| e.to_string())
 }

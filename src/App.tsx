@@ -4,6 +4,7 @@ import {
   Toolbar,
   ThumbnailGrid,
   DetailView,
+  CompareView,
   StatusBar,
   EmptyState,
   ExportDialog,
@@ -28,7 +29,8 @@ export default function App() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
-  const [viewMode, setViewMode] = useState<'grid' | 'detail'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'detail' | 'compare'>('grid');
+  const [compareIndex, setCompareIndex] = useState(1); // 比較モード用の2枚目インデックス
   const [folderPath, setFolderPath] = useState<string | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [thumbnailProgress, setThumbnailProgress] = useState({
@@ -249,6 +251,61 @@ export default function App() {
     setViewMode('grid');
   }, []);
 
+  // 比較モード
+  const handleEnterCompare = useCallback(() => {
+    if (filteredImages.length >= 2) {
+      // 複数選択されている場合はその2枚を比較
+      if (selectedIndices.size >= 2) {
+        const indices = Array.from(selectedIndices).sort((a, b) => a - b);
+        setSelectedIndex(indices[0]);
+        setCompareIndex(indices[1]);
+      } else {
+        // 単一選択の場合は次の画像と比較
+        const nextIndex = selectedIndex < filteredImages.length - 1 ? selectedIndex + 1 : 0;
+        setCompareIndex(nextIndex);
+      }
+      setViewMode('compare');
+    }
+  }, [filteredImages.length, selectedIndex, selectedIndices]);
+
+  const handleExitCompare = useCallback(() => {
+    setViewMode('grid');
+  }, []);
+
+  const handleToggleLabelCompareLeft = useCallback(async () => {
+    const img = filteredImages[selectedIndex];
+    if (!img) return;
+
+    const newLabel: LabelStatus = img.label === 'rejected' ? null : 'rejected';
+
+    setImages((prev) =>
+      prev.map((i) => i.filename === img.filename ? { ...i, label: newLabel } : i)
+    );
+
+    try {
+      await setLabelApi(img.filename, newLabel);
+    } catch (error) {
+      console.error('Failed to set label:', error);
+    }
+  }, [filteredImages, selectedIndex]);
+
+  const handleToggleLabelCompareRight = useCallback(async () => {
+    const img = filteredImages[compareIndex];
+    if (!img) return;
+
+    const newLabel: LabelStatus = img.label === 'rejected' ? null : 'rejected';
+
+    setImages((prev) =>
+      prev.map((i) => i.filename === img.filename ? { ...i, label: newLabel } : i)
+    );
+
+    try {
+      await setLabelApi(img.filename, newLabel);
+    } catch (error) {
+      console.error('Failed to set label:', error);
+    }
+  }, [filteredImages, compareIndex]);
+
   const handleOpenFolder = useCallback(async () => {
     try {
       // フォルダ選択ダイアログを開く
@@ -261,10 +318,10 @@ export default function App() {
     }
   }, [handleOpenFolderByPath]);
 
-  const handleExport = useCallback(async (destinationPath: string) => {
+  const handleExport = useCallback(async (options: { destinationPath: string; mode: 'copy' | 'move' }) => {
     if (!folderPath) return;
 
-    const result = await exportAdopted(folderPath, destinationPath);
+    const result = await exportAdopted(folderPath, options.destinationPath, options.mode);
     console.log('Export result:', result);
   }, [folderPath]);
 
@@ -276,12 +333,17 @@ export default function App() {
   useKeyboardNavigation({
     totalItems: filteredImages.length,
     selectedIndex,
+    compareIndex,
     gridConfig,
     viewMode,
     onSelect: handleSelect,
+    onSelectCompare: setCompareIndex,
     onToggleLabel: handleToggleLabel,
+    onToggleLabelCompare: handleToggleLabelCompareRight,
     onEnterDetail: handleEnterDetail,
     onExitDetail: handleExitDetail,
+    onEnterCompare: handleEnterCompare,
+    onExitCompare: handleExitCompare,
     onOpenFolder: handleOpenFolder,
     onExport: () => setShowExportDialog(true),
   });
@@ -361,6 +423,19 @@ export default function App() {
             selectedIndex < filteredImages.length - 1 && handleSelect(selectedIndex + 1)
           }
           onToggleLabel={handleToggleLabel}
+        />
+      )}
+
+      {viewMode === 'compare' && filteredImages[selectedIndex] && filteredImages[compareIndex] && (
+        <CompareView
+          leftItem={filteredImages[selectedIndex]}
+          rightItem={filteredImages[compareIndex]}
+          totalItems={filteredImages.length}
+          onClose={handleExitCompare}
+          onSelectLeft={(index) => setSelectedIndex(index)}
+          onSelectRight={(index) => setCompareIndex(index)}
+          onToggleLabelLeft={handleToggleLabelCompareLeft}
+          onToggleLabelRight={handleToggleLabelCompareRight}
         />
       )}
 

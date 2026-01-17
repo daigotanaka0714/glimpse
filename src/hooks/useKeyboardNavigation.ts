@@ -4,12 +4,17 @@ import type { GridConfig } from '@/types';
 interface UseKeyboardNavigationProps {
   totalItems: number;
   selectedIndex: number;
+  compareIndex?: number;
   gridConfig: GridConfig;
-  viewMode: 'grid' | 'detail';
+  viewMode: 'grid' | 'detail' | 'compare';
   onSelect: (index: number) => void;
+  onSelectCompare?: (index: number) => void;
   onToggleLabel: () => void;
+  onToggleLabelCompare?: () => void;
   onEnterDetail: () => void;
   onExitDetail: () => void;
+  onEnterCompare?: () => void;
+  onExitCompare?: () => void;
   onOpenFolder: () => void;
   onExport: () => void;
 }
@@ -17,12 +22,17 @@ interface UseKeyboardNavigationProps {
 export function useKeyboardNavigation({
   totalItems,
   selectedIndex,
+  compareIndex = 0,
   gridConfig,
   viewMode,
   onSelect,
+  onSelectCompare,
   onToggleLabel,
+  onToggleLabelCompare,
   onEnterDetail,
   onExitDetail,
+  onEnterCompare,
+  onExitCompare,
   onOpenFolder,
   onExport,
 }: UseKeyboardNavigationProps) {
@@ -64,6 +74,53 @@ export function useKeyboardNavigation({
           case '1':
             e.preventDefault();
             onToggleLabel();
+            return;
+        }
+        return;
+      }
+
+      // 比較モード時
+      if (viewMode === 'compare') {
+        switch (e.key) {
+          case 'Escape':
+            e.preventDefault();
+            onExitCompare?.();
+            return;
+          case 'ArrowLeft':
+            e.preventDefault();
+            if (e.shiftKey) {
+              // Shift+左矢印: 右画像を前に移動
+              if (compareIndex > 0 && onSelectCompare) {
+                onSelectCompare(compareIndex - 1);
+              }
+            } else {
+              // 左矢印: 左画像を前に移動
+              if (selectedIndex > 0) {
+                onSelect(selectedIndex - 1);
+              }
+            }
+            return;
+          case 'ArrowRight':
+            e.preventDefault();
+            if (e.shiftKey) {
+              // Shift+右矢印: 右画像を次に移動
+              if (compareIndex < totalItems - 1 && onSelectCompare) {
+                onSelectCompare(compareIndex + 1);
+              }
+            } else {
+              // 右矢印: 左画像を次に移動
+              if (selectedIndex < totalItems - 1) {
+                onSelect(selectedIndex + 1);
+              }
+            }
+            return;
+          case '1':
+            e.preventDefault();
+            onToggleLabel();
+            return;
+          case '2':
+            e.preventDefault();
+            onToggleLabelCompare?.();
             return;
         }
         return;
@@ -139,17 +196,28 @@ export function useKeyboardNavigation({
             onSelect(Math.min(totalItems - 1, selectedIndex + pageSize));
           }
           break;
+
+        case 'c':
+        case 'C':
+          e.preventDefault();
+          onEnterCompare?.();
+          break;
       }
     },
     [
       totalItems,
       selectedIndex,
+      compareIndex,
       gridConfig,
       viewMode,
       onSelect,
+      onSelectCompare,
       onToggleLabel,
+      onToggleLabelCompare,
       onEnterDetail,
       onExitDetail,
+      onEnterCompare,
+      onExitCompare,
       onOpenFolder,
       onExport,
     ]

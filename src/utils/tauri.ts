@@ -42,6 +42,21 @@ export interface ExportResult {
   failed: number;
 }
 
+export interface ExifInfo {
+  camera_make: string | null;
+  camera_model: string | null;
+  lens_model: string | null;
+  focal_length: string | null;
+  aperture: string | null;
+  shutter_speed: string | null;
+  iso: string | null;
+  exposure_compensation: string | null;
+  date_taken: string | null;
+  width: number | null;
+  height: number | null;
+  orientation: number | null;
+}
+
 // フォルダ選択ダイアログを開く
 export async function selectFolder(): Promise<string | null> {
   const selected = await openDialog({
@@ -76,9 +91,10 @@ export async function saveSelection(index: number): Promise<void> {
 // エクスポート
 export async function exportAdopted(
   sourceFolder: string,
-  destinationFolder: string
+  destinationFolder: string,
+  mode: 'copy' | 'move' = 'copy'
 ): Promise<ExportResult> {
-  return await invoke('export_adopted', { sourceFolder, destinationFolder });
+  return await invoke('export_adopted', { sourceFolder, destinationFolder, mode });
 }
 
 // エクスポート先フォルダ選択
@@ -89,6 +105,11 @@ export async function selectExportFolder(): Promise<string | null> {
     title: 'エクスポート先フォルダを選択',
   });
   return selected as string | null;
+}
+
+// EXIF情報を取得
+export async function getExif(imagePath: string): Promise<ExifInfo> {
+  return await invoke('get_exif', { imagePath });
 }
 
 // サムネイル進捗イベントをリッスン

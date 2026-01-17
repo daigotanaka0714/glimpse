@@ -1,10 +1,17 @@
 import { useState } from 'react';
-import { X, FolderOutput, Loader2, Check } from 'lucide-react';
+import { X, FolderOutput, Loader2, Check, Copy, Scissors } from 'lucide-react';
+
+export type ExportMode = 'copy' | 'move';
+
+export interface ExportOptions {
+  destinationPath: string;
+  mode: ExportMode;
+}
 
 interface ExportDialogProps {
   adoptedCount: number;
   rejectedCount: number;
-  onExport: (destinationPath: string) => Promise<void>;
+  onExport: (options: ExportOptions) => Promise<void>;
   onClose: () => void;
   onSelectFolder: () => Promise<string | null>;
 }
@@ -17,6 +24,7 @@ export function ExportDialog({
   onSelectFolder,
 }: ExportDialogProps) {
   const [destinationPath, setDestinationPath] = useState<string>('');
+  const [exportMode, setExportMode] = useState<ExportMode>('copy');
   const [isExporting, setIsExporting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +47,7 @@ export function ExportDialog({
     setError(null);
 
     try {
-      await onExport(destinationPath);
+      await onExport({ destinationPath, mode: exportMode });
       setIsComplete(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'エクスポートに失敗しました');
@@ -97,6 +105,49 @@ export function ExportDialog({
                 <FolderOutput size={18} />
               </button>
             </div>
+          </div>
+
+          {/* エクスポートモード選択 */}
+          <div>
+            <label className="block text-sm text-white/70 mb-2">
+              エクスポート方法
+            </label>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setExportMode('copy')}
+                disabled={isExporting}
+                className={`
+                  flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-colors
+                  ${exportMode === 'copy'
+                    ? 'bg-accent/20 border-accent text-accent'
+                    : 'bg-bg-tertiary border-white/10 text-white/70 hover:bg-white/10'
+                  }
+                `}
+              >
+                <Copy size={18} />
+                <span className="text-sm font-medium">コピー</span>
+              </button>
+              <button
+                onClick={() => setExportMode('move')}
+                disabled={isExporting}
+                className={`
+                  flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-colors
+                  ${exportMode === 'move'
+                    ? 'bg-accent/20 border-accent text-accent'
+                    : 'bg-bg-tertiary border-white/10 text-white/70 hover:bg-white/10'
+                  }
+                `}
+              >
+                <Scissors size={18} />
+                <span className="text-sm font-medium">移動</span>
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-white/50">
+              {exportMode === 'copy'
+                ? '元のファイルは変更されません'
+                : '元のファイルは削除されます（注意: 元に戻せません）'
+              }
+            </p>
           </div>
 
           {/* エラーメッセージ */}

@@ -33,6 +33,9 @@ rayon = "1.10"
 # データベース
 rusqlite = { version = "0.32", features = ["bundled"] }
 
+# EXIF情報
+kamadak-exif = "0.5"
+
 # ユーティリティ
 sha2 = "0.10"
 hex = "0.4"

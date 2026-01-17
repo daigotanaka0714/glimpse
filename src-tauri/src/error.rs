@@ -14,6 +14,9 @@ pub enum GlimpseError {
     #[error("RAW processing error: {0}")]
     RawProcessing(String),
 
+    #[error("EXIF error: {0}")]
+    ExifError(String),
+
     #[error("Session not found")]
     SessionNotFound,
 
