@@ -62,3 +62,16 @@ export interface GridConfig {
   thumbnailSize: number;
   gap: number;
 }
+
+// フィルター設定
+export type FilterMode = 'all' | 'adopted' | 'rejected';
+
+// テーマ設定
+export type ThemeMode = 'dark' | 'light';
+
+// 選択状態
+export interface SelectionState {
+  selectedIndices: Set<number>;
+  lastSelectedIndex: number;
+  isMultiSelectMode: boolean;
+}

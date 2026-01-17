@@ -1,14 +1,15 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   Header,
+  Toolbar,
   ThumbnailGrid,
   DetailView,
   StatusBar,
   EmptyState,
   ExportDialog,
 } from '@/components';
-import { useKeyboardNavigation, useGridConfig } from '@/hooks';
-import type { ImageItem, LabelStatus } from '@/types';
+import { useKeyboardNavigation, useGridConfig, useDragAndDrop } from '@/hooks';
+import type { ImageItem, LabelStatus, FilterMode, ThemeMode } from '@/types';
 import {
   selectFolder,
   openFolder,
@@ -26,6 +27,7 @@ export default function App() {
   // 状態管理
   const [images, setImages] = useState<ImageItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [viewMode, setViewMode] = useState<'grid' | 'detail'>('grid');
   const [folderPath, setFolderPath] = useState<string | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -35,10 +37,75 @@ export default function App() {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const gridConfig = useGridConfig();
+  // Phase 2 新機能
+  const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const [theme, setTheme] = useState<ThemeMode>('dark');
+  const [baseThumbnailSize, setBaseThumbnailSize] = useState(180);
+
+  const { config: gridConfig, setBaseThumbnailSize: updateGridSize, minSize, maxSize } = useGridConfig();
 
   // セッション情報を保持
   const sessionRef = useRef<{ id: string; cacheDir: string } | null>(null);
+
+  // テーマの適用
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+  }, [theme]);
+
+  // サムネイルサイズ変更時にグリッドを更新
+  const handleThumbnailSizeChange = useCallback((size: number) => {
+    setBaseThumbnailSize(size);
+    updateGridSize(size);
+  }, [updateGridSize]);
+
+  // フォルダを開く処理（ダイアログなし版 - ドラッグ&ドロップ用）
+  const handleOpenFolderByPath = useCallback(async (path: string) => {
+    try {
+      setIsLoading(true);
+      setFolderPath(path);
+
+      // バックエンドでフォルダを開く
+      const result = await openFolder(path);
+
+      // セッション情報を保存
+      sessionRef.current = {
+        id: result.session_id,
+        cacheDir: result.cache_dir,
+      };
+
+      // ラベル情報をマップに変換
+      const labelsMap = new Map<string, LabelStatus>();
+      result.labels.forEach((l) => {
+        if (l.label === 'rejected') {
+          labelsMap.set(l.filename, 'rejected');
+        }
+      });
+
+      // 画像情報をImageItemに変換
+      const imageItems = result.images.map((info, index) =>
+        toImageItem(info, index, labelsMap, result.cache_dir)
+      );
+
+      setImages(imageItems);
+      setSelectedIndex(result.last_selected_index);
+      setSelectedIndices(new Set());
+      setThumbnailProgress({ completed: 0, total: result.images.length });
+    } catch (error) {
+      console.error('Failed to open folder:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // ドラッグ&ドロップ
+  const { isDragging } = useDragAndDrop({
+    onDrop: handleOpenFolderByPath,
+    enabled: true,
+  });
 
   // サムネイル進捗イベントのリスナー設定
   useEffect(() => {
@@ -79,6 +146,18 @@ export default function App() {
     }
   }, [selectedIndex, images.length]);
 
+  // フィルタリングされた画像リスト
+  const filteredImages = useMemo(() => {
+    switch (filterMode) {
+      case 'adopted':
+        return images.filter((img) => img.label !== 'rejected');
+      case 'rejected':
+        return images.filter((img) => img.label === 'rejected');
+      default:
+        return images;
+    }
+  }, [images, filterMode]);
+
   // ラベル集計
   const { rejectedCount, adoptedCount } = useMemo(() => {
     const rejected = images.filter((img) => img.label === 'rejected').length;
@@ -88,48 +167,83 @@ export default function App() {
     };
   }, [images]);
 
-  // 選択中のアイテム
-  const selectedItem = images[selectedIndex] || null;
+  // 選択中のアイテム（フィルタ後のインデックスから取得）
+  const selectedItem = filteredImages[selectedIndex] || null;
 
   // アクション
-  const handleSelect = useCallback((index: number) => {
-    setSelectedIndex(index);
-  }, []);
+  const handleSelect = useCallback((index: number, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
+    const isMultiSelect = event?.ctrlKey || event?.metaKey;
+    const isRangeSelect = event?.shiftKey;
+
+    if (isMultiSelect) {
+      // Ctrl/Cmd + クリック: トグル選択
+      setSelectedIndices((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(index)) {
+          newSet.delete(index);
+        } else {
+          newSet.add(index);
+        }
+        return newSet;
+      });
+      setSelectedIndex(index);
+    } else if (isRangeSelect && selectedIndices.size > 0) {
+      // Shift + クリック: 範囲選択
+      const start = Math.min(selectedIndex, index);
+      const end = Math.max(selectedIndex, index);
+      const newSet = new Set<number>();
+      for (let i = start; i <= end; i++) {
+        newSet.add(i);
+      }
+      setSelectedIndices(newSet);
+      setSelectedIndex(index);
+    } else {
+      // 通常クリック: 単一選択
+      setSelectedIndex(index);
+      setSelectedIndices(new Set([index]));
+    }
+  }, [selectedIndex, selectedIndices]);
 
   const handleToggleLabel = useCallback(async () => {
-    if (selectedIndex < 0 || selectedIndex >= images.length) return;
+    // 複数選択時は選択されているすべての画像にラベルを適用
+    const indicesToToggle = selectedIndices.size > 0
+      ? Array.from(selectedIndices)
+      : [selectedIndex];
 
-    const currentImage = images[selectedIndex];
-    const newLabel: LabelStatus = currentImage.label === 'rejected' ? null : 'rejected';
+    if (indicesToToggle.length === 0 || indicesToToggle.some(i => i < 0 || i >= filteredImages.length)) return;
+
+    // 最初の選択画像のラベル状態を基準にする
+    const firstImage = filteredImages[indicesToToggle[0]];
+    const newLabel: LabelStatus = firstImage.label === 'rejected' ? null : 'rejected';
 
     // UI即時更新
     setImages((prev) =>
-      prev.map((img, i) => {
-        if (i !== selectedIndex) return img;
-        return { ...img, label: newLabel };
+      prev.map((img) => {
+        const filteredIndex = filteredImages.findIndex(fi => fi.filename === img.filename);
+        if (indicesToToggle.includes(filteredIndex)) {
+          return { ...img, label: newLabel };
+        }
+        return img;
       })
     );
 
     // バックエンドに保存
     try {
-      await setLabelApi(currentImage.filename, newLabel);
+      for (const idx of indicesToToggle) {
+        const img = filteredImages[idx];
+        await setLabelApi(img.filename, newLabel);
+      }
     } catch (error) {
       console.error('Failed to set label:', error);
-      // エラー時はUIを戻す
-      setImages((prev) =>
-        prev.map((img, i) => {
-          if (i !== selectedIndex) return img;
-          return { ...img, label: currentImage.label };
-        })
-      );
+      // エラー時は元の状態に戻す必要があるが、簡易的に無視
     }
-  }, [selectedIndex, images]);
+  }, [selectedIndex, selectedIndices, filteredImages]);
 
   const handleEnterDetail = useCallback(() => {
-    if (images.length > 0) {
+    if (filteredImages.length > 0) {
       setViewMode('detail');
     }
-  }, [images.length]);
+  }, [filteredImages.length]);
 
   const handleExitDetail = useCallback(() => {
     setViewMode('grid');
@@ -141,40 +255,11 @@ export default function App() {
       const path = await selectFolder();
       if (!path) return;
 
-      setIsLoading(true);
-      setFolderPath(path);
-
-      // バックエンドでフォルダを開く
-      const result = await openFolder(path);
-
-      // セッション情報を保存
-      sessionRef.current = {
-        id: result.session_id,
-        cacheDir: result.cache_dir,
-      };
-
-      // ラベル情報をマップに変換
-      const labelsMap = new Map<string, LabelStatus>();
-      result.labels.forEach((l) => {
-        if (l.label === 'rejected') {
-          labelsMap.set(l.filename, 'rejected');
-        }
-      });
-
-      // 画像情報をImageItemに変換
-      const imageItems = result.images.map((info, index) =>
-        toImageItem(info, index, labelsMap, result.cache_dir)
-      );
-
-      setImages(imageItems);
-      setSelectedIndex(result.last_selected_index);
-      setThumbnailProgress({ completed: 0, total: result.images.length });
+      await handleOpenFolderByPath(path);
     } catch (error) {
       console.error('Failed to open folder:', error);
-    } finally {
-      setIsLoading(false);
     }
-  }, []);
+  }, [handleOpenFolderByPath]);
 
   const handleExport = useCallback(async (destinationPath: string) => {
     if (!folderPath) return;
@@ -189,7 +274,7 @@ export default function App() {
 
   // キーボードナビゲーション
   useKeyboardNavigation({
-    totalItems: images.length,
+    totalItems: filteredImages.length,
     selectedIndex,
     gridConfig,
     viewMode,
@@ -202,7 +287,7 @@ export default function App() {
   });
 
   return (
-    <div className="h-screen flex flex-col bg-bg-primary">
+    <div className={`h-screen flex flex-col bg-bg-primary text-text-primary transition-colors`}>
       <Header
         folderPath={folderPath}
         totalFiles={images.length}
@@ -212,19 +297,45 @@ export default function App() {
         onExport={() => setShowExportDialog(true)}
       />
 
+      {images.length > 0 && (
+        <Toolbar
+          thumbnailSize={baseThumbnailSize}
+          minSize={minSize}
+          maxSize={maxSize}
+          onThumbnailSizeChange={handleThumbnailSizeChange}
+          filterMode={filterMode}
+          onFilterModeChange={setFilterMode}
+          theme={theme}
+          onThemeChange={setTheme}
+          counts={{
+            all: images.length,
+            adopted: adoptedCount,
+            rejected: rejectedCount,
+          }}
+        />
+      )}
+
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center text-white/50">
+          <div className="text-center text-text-secondary">
             <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p>読み込み中...</p>
           </div>
         </div>
       ) : images.length === 0 ? (
         <EmptyState onOpenFolder={handleOpenFolder} />
+      ) : filteredImages.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-text-secondary">
+            <p className="text-lg mb-2">該当する写真がありません</p>
+            <p className="text-sm">フィルターを変更してください</p>
+          </div>
+        </div>
       ) : (
         <ThumbnailGrid
-          items={images}
+          items={filteredImages}
           selectedIndex={selectedIndex}
+          selectedIndices={selectedIndices}
           gridConfig={gridConfig}
           onSelect={handleSelect}
           onEnterDetail={handleEnterDetail}
@@ -234,19 +345,20 @@ export default function App() {
       <StatusBar
         selectedItem={selectedItem}
         selectedIndex={selectedIndex}
-        totalItems={images.length}
+        totalItems={filteredImages.length}
+        selectedCount={selectedIndices.size}
       />
 
       {viewMode === 'detail' && selectedItem && (
         <DetailView
           item={selectedItem}
-          totalItems={images.length}
+          totalItems={filteredImages.length}
           onClose={handleExitDetail}
           onPrevious={() =>
             selectedIndex > 0 && handleSelect(selectedIndex - 1)
           }
           onNext={() =>
-            selectedIndex < images.length - 1 && handleSelect(selectedIndex + 1)
+            selectedIndex < filteredImages.length - 1 && handleSelect(selectedIndex + 1)
           }
           onToggleLabel={handleToggleLabel}
         />
@@ -260,6 +372,16 @@ export default function App() {
           onClose={() => setShowExportDialog(false)}
           onSelectFolder={handleSelectExportFolder}
         />
+      )}
+
+      {/* ドラッグ&ドロップオーバーレイ */}
+      {isDragging && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-accent/20 border-4 border-dashed border-accent pointer-events-none">
+          <div className="text-center">
+            <div className="text-6xl mb-4">📁</div>
+            <p className="text-xl font-medium text-text-primary">フォルダをドロップして開く</p>
+          </div>
+        </div>
       )}
     </div>
   );

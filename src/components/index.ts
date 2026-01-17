@@ -1,4 +1,5 @@
 export { Header } from './Header';
+export { Toolbar } from './Toolbar';
 export { ThumbnailGrid } from './ThumbnailGrid';
 export { ThumbnailItem } from './ThumbnailItem';
 export { DetailView } from './DetailView';

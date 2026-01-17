@@ -1,11 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { GridConfig } from '@/types';
 
+const MIN_THUMBNAIL_SIZE = 100;
+const MAX_THUMBNAIL_SIZE = 300;
 const DEFAULT_THUMBNAIL_SIZE = 180;
 const GAP = 8;
 const PADDING = 16;
 
-export function useGridConfig(): GridConfig {
+interface UseGridConfigReturn {
+  config: GridConfig;
+  setBaseThumbnailSize: (size: number) => void;
+  minSize: number;
+  maxSize: number;
+}
+
+export function useGridConfig(): UseGridConfigReturn {
+  const [baseThumbnailSize, setBaseThumbnailSize] = useState(DEFAULT_THUMBNAIL_SIZE);
   const [config, setConfig] = useState<GridConfig>({
     columns: 16,
     thumbnailSize: DEFAULT_THUMBNAIL_SIZE,
@@ -15,7 +25,7 @@ export function useGridConfig(): GridConfig {
   const calculateGrid = useCallback(() => {
     const containerWidth = window.innerWidth - PADDING * 2;
     const columns = Math.floor(
-      (containerWidth + GAP) / (DEFAULT_THUMBNAIL_SIZE + GAP)
+      (containerWidth + GAP) / (baseThumbnailSize + GAP)
     );
     const actualColumns = Math.max(1, columns);
 
@@ -29,7 +39,7 @@ export function useGridConfig(): GridConfig {
       thumbnailSize,
       gap: GAP,
     });
-  }, []);
+  }, [baseThumbnailSize]);
 
   useEffect(() => {
     calculateGrid();
@@ -42,5 +52,10 @@ export function useGridConfig(): GridConfig {
     return () => window.removeEventListener('resize', handleResize);
   }, [calculateGrid]);
 
-  return config;
+  return {
+    config,
+    setBaseThumbnailSize,
+    minSize: MIN_THUMBNAIL_SIZE,
+    maxSize: MAX_THUMBNAIL_SIZE,
+  };
 }

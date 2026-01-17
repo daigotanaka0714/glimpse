@@ -6,14 +6,16 @@ import type { ImageItem, GridConfig } from '@/types';
 interface ThumbnailGridProps {
   items: ImageItem[];
   selectedIndex: number;
+  selectedIndices: Set<number>;
   gridConfig: GridConfig;
-  onSelect: (index: number) => void;
+  onSelect: (index: number, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => void;
   onEnterDetail: () => void;
 }
 
 export function ThumbnailGrid({
   items,
   selectedIndex,
+  selectedIndices,
   gridConfig,
   onSelect,
   onEnterDetail,
@@ -82,13 +84,16 @@ export function ThumbnailGrid({
               >
                 {rowItems.map((item, indexInRow) => {
                   const itemIndex = rowStartIndex + indexInRow;
+                  const isSelected = itemIndex === selectedIndex;
+                  const isMultiSelected = selectedIndices.has(itemIndex);
                   return (
                     <ThumbnailItem
                       key={item.filename}
                       item={item}
                       size={thumbnailSize}
-                      isSelected={itemIndex === selectedIndex}
-                      onClick={() => onSelect(itemIndex)}
+                      isSelected={isSelected}
+                      isMultiSelected={isMultiSelected}
+                      onClick={(event) => onSelect(itemIndex, event)}
                       onDoubleClick={onEnterDetail}
                     />
                   );

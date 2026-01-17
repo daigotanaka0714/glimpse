@@ -128,4 +128,56 @@ describe('ThumbnailItem', () => {
     expect(wrapper.style.width).toBe('200px');
     expect(wrapper.style.height).toBe('200px');
   });
+
+  it('should show selection ring when multi-selected', () => {
+    const { container } = render(
+      <ThumbnailItem
+        item={mockItem}
+        size={180}
+        isSelected={false}
+        isMultiSelected={true}
+        onClick={vi.fn()}
+        onDoubleClick={vi.fn()}
+      />
+    );
+
+    expect(container.querySelector('.ring-accent')).toBeInTheDocument();
+    expect(container.querySelector('.bg-accent')).toBeInTheDocument();
+  });
+
+  it('should show checkmark icon when multi-selected', () => {
+    const { container } = render(
+      <ThumbnailItem
+        item={mockItem}
+        size={180}
+        isSelected={false}
+        isMultiSelected={true}
+        onClick={vi.fn()}
+        onDoubleClick={vi.fn()}
+      />
+    );
+
+    expect(container.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('should pass click event to onClick handler', () => {
+    const handleClick = vi.fn();
+    render(
+      <ThumbnailItem
+        item={mockItem}
+        size={180}
+        isSelected={false}
+        onClick={handleClick}
+        onDoubleClick={vi.fn()}
+      />
+    );
+
+    const element = screen.getByRole('img').parentElement;
+    if (element) {
+      fireEvent.click(element, { ctrlKey: true });
+      expect(handleClick).toHaveBeenCalledTimes(1);
+      const callArg = handleClick.mock.calls[0][0];
+      expect(callArg.ctrlKey).toBe(true);
+    }
+  });
 });
