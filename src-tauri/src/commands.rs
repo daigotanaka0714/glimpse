@@ -224,3 +224,23 @@ pub struct ExportResult {
 pub fn get_exif(image_path: String) -> std::result::Result<ExifInfo, String> {
     extract_exif(std::path::Path::new(&image_path)).map_err(|e| e.to_string())
 }
+
+/// サムネイルキャッシュをクリア
+#[tauri::command]
+pub fn clear_cache(state: State<'_, AppState>) -> std::result::Result<(), String> {
+    let session_id = {
+        let current = state.current_session_id.lock().unwrap();
+        current.clone().ok_or("No session active")?
+    };
+
+    let cache_dir = get_cache_dir(&session_id).map_err(|e| e.to_string())?;
+
+    // キャッシュディレクトリ内のファイルを削除
+    if cache_dir.exists() {
+        std::fs::remove_dir_all(&cache_dir).map_err(|e| e.to_string())?;
+        // ディレクトリを再作成
+        std::fs::create_dir_all(&cache_dir).map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}

@@ -4,7 +4,7 @@ pub mod error;
 pub mod image_processor;
 
 pub use commands::AppState;
-use commands::{export_adopted, get_exif, open_folder, save_selection, set_label};
+use commands::{clear_cache, export_adopted, get_exif, open_folder, save_selection, set_label};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -18,6 +18,7 @@ pub fn run() {
             save_selection,
             export_adopted,
             get_exif,
+            clear_cache,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

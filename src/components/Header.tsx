@@ -1,4 +1,4 @@
-import { FolderOpen, Download, Loader2 } from 'lucide-react';
+import { FolderOpen, Download, Loader2, RefreshCw } from 'lucide-react';
 
 interface HeaderProps {
   folderPath: string | null;
@@ -10,6 +10,7 @@ interface HeaderProps {
   };
   onOpenFolder: () => void;
   onExport: () => void;
+  onReload?: () => void;
 }
 
 export function Header({
@@ -19,6 +20,7 @@ export function Header({
   thumbnailProgress,
   onOpenFolder,
   onExport,
+  onReload,
 }: HeaderProps) {
   const isGeneratingThumbnails =
     thumbnailProgress.total > 0 &&
@@ -39,9 +41,22 @@ export function Header({
         </button>
 
         {folderPath && (
-          <span className="text-sm text-white/50 truncate max-w-md">
-            {folderPath}
-          </span>
+          <>
+            <span className="text-sm text-white/50 truncate max-w-md">
+              {folderPath}
+            </span>
+            {onReload && (
+              <button
+                onClick={onReload}
+                disabled={isGeneratingThumbnails}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-bg-tertiary hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-xs"
+                title="サムネイルを再生成"
+              >
+                <RefreshCw size={14} />
+                <span>再読込</span>
+              </button>
+            )}
+          </>
         )}
       </div>
 

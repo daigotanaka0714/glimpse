@@ -112,6 +112,11 @@ export async function getExif(imagePath: string): Promise<ExifInfo> {
   return await invoke('get_exif', { imagePath });
 }
 
+// サムネイルキャッシュをクリア
+export async function clearCache(): Promise<void> {
+  await invoke('clear_cache');
+}
+
 // サムネイル進捗イベントをリッスン
 export async function onThumbnailProgress(
   callback: (progress: ThumbnailProgress) => void

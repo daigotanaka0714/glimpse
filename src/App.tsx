@@ -21,6 +21,7 @@ import {
   onThumbnailProgress,
   onThumbnailsComplete,
   toImageItem,
+  clearCache,
   type ThumbnailResult,
 } from '@/utils/tauri';
 
@@ -318,6 +319,26 @@ export default function App() {
     }
   }, [handleOpenFolderByPath]);
 
+  // サムネイルキャッシュをクリアして再読込
+  const handleReload = useCallback(async () => {
+    if (!folderPath) return;
+
+    try {
+      // キャッシュをクリア
+      await clearCache();
+
+      // サムネイルのロード状態をリセット
+      setImages((prev) =>
+        prev.map((img) => ({ ...img, thumbnailLoaded: false }))
+      );
+
+      // フォルダを再読み込み（サムネイル再生成がトリガーされる）
+      await handleOpenFolderByPath(folderPath);
+    } catch (error) {
+      console.error('Failed to reload:', error);
+    }
+  }, [folderPath, handleOpenFolderByPath]);
+
   const handleExport = useCallback(async (options: { destinationPath: string; mode: 'copy' | 'move' }) => {
     if (!folderPath) return;
 
@@ -356,6 +377,7 @@ export default function App() {
         thumbnailProgress={thumbnailProgress}
         onOpenFolder={handleOpenFolder}
         onExport={() => setShowExportDialog(true)}
+        onReload={handleReload}
       />
 
       {images.length > 0 && (
