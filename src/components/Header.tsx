@@ -1,4 +1,4 @@
-import { FolderOpen, Download, Loader2, RefreshCw } from 'lucide-react';
+import { FolderOpen, Download, Loader2, RefreshCw, Settings } from 'lucide-react';
 
 interface HeaderProps {
   folderPath: string | null;
@@ -11,6 +11,7 @@ interface HeaderProps {
   onOpenFolder: () => void;
   onExport: () => void;
   onReload?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export function Header({
@@ -21,6 +22,7 @@ export function Header({
   onOpenFolder,
   onExport,
   onReload,
+  onOpenSettings,
 }: HeaderProps) {
   const isGeneratingThumbnails =
     thumbnailProgress.total > 0 &&
@@ -88,8 +90,17 @@ export function Header({
         )}
       </div>
 
-      {/* 右側: エクスポート */}
+      {/* 右側: 設定 & エクスポート */}
       <div className="flex items-center gap-2">
+        {onOpenSettings && (
+          <button
+            onClick={onOpenSettings}
+            className="p-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors"
+            title="設定"
+          >
+            <Settings size={18} />
+          </button>
+        )}
         <button
           onClick={onExport}
           disabled={totalFiles === 0}

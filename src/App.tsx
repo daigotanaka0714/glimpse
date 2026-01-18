@@ -9,6 +9,7 @@ import {
   EmptyState,
   ExportDialog,
   BatchActionBar,
+  SettingsDialog,
 } from '@/components';
 import { useKeyboardNavigation, useGridConfig, useDragAndDrop } from '@/hooks';
 import type { ImageItem, LabelStatus, FilterMode, ThemeMode } from '@/types';
@@ -25,6 +26,7 @@ import {
   clearCache,
   type ThumbnailResult,
 } from '@/utils/tauri';
+import { playCompletionSound } from '@/utils/notification';
 
 export default function App() {
   // 状態管理
@@ -35,6 +37,7 @@ export default function App() {
   const [compareIndex, setCompareIndex] = useState(1); // 比較モード用の2枚目インデックス
   const [folderPath, setFolderPath] = useState<string | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [thumbnailProgress, setThumbnailProgress] = useState({
     completed: 0,
     total: 0,
@@ -132,6 +135,9 @@ export default function App() {
             return img;
           })
         );
+
+        // 完了通知音を再生
+        playCompletionSound();
       });
     };
 
@@ -495,6 +501,7 @@ export default function App() {
         onOpenFolder={handleOpenFolder}
         onExport={() => setShowExportDialog(true)}
         onReload={handleReload}
+        onOpenSettings={() => setShowSettingsDialog(true)}
       />
 
       {images.length > 0 && (
@@ -597,6 +604,10 @@ export default function App() {
           onClose={() => setShowExportDialog(false)}
           onSelectFolder={handleSelectExportFolder}
         />
+      )}
+
+      {showSettingsDialog && (
+        <SettingsDialog onClose={() => setShowSettingsDialog(false)} />
       )}
 
       {/* ドラッグ&ドロップオーバーレイ */}

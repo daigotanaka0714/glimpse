@@ -39,7 +39,7 @@ export const ThumbnailItem = memo(function ThumbnailItem({
           src={toAssetUrl(item.thumbnailPath)}
           alt={item.filename}
           className={`
-            w-full h-full object-cover rounded-lg
+            w-full h-full object-contain rounded-lg bg-bg-secondary
             ${isRejected ? 'opacity-40' : ''}
           `}
           loading="lazy"

@@ -1,3 +1,4 @@
+use crate::config::{self, AppConfig};
 use crate::database::{Database, Label, Session};
 use crate::error::Result;
 use crate::image_processor::{
@@ -243,4 +244,33 @@ pub fn clear_cache(state: State<'_, AppState>) -> std::result::Result<(), String
     }
 
     Ok(())
+}
+
+/// システム情報を取得
+#[derive(serde::Serialize)]
+pub struct SystemInfo {
+    pub cpu_count: usize,
+    pub current_threads: usize,
+    pub recommended_threads: usize,
+}
+
+#[tauri::command]
+pub fn get_system_info() -> SystemInfo {
+    let cpu_count = config::get_cpu_count();
+    let recommended = ((cpu_count as f64 * 0.8).round() as usize).max(2);
+
+    SystemInfo {
+        cpu_count,
+        current_threads: config::get_thumbnail_thread_count(),
+        recommended_threads: recommended,
+    }
+}
+
+/// スレッド数を設定
+#[tauri::command]
+pub fn set_thread_count(thread_count: Option<usize>) -> std::result::Result<(), String> {
+    let config = AppConfig {
+        thumbnail_threads: thread_count,
+    };
+    config::update_config(config)
 }
