@@ -1,7 +1,9 @@
+use crate::config::get_thumbnail_thread_count;
 use crate::error::{GlimpseError, Result};
 use exif::{In, Reader, Tag};
 use image::{DynamicImage, ImageFormat};
 use rayon::prelude::*;
+use rayon::ThreadPoolBuilder;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
@@ -250,6 +252,7 @@ fn load_raw_image(path: &Path) -> Result<DynamicImage> {
 }
 
 /// 複数のサムネイルを並列生成
+/// CPU使用率を抑制するため、スレッド数を制限して処理
 pub fn generate_thumbnails_parallel<F>(
     images: &[ImageInfo],
     cache_dir: &Path,
@@ -270,49 +273,62 @@ where
         }
     });
 
-    let results: Vec<ThumbnailResult> = images
-        .par_iter()
-        .map(|image| {
-            let thumbnail_filename = format!(
-                "{}.jpg",
-                Path::new(&image.filename)
-                    .file_stem()
-                    .unwrap()
-                    .to_string_lossy()
-            );
-            let thumbnail_path = cache_dir.join(&thumbnail_filename);
+    // スレッド数を制限したカスタムスレッドプールを作成
+    // RAW画像処理（imagepipe）は大量のスタック領域を消費するため、
+    // デフォルトの2MBでは不足する場合がある。8MBに増加。
+    let num_threads = get_thumbnail_thread_count();
+    let pool = ThreadPoolBuilder::new()
+        .num_threads(num_threads)
+        .stack_size(8 * 1024 * 1024) // 8MB stack per thread for RAW processing
+        .build()
+        .expect("Failed to create thread pool");
 
-            let result = if thumbnail_path.exists() {
-                // キャッシュが存在する場合はスキップ
-                ThumbnailResult {
-                    filename: image.filename.clone(),
-                    thumbnail_path: normalize_path(&thumbnail_path),
-                    success: true,
-                    error: None,
-                }
-            } else {
-                match generate_thumbnail(Path::new(&image.path), &thumbnail_path) {
-                    Ok(_) => ThumbnailResult {
+    let cache_dir = cache_dir.to_path_buf();
+    let results = pool.install(|| {
+        images
+            .par_iter()
+            .map(|image| {
+                let thumbnail_filename = format!(
+                    "{}.jpg",
+                    Path::new(&image.filename)
+                        .file_stem()
+                        .unwrap()
+                        .to_string_lossy()
+                );
+                let thumbnail_path = cache_dir.join(&thumbnail_filename);
+
+                let result = if thumbnail_path.exists() {
+                    // キャッシュが存在する場合はスキップ
+                    ThumbnailResult {
                         filename: image.filename.clone(),
                         thumbnail_path: normalize_path(&thumbnail_path),
                         success: true,
                         error: None,
-                    },
-                    Err(e) => ThumbnailResult {
-                        filename: image.filename.clone(),
-                        thumbnail_path: String::new(),
-                        success: false,
-                        error: Some(e.to_string()),
-                    },
-                }
-            };
+                    }
+                } else {
+                    match generate_thumbnail(Path::new(&image.path), &thumbnail_path) {
+                        Ok(_) => ThumbnailResult {
+                            filename: image.filename.clone(),
+                            thumbnail_path: normalize_path(&thumbnail_path),
+                            success: true,
+                            error: None,
+                        },
+                        Err(e) => ThumbnailResult {
+                            filename: image.filename.clone(),
+                            thumbnail_path: String::new(),
+                            success: false,
+                            error: Some(e.to_string()),
+                        },
+                    }
+                };
 
-            // 進捗通知
-            let _ = tx.send(());
+                // 進捗通知
+                let _ = tx.send(());
 
-            result
-        })
-        .collect();
+                result
+            })
+            .collect()
+    });
 
     results
 }
