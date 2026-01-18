@@ -41,18 +41,18 @@ describe('Toolbar', () => {
   it('should render filter buttons with counts', () => {
     render(<Toolbar {...defaultProps} />);
 
-    expect(screen.getByText('すべて')).toBeInTheDocument();
+    expect(screen.getByText('All')).toBeInTheDocument();
     expect(screen.getByText('(100)')).toBeInTheDocument();
-    expect(screen.getByText('採用')).toBeInTheDocument();
+    expect(screen.getByText('Adopted')).toBeInTheDocument();
     expect(screen.getByText('(80)')).toBeInTheDocument();
-    expect(screen.getByText('不採用')).toBeInTheDocument();
+    expect(screen.getByText('Rejected')).toBeInTheDocument();
     expect(screen.getByText('(20)')).toBeInTheDocument();
   });
 
   it('should highlight active filter button', () => {
     render(<Toolbar {...defaultProps} filterMode="rejected" />);
 
-    const rejectedButton = screen.getByText('不採用').closest('button');
+    const rejectedButton = screen.getByText('Rejected').closest('button');
     expect(rejectedButton?.className).toContain('bg-accent');
   });
 
@@ -60,7 +60,7 @@ describe('Toolbar', () => {
     const handleChange = vi.fn();
     render(<Toolbar {...defaultProps} onFilterModeChange={handleChange} />);
 
-    const adoptedButton = screen.getByText('採用').closest('button');
+    const adoptedButton = screen.getByText('Adopted').closest('button');
     if (adoptedButton) {
       fireEvent.click(adoptedButton);
       expect(handleChange).toHaveBeenCalledWith('adopted');
@@ -70,7 +70,7 @@ describe('Toolbar', () => {
   it('should render theme toggle button', () => {
     render(<Toolbar {...defaultProps} />);
 
-    const themeButton = screen.getByLabelText(/テーマ切り替え/);
+    const themeButton = screen.getByLabelText(/Toggle theme/i);
     expect(themeButton).toBeInTheDocument();
   });
 
@@ -78,7 +78,7 @@ describe('Toolbar', () => {
     const handleChange = vi.fn();
     render(<Toolbar {...defaultProps} onThemeChange={handleChange} />);
 
-    const themeButton = screen.getByLabelText(/テーマ切り替え/);
+    const themeButton = screen.getByLabelText(/Toggle theme/i);
     fireEvent.click(themeButton);
 
     expect(handleChange).toHaveBeenCalledWith('light');
@@ -88,7 +88,7 @@ describe('Toolbar', () => {
     const handleChange = vi.fn();
     render(<Toolbar {...defaultProps} theme="light" onThemeChange={handleChange} />);
 
-    const themeButton = screen.getByLabelText(/テーマ切り替え/);
+    const themeButton = screen.getByLabelText(/Toggle theme/i);
     fireEvent.click(themeButton);
 
     expect(handleChange).toHaveBeenCalledWith('dark');
