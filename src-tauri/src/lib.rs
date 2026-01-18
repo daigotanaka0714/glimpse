@@ -6,8 +6,8 @@ pub mod image_processor;
 
 pub use commands::AppState;
 use commands::{
-    clear_cache, export_adopted, get_exif, get_system_info, open_folder, save_selection, set_label,
-    set_thread_count,
+    clear_all_cache, clear_all_labels, clear_cache, export_adopted, get_exif, get_storage_info,
+    get_system_info, open_folder, save_selection, set_label, set_thread_count,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -25,6 +25,9 @@ pub fn run() {
             clear_cache,
             get_system_info,
             set_thread_count,
+            get_storage_info,
+            clear_all_cache,
+            clear_all_labels,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
