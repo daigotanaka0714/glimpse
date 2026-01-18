@@ -3,7 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import type { ImageItem, LabelStatus } from '@/types';
 
-// ファイルパスをasset URLに変換（クロスプラットフォーム対応）
+// Convert file path to asset URL (cross-platform support)
 export function toAssetUrl(filePath: string): string {
   return convertFileSrc(filePath);
 }
@@ -62,22 +62,22 @@ export interface ExifInfo {
   orientation: number | null;
 }
 
-// フォルダ選択ダイアログを開く
+// Open folder selection dialog
 export async function selectFolder(): Promise<string | null> {
   const selected = await openDialog({
     directory: true,
     multiple: false,
-    title: '写真フォルダを選択',
+    title: 'Select Photo Folder',
   });
   return selected as string | null;
 }
 
-// フォルダを開いて画像一覧を取得
+// Open folder and get image list
 export async function openFolder(folderPath: string): Promise<OpenFolderResult> {
   return await invoke('open_folder', { folderPath });
 }
 
-// ラベルを設定
+// Set label
 export async function setLabel(
   filename: string,
   label: LabelStatus
@@ -88,12 +88,12 @@ export async function setLabel(
   });
 }
 
-// 選択位置を保存
+// Save selection position
 export async function saveSelection(index: number): Promise<void> {
   await invoke('save_selection', { index });
 }
 
-// エクスポート
+// Export
 export async function exportAdopted(
   sourceFolder: string,
   destinationFolder: string,
@@ -102,27 +102,27 @@ export async function exportAdopted(
   return await invoke('export_adopted', { sourceFolder, destinationFolder, mode });
 }
 
-// エクスポート先フォルダ選択
+// Select export destination folder
 export async function selectExportFolder(): Promise<string | null> {
   const selected = await openDialog({
     directory: true,
     multiple: false,
-    title: 'エクスポート先フォルダを選択',
+    title: 'Select Export Destination Folder',
   });
   return selected as string | null;
 }
 
-// EXIF情報を取得
+// Get EXIF info
 export async function getExif(imagePath: string): Promise<ExifInfo> {
   return await invoke('get_exif', { imagePath });
 }
 
-// サムネイルキャッシュをクリア
+// Clear thumbnail cache
 export async function clearCache(): Promise<void> {
   await invoke('clear_cache');
 }
 
-// サムネイル進捗イベントをリッスン
+// Listen for thumbnail progress events
 export async function onThumbnailProgress(
   callback: (progress: ThumbnailProgress) => void
 ): Promise<() => void> {
@@ -132,7 +132,7 @@ export async function onThumbnailProgress(
   return unlisten;
 }
 
-// サムネイル生成完了イベントをリッスン
+// Listen for thumbnail generation complete events
 export async function onThumbnailsComplete(
   callback: (results: ThumbnailResult[]) => void
 ): Promise<() => void> {
@@ -142,7 +142,7 @@ export async function onThumbnailsComplete(
   return unlisten;
 }
 
-// 画像情報をImageItemに変換
+// Convert image info to ImageItem
 export function toImageItem(
   info: ImageInfo,
   index: number,

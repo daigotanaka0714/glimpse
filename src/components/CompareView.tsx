@@ -27,7 +27,7 @@ export function CompareView({
   const [leftLoaded, setLeftLoaded] = useState(false);
   const [rightLoaded, setRightLoaded] = useState(false);
 
-  // 画像が変わったらリセット
+  // Reset when image changes
   useEffect(() => {
     setLeftLoaded(false);
   }, [leftItem.path]);
@@ -38,7 +38,7 @@ export function CompareView({
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col animate-fade-in">
-      {/* 閉じるボタン */}
+      {/* Close button */}
       <button
         onClick={onClose}
         className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
@@ -46,9 +46,9 @@ export function CompareView({
         <X size={24} />
       </button>
 
-      {/* 比較エリア */}
+      {/* Compare area */}
       <div className="flex-1 flex">
-        {/* 左側画像 */}
+        {/* Left image */}
         <ComparePanel
           item={leftItem}
           side="left"
@@ -59,10 +59,10 @@ export function CompareView({
           onToggleLabel={onToggleLabelLeft}
         />
 
-        {/* 中央の区切り線 */}
+        {/* Center divider */}
         <div className="w-1 bg-white/20" />
 
-        {/* 右側画像 */}
+        {/* Right image */}
         <ComparePanel
           item={rightItem}
           side="right"
@@ -74,10 +74,10 @@ export function CompareView({
         />
       </div>
 
-      {/* フッター */}
+      {/* Footer */}
       <div className="h-12 px-6 bg-bg-secondary border-t border-white/10 flex items-center justify-center">
         <span className="text-sm text-white/50">
-          ← → で左画像を移動 | Shift + ← → で右画像を移動 | 1 で左を不採用 | 2 で右を不採用 | ESC で閉じる
+          ← → to navigate left image | Shift + ← → to navigate right image | 1 to reject left | 2 to reject right | ESC to close
         </span>
       </div>
     </div>
@@ -107,9 +107,9 @@ function ComparePanel({
 
   return (
     <div className="flex-1 flex flex-col relative">
-      {/* 画像エリア */}
+      {/* Image area */}
       <div className="flex-1 flex items-center justify-center relative overflow-hidden p-4">
-        {/* ナビゲーションボタン - 左 */}
+        {/* Navigation button - left */}
         {onPrevious && (
           <button
             onClick={onPrevious}
@@ -119,7 +119,7 @@ function ComparePanel({
           </button>
         )}
 
-        {/* 画像 */}
+        {/* Image */}
         <div className="relative max-w-full max-h-full">
           {!isLoaded && (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -137,7 +137,7 @@ function ComparePanel({
             `}
             onLoad={onLoad}
           />
-          {/* 不採用マーク */}
+          {/* Rejected mark */}
           {isRejected && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-24 h-24 rounded-full bg-rejected/50 flex items-center justify-center">
@@ -147,7 +147,7 @@ function ComparePanel({
           )}
         </div>
 
-        {/* ナビゲーションボタン - 右 */}
+        {/* Navigation button - right */}
         {onNext && (
           <button
             onClick={onNext}
@@ -158,7 +158,7 @@ function ComparePanel({
         )}
       </div>
 
-      {/* 情報バー */}
+      {/* Info bar */}
       <div className="h-14 px-4 bg-bg-tertiary border-t border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
           <span className="font-mono text-xs truncate">{item.filename}</span>
@@ -177,7 +177,7 @@ function ComparePanel({
           `}
         >
           <span className="mr-1">{side === 'left' ? '1' : '2'}</span>
-          不採用{isRejected ? ' ✓' : ''}
+          Reject{isRejected ? ' ✓' : ''}
         </button>
       </div>
     </div>

@@ -29,14 +29,14 @@ export function Toolbar({
   counts,
 }: ToolbarProps) {
   const filterOptions: { mode: FilterMode; label: string; count: number }[] = [
-    { mode: 'all', label: 'すべて', count: counts.all },
-    { mode: 'adopted', label: '採用', count: counts.adopted },
-    { mode: 'rejected', label: '不採用', count: counts.rejected },
+    { mode: 'all', label: 'All', count: counts.all },
+    { mode: 'adopted', label: 'Adopted', count: counts.adopted },
+    { mode: 'rejected', label: 'Rejected', count: counts.rejected },
   ];
 
   return (
     <div className="flex items-center justify-between h-10 px-4 bg-bg-tertiary border-b border-white/5">
-      {/* 左側: フィルター */}
+      {/* Left side: Filter */}
       <div className="flex items-center gap-2">
         <Filter size={14} className="text-white/50" />
         <div className="flex items-center gap-1">
@@ -60,7 +60,7 @@ export function Toolbar({
         </div>
       </div>
 
-      {/* 中央: サムネイルサイズスライダー */}
+      {/* Center: Thumbnail size slider */}
       <div className="flex items-center gap-3">
         <ZoomOut size={14} className="text-white/50" />
         <input
@@ -83,22 +83,22 @@ export function Toolbar({
         <span className="text-xs text-white/50 w-12 text-right">{thumbnailSize}px</span>
       </div>
 
-      {/* 右側: テーマ切り替え */}
+      {/* Right side: Theme toggle */}
       <button
         onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
         className="flex items-center gap-2 px-3 py-1.5 text-xs text-white/70 hover:bg-white/10 rounded-md transition-colors"
-        title={theme === 'dark' ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
-        aria-label="テーマ切り替え"
+        title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        aria-label="Toggle theme"
       >
         {theme === 'dark' ? (
           <>
             <Sun size={14} />
-            <span>ライト</span>
+            <span>Light</span>
           </>
         ) : (
           <>
             <Moon size={14} />
-            <span>ダーク</span>
+            <span>Dark</span>
           </>
         )}
       </button>

@@ -5,7 +5,7 @@ const MIN_THUMBNAIL_SIZE = 100;
 const MAX_THUMBNAIL_SIZE = 300;
 const DEFAULT_THUMBNAIL_SIZE = 180;
 const GAP = 8;
-const ROW_GAP = 12; // 縦のgap（横より少し広め）
+const ROW_GAP = 12; // Vertical gap (slightly wider than horizontal)
 const PADDING = 16;
 
 interface UseGridConfigReturn {
@@ -31,7 +31,7 @@ export function useGridConfig(): UseGridConfigReturn {
     );
     const actualColumns = Math.max(1, columns);
 
-    // 利用可能な幅に合わせてサムネイルサイズを調整
+    // Adjust thumbnail size to fit available width
     const thumbnailSize = Math.floor(
       (containerWidth - GAP * (actualColumns - 1)) / actualColumns
     );

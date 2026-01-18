@@ -27,14 +27,14 @@ export function DetailView({
   const [rotation, setRotation] = useState(0);
   const isRejected = item.label === 'rejected';
 
-  // 画像が変わったらリセット
+  // Reset when image changes
   useEffect(() => {
     setImageLoaded(false);
     setExifInfo(null);
     setRotation(0);
   }, [item.path]);
 
-  // 回転操作
+  // Rotation operations
   const rotateLeft = useCallback(() => {
     setRotation((prev) => (prev - 90 + 360) % 360);
   }, []);
@@ -43,7 +43,7 @@ export function DetailView({
     setRotation((prev) => (prev + 90) % 360);
   }, []);
 
-  // EXIF情報を取得
+  // Fetch EXIF info
   useEffect(() => {
     if (showExif && !exifInfo) {
       setExifLoading(true);
@@ -56,9 +56,9 @@ export function DetailView({
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col animate-fade-in">
-      {/* 画像エリア */}
+      {/* Image area */}
       <div className="flex-1 flex items-center justify-center relative overflow-hidden">
-        {/* ナビゲーションボタン - 左 */}
+        {/* Navigation button - left */}
         {item.index > 0 && (
           <button
             onClick={onPrevious}
@@ -68,7 +68,7 @@ export function DetailView({
           </button>
         )}
 
-        {/* メイン画像 */}
+        {/* Main image */}
         <div className="relative max-w-full max-h-full p-8">
           {!imageLoaded && (
             <div className="absolute inset-8 flex items-center justify-center">
@@ -87,7 +87,7 @@ export function DetailView({
             style={{ transform: `rotate(${rotation}deg)` }}
             onLoad={() => setImageLoaded(true)}
           />
-          {/* 不採用マーク */}
+          {/* Rejected mark */}
           {isRejected && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-32 h-32 rounded-full bg-rejected/50 flex items-center justify-center">
@@ -97,7 +97,7 @@ export function DetailView({
           )}
         </div>
 
-        {/* ナビゲーションボタン - 右 */}
+        {/* Navigation button - right */}
         {item.index < totalItems - 1 && (
           <button
             onClick={onNext}
@@ -107,7 +107,7 @@ export function DetailView({
           </button>
         )}
 
-        {/* 閉じるボタン */}
+        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
@@ -115,19 +115,19 @@ export function DetailView({
           <X size={24} />
         </button>
 
-        {/* 回転ボタン */}
+        {/* Rotation buttons */}
         <div className="absolute top-4 left-4 flex gap-2">
           <button
             onClick={rotateLeft}
             className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-            title="左に90°回転"
+            title="Rotate 90° left"
           >
             <RotateCcw size={24} />
           </button>
           <button
             onClick={rotateRight}
             className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-            title="右に90°回転"
+            title="Rotate 90° right"
           >
             <RotateCw size={24} />
           </button>
@@ -138,22 +138,22 @@ export function DetailView({
           )}
         </div>
 
-        {/* EXIF情報ボタン */}
+        {/* EXIF info button */}
         <button
           onClick={() => setShowExif(!showExif)}
           className={`absolute top-4 right-16 p-2 rounded-full transition-colors ${
             showExif ? 'bg-accent text-white' : 'bg-white/10 hover:bg-white/20'
           }`}
-          title="EXIF情報を表示"
+          title="Show EXIF info"
         >
           <Info size={24} />
         </button>
 
-        {/* EXIF情報パネル */}
+        {/* EXIF info panel */}
         {showExif && (
           <div className="absolute top-16 right-4 w-72 bg-bg-secondary/95 backdrop-blur-sm rounded-lg border border-white/10 shadow-xl overflow-hidden animate-slide-up">
             <div className="px-4 py-3 bg-bg-tertiary border-b border-white/10">
-              <h3 className="font-medium text-sm">EXIF情報</h3>
+              <h3 className="font-medium text-sm">EXIF Info</h3>
             </div>
             {exifLoading ? (
               <div className="p-4 text-center">
@@ -162,43 +162,43 @@ export function DetailView({
             ) : exifInfo ? (
               <div className="p-3 space-y-2 text-sm max-h-96 overflow-y-auto">
                 {exifInfo.camera_model && (
-                  <ExifRow label="カメラ" value={`${exifInfo.camera_make || ''} ${exifInfo.camera_model}`.trim()} />
+                  <ExifRow label="Camera" value={`${exifInfo.camera_make || ''} ${exifInfo.camera_model}`.trim()} />
                 )}
                 {exifInfo.lens_model && (
-                  <ExifRow label="レンズ" value={exifInfo.lens_model} />
+                  <ExifRow label="Lens" value={exifInfo.lens_model} />
                 )}
                 {exifInfo.focal_length && (
-                  <ExifRow label="焦点距離" value={exifInfo.focal_length} />
+                  <ExifRow label="Focal Length" value={exifInfo.focal_length} />
                 )}
                 {exifInfo.aperture && (
-                  <ExifRow label="絞り" value={exifInfo.aperture} />
+                  <ExifRow label="Aperture" value={exifInfo.aperture} />
                 )}
                 {exifInfo.shutter_speed && (
-                  <ExifRow label="シャッター速度" value={exifInfo.shutter_speed} />
+                  <ExifRow label="Shutter Speed" value={exifInfo.shutter_speed} />
                 )}
                 {exifInfo.iso && (
                   <ExifRow label="ISO" value={exifInfo.iso} />
                 )}
                 {exifInfo.exposure_compensation && (
-                  <ExifRow label="露出補正" value={exifInfo.exposure_compensation} />
+                  <ExifRow label="Exposure Comp." value={exifInfo.exposure_compensation} />
                 )}
                 {exifInfo.date_taken && (
-                  <ExifRow label="撮影日時" value={exifInfo.date_taken} />
+                  <ExifRow label="Date Taken" value={exifInfo.date_taken} />
                 )}
                 {exifInfo.width && exifInfo.height && (
-                  <ExifRow label="解像度" value={`${exifInfo.width} × ${exifInfo.height}`} />
+                  <ExifRow label="Resolution" value={`${exifInfo.width} × ${exifInfo.height}`} />
                 )}
               </div>
             ) : (
               <div className="p-4 text-center text-white/50 text-sm">
-                EXIF情報を取得できませんでした
+                Could not retrieve EXIF info
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* フッター情報バー */}
+      {/* Footer info bar */}
       <div className="h-16 px-6 bg-bg-secondary border-t border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <span className="font-mono text-sm">{item.filename}</span>
@@ -223,7 +223,7 @@ export function DetailView({
             `}
           >
             <span className="mr-2">1</span>
-            不採用{isRejected ? ' ✓' : ''}
+            Reject{isRejected ? ' ✓' : ''}
           </button>
         </div>
       </div>
@@ -231,7 +231,7 @@ export function DetailView({
   );
 }
 
-// EXIF情報の行コンポーネント
+// EXIF info row component
 function ExifRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between items-start gap-2">

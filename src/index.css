@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ダークテーマ（デフォルト） */
+/* Dark theme (default) */
 :root {
   --bg-primary: #0a0a0a;
   --bg-secondary: #141414;
@@ -21,7 +21,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ライトテーマ */
+/* Light theme */
 .light {
   --bg-primary: #f5f5f5;
   --bg-secondary: #ffffff;
@@ -53,7 +53,7 @@ body {
   user-select: none;
 }
 
-/* カスタムスクロールバー */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -72,19 +72,19 @@ body {
   background: var(--scrollbar-thumb-hover);
 }
 
-/* フォーカスリング */
+/* Focus ring */
 :focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
 
-/* ドラッグ無効化 */
+/* Disable drag */
 img {
   -webkit-user-drag: none;
   user-select: none;
 }
 
-/* アニメーション */
+/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -113,7 +113,7 @@ img {
   animation: slideUp 0.3s ease-out;
 }
 
-/* サムネイル画像のローディング */
+/* Thumbnail image loading */
 .thumbnail-loading {
   background: linear-gradient(
     90deg,

@@ -8,7 +8,7 @@ export function EmptyState({ onOpenFolder }: EmptyStateProps) {
   return (
     <div className="flex-1 flex items-center justify-center">
       <div className="text-center max-w-md animate-slide-up">
-        {/* アイコン */}
+        {/* Icon */}
         <div className="relative inline-block mb-8">
           <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center">
             <Image size={48} className="text-accent" />
@@ -18,26 +18,26 @@ export function EmptyState({ onOpenFolder }: EmptyStateProps) {
           </div>
         </div>
 
-        {/* テキスト */}
+        {/* Text */}
         <h2 className="text-2xl font-semibold mb-3">Glimpse</h2>
         <p className="text-white/50 mb-8 leading-relaxed">
-          舞台写真の高速チェッカー
+          High-speed photo checker for stage photography
           <br />
-          フォルダを選択して写真の選別を始めましょう
+          Select a folder to start sorting photos
         </p>
 
-        {/* ボタン */}
+        {/* Button */}
         <button
           onClick={onOpenFolder}
           className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-hover rounded-xl transition-colors font-medium"
         >
           <FolderOpen size={20} />
-          <span>フォルダを開く</span>
+          <span>Open Folder</span>
         </button>
 
-        {/* ショートカットヒント */}
+        {/* Shortcut hint */}
         <p className="mt-6 text-sm text-white/30">
-          または <kbd className="px-2 py-1 bg-bg-tertiary rounded">Ctrl</kbd> +{' '}
+          or <kbd className="px-2 py-1 bg-bg-tertiary rounded">Ctrl</kbd> +{' '}
           <kbd className="px-2 py-1 bg-bg-tertiary rounded">O</kbd>
         </p>
       </div>

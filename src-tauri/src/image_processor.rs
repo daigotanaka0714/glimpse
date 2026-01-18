@@ -11,8 +11,8 @@ use std::sync::mpsc;
 
 const THUMBNAIL_SIZE: u32 = 300;
 
-/// パスを正規化（バックスラッシュをフォワードスラッシュに変換）
-/// Windowsパスをasset://プロトコルで使用可能な形式に変換
+/// Normalize path (convert backslashes to forward slashes)
+/// Convert Windows paths to a format usable with the asset:// protocol
 pub fn normalize_path(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
 }
@@ -33,7 +33,7 @@ pub struct ThumbnailResult {
     pub error: Option<String>,
 }
 
-/// EXIF情報
+/// EXIF information
 #[derive(Debug, Clone, serde::Serialize, Default)]
 pub struct ExifInfo {
     pub camera_make: Option<String>,
@@ -50,7 +50,7 @@ pub struct ExifInfo {
     pub orientation: Option<u16>,
 }
 
-/// 画像からEXIF情報を抽出
+/// Extract EXIF information from an image
 pub fn extract_exif(image_path: &Path) -> Result<ExifInfo> {
     let file = File::open(image_path)?;
     let mut bufreader = BufReader::new(file);
@@ -61,52 +61,76 @@ pub fn extract_exif(image_path: &Path) -> Result<ExifInfo> {
 
     let mut info = ExifInfo::default();
 
-    // カメラメーカー
+    // Camera make
     if let Some(field) = exif.get_field(Tag::Make, In::PRIMARY) {
-        info.camera_make = Some(field.display_value().to_string().trim_matches('"').to_string());
+        info.camera_make = Some(
+            field
+                .display_value()
+                .to_string()
+                .trim_matches('"')
+                .to_string(),
+        );
     }
 
-    // カメラモデル
+    // Camera model
     if let Some(field) = exif.get_field(Tag::Model, In::PRIMARY) {
-        info.camera_model = Some(field.display_value().to_string().trim_matches('"').to_string());
+        info.camera_model = Some(
+            field
+                .display_value()
+                .to_string()
+                .trim_matches('"')
+                .to_string(),
+        );
     }
 
-    // レンズモデル
+    // Lens model
     if let Some(field) = exif.get_field(Tag::LensModel, In::PRIMARY) {
-        info.lens_model = Some(field.display_value().to_string().trim_matches('"').to_string());
+        info.lens_model = Some(
+            field
+                .display_value()
+                .to_string()
+                .trim_matches('"')
+                .to_string(),
+        );
     }
 
-    // 焦点距離
+    // Focal length
     if let Some(field) = exif.get_field(Tag::FocalLength, In::PRIMARY) {
         info.focal_length = Some(field.display_value().to_string());
     }
 
-    // 絞り値
+    // Aperture
     if let Some(field) = exif.get_field(Tag::FNumber, In::PRIMARY) {
         info.aperture = Some(format!("f/{}", field.display_value()));
     }
 
-    // シャッタースピード
+    // Shutter speed
     if let Some(field) = exif.get_field(Tag::ExposureTime, In::PRIMARY) {
         info.shutter_speed = Some(format!("{}s", field.display_value()));
     }
 
-    // ISO感度
+    // ISO sensitivity
     if let Some(field) = exif.get_field(Tag::PhotographicSensitivity, In::PRIMARY) {
         info.iso = Some(format!("ISO {}", field.display_value()));
     }
 
-    // 露出補正
+    // Exposure compensation
     if let Some(field) = exif.get_field(Tag::ExposureBiasValue, In::PRIMARY) {
         info.exposure_compensation = Some(format!("{} EV", field.display_value()));
     }
 
-    // 撮影日時
+    // Date taken
     if let Some(field) = exif.get_field(Tag::DateTimeOriginal, In::PRIMARY) {
-        info.date_taken = Some(field.display_value().to_string().trim_matches('"').to_string());
+        info.date_taken = Some(
+            field
+                .display_value()
+                .to_string()
+                .trim_matches('"')
+                .to_string(),
+        );
     }
 
-    // 画像サイズ
+    // Image dimensions
     if let Some(field) = exif.get_field(Tag::PixelXDimension, In::PRIMARY) {
         if let exif::Value::Long(ref v) = field.value {
             if !v.is_empty() {
@@ -122,7 +146,7 @@ pub fn extract_exif(image_path: &Path) -> Result<ExifInfo> {
         }
     }
 
-    // 回転情報
+    // Orientation
     if let Some(field) = exif.get_field(Tag::Orientation, In::PRIMARY) {
         if let exif::Value::Short(ref v) = field.value {
             if !v.is_empty() {
@@ -134,7 +158,7 @@ pub fn extract_exif(image_path: &Path) -> Result<ExifInfo> {
     Ok(info)
 }
 
-/// フォルダ内の画像ファイルをスキャン
+/// Scan image files in a folder
 pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
     let extensions = ["nef", "NEF", "jpg", "JPG", "jpeg", "JPEG", "png", "PNG"];
     let mut images = Vec::new();
@@ -147,10 +171,7 @@ pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
             continue;
         }
 
-        let extension = path
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("");
+        let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
 
         if !extensions.contains(&extension) {
             continue;
@@ -160,9 +181,9 @@ pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
         let modified = metadata
             .modified()
             .ok()
-            .and_then(|t| {
+            .map(|t| {
                 let datetime: chrono::DateTime<chrono::Local> = t.into();
-                Some(datetime.format("%Y/%m/%d %H:%M").to_string())
+                datetime.format("%Y/%m/%d %H:%M").to_string()
             })
             .unwrap_or_else(|| "-".to_string());
 
@@ -174,13 +195,13 @@ pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
         });
     }
 
-    // ファイル名でソート
+    // Sort by filename
     images.sort_by(|a, b| a.filename.cmp(&b.filename));
 
     Ok(images)
 }
 
-/// セッションIDを生成（フォルダパスのハッシュ）
+/// Generate session ID (hash of folder path)
 pub fn generate_session_id(folder_path: &str) -> String {
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
@@ -189,7 +210,7 @@ pub fn generate_session_id(folder_path: &str) -> String {
     hex::encode(&result[..16])
 }
 
-/// キャッシュディレクトリのパスを取得
+/// Get cache directory path
 pub fn get_cache_dir(session_id: &str) -> Result<PathBuf> {
     let data_dir = dirs::data_dir()
         .ok_or_else(|| GlimpseError::InvalidPath("Cannot find data directory".into()))?;
@@ -202,11 +223,8 @@ pub fn get_cache_dir(session_id: &str) -> Result<PathBuf> {
     Ok(cache_dir)
 }
 
-/// サムネイルを生成
-pub fn generate_thumbnail(
-    image_path: &Path,
-    output_path: &Path,
-) -> Result<()> {
+/// Generate thumbnail
+pub fn generate_thumbnail(image_path: &Path, output_path: &Path) -> Result<()> {
     let extension = image_path
         .extension()
         .and_then(|e| e.to_str())
@@ -219,21 +237,21 @@ pub fn generate_thumbnail(
         image::open(image_path)?
     };
 
-    // サムネイルサイズにリサイズ
+    // Resize to thumbnail size
     let thumbnail = img.thumbnail(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
 
-    // JPEG形式で保存
+    // Save as JPEG format
     thumbnail.save_with_format(output_path, ImageFormat::Jpeg)?;
 
     Ok(())
 }
 
-/// RAW画像を読み込み
+/// Load RAW image
 fn load_raw_image(path: &Path) -> Result<DynamicImage> {
-    let raw_image = rawloader::decode_file(path)
-        .map_err(|e| GlimpseError::RawProcessing(e.to_string()))?;
+    let raw_image =
+        rawloader::decode_file(path).map_err(|e| GlimpseError::RawProcessing(e.to_string()))?;
 
-    // RAWデータを処理してRGB画像に変換
+    // Process RAW data and convert to RGB image
     let mut pipeline = imagepipe::Pipeline::new_from_source(imagepipe::ImageSource::Raw(raw_image))
         .map_err(|e| GlimpseError::RawProcessing(e.to_string()))?;
 
@@ -245,14 +263,15 @@ fn load_raw_image(path: &Path) -> Result<DynamicImage> {
     let height = srgb_image.height;
     let pixels = srgb_image.data;
 
-    let img = image::RgbImage::from_raw(width as u32, height as u32, pixels)
-        .ok_or_else(|| GlimpseError::RawProcessing("Failed to create image from raw data".into()))?;
+    let img = image::RgbImage::from_raw(width as u32, height as u32, pixels).ok_or_else(|| {
+        GlimpseError::RawProcessing("Failed to create image from raw data".into())
+    })?;
 
     Ok(DynamicImage::ImageRgb8(img))
 }
 
-/// 複数のサムネイルを並列生成
-/// CPU使用率を抑制するため、スレッド数を制限して処理
+/// Generate multiple thumbnails in parallel
+/// Limit thread count to control CPU usage
 pub fn generate_thumbnails_parallel<F>(
     images: &[ImageInfo],
     cache_dir: &Path,
@@ -264,18 +283,18 @@ where
     let total = images.len();
     let (tx, rx) = mpsc::channel();
 
-    // 進捗報告用のスレッド
+    // Thread for progress reporting
     std::thread::spawn(move || {
         let mut completed = 0;
-        while let Ok(_) = rx.recv() {
+        while rx.recv().is_ok() {
             completed += 1;
             progress_callback(completed, total);
         }
     });
 
-    // スレッド数を制限したカスタムスレッドプールを作成
-    // RAW画像処理（imagepipe）は大量のスタック領域を消費するため、
-    // デフォルトの2MBでは不足する場合がある。8MBに増加。
+    // Create custom thread pool with limited thread count
+    // RAW image processing (imagepipe) consumes large amounts of stack space,
+    // default 2MB may not be sufficient. Increased to 8MB.
     let num_threads = get_thumbnail_thread_count();
     let pool = ThreadPoolBuilder::new()
         .num_threads(num_threads)
@@ -298,7 +317,7 @@ where
                 let thumbnail_path = cache_dir.join(&thumbnail_filename);
 
                 let result = if thumbnail_path.exists() {
-                    // キャッシュが存在する場合はスキップ
+                    // Skip if cache exists
                     ThumbnailResult {
                         filename: image.filename.clone(),
                         thumbnail_path: normalize_path(&thumbnail_path),
@@ -322,7 +341,7 @@ where
                     }
                 };
 
-                // 進捗通知
+                // Progress notification
                 let _ = tx.send(());
 
                 result
@@ -345,13 +364,13 @@ mod tests {
         let session_id2 = generate_session_id("/path/to/folder2");
         let session_id3 = generate_session_id("/path/to/folder1");
 
-        // 同じパスは同じIDを生成
+        // Same path generates same ID
         assert_eq!(session_id1, session_id3);
 
-        // 異なるパスは異なるIDを生成
+        // Different paths generate different IDs
         assert_ne!(session_id1, session_id2);
 
-        // IDは32文字（16バイトの16進数表現）
+        // ID is 32 characters (16 bytes in hex)
         assert_eq!(session_id1.len(), 32);
     }
 
@@ -366,7 +385,7 @@ mod tests {
     fn test_scan_folder_with_images() {
         let dir = tempdir().unwrap();
 
-        // テスト用の画像ファイルを作成（中身は空でもOK）
+        // Create test image files (content can be empty)
         fs::write(dir.path().join("image1.jpg"), b"fake jpg").unwrap();
         fs::write(dir.path().join("image2.JPG"), b"fake jpg").unwrap();
         fs::write(dir.path().join("image3.png"), b"fake png").unwrap();
@@ -376,7 +395,7 @@ mod tests {
 
         assert_eq!(result.len(), 4);
 
-        // ファイル名でソートされていることを確認
+        // Verify sorted by filename
         assert_eq!(result[0].filename, "image1.jpg");
         assert_eq!(result[1].filename, "image2.JPG");
         assert_eq!(result[2].filename, "image3.png");
@@ -407,7 +426,7 @@ mod tests {
 
         let result = scan_folder(dir.path()).unwrap();
 
-        // サブディレクトリ内のファイルはスキャンしない
+        // Does not scan files in subdirectories
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].filename, "image.jpg");
     }
@@ -420,7 +439,7 @@ mod tests {
         assert!(result.is_ok());
         let cache_dir = result.unwrap();
 
-        // パスにセッションIDが含まれていることを確認
+        // Verify path contains session ID
         assert!(cache_dir.to_string_lossy().contains(session_id));
         assert!(cache_dir.to_string_lossy().contains("thumbnails"));
     }
@@ -439,7 +458,7 @@ mod tests {
         assert_eq!(info.filename, "test.jpg");
         assert!(info.path.ends_with("test.jpg"));
         assert!(info.size > 0);
-        // modified_atは空でないこと
+        // modified_at should not be empty
         assert!(!info.modified_at.is_empty());
     }
 }

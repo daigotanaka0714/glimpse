@@ -33,7 +33,7 @@ export const ThumbnailItem = memo(function ThumbnailItem({
       `}
       style={{ width: size, height: size }}
     >
-      {/* サムネイル画像 */}
+      {/* Thumbnail image */}
       {item.thumbnailLoaded && item.thumbnailPath ? (
         <img
           src={toAssetUrl(item.thumbnailPath)}
@@ -55,7 +55,7 @@ export const ThumbnailItem = memo(function ThumbnailItem({
         <div className="w-full h-full rounded-lg thumbnail-loading" />
       )}
 
-      {/* 不採用オーバーレイ */}
+      {/* Rejected overlay */}
       {isRejected && (
         <div className="absolute inset-0 flex items-center justify-center bg-rejected/20 rounded-lg">
           <div className="w-12 h-12 rounded-full bg-rejected/80 flex items-center justify-center">
@@ -64,7 +64,7 @@ export const ThumbnailItem = memo(function ThumbnailItem({
         </div>
       )}
 
-      {/* ホバー時のファイル名表示 */}
+      {/* Filename on hover */}
       <div
         className={`
           absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent
@@ -74,7 +74,7 @@ export const ThumbnailItem = memo(function ThumbnailItem({
         <p className="text-xs text-white truncate font-mono">{item.filename}</p>
       </div>
 
-      {/* 選択インジケーター */}
+      {/* Selection indicator */}
       {showSelectionRing && (
         <div className={`absolute top-2 left-2 w-5 h-5 rounded flex items-center justify-center shadow-lg ${
           isMultiSelected ? 'bg-accent' : 'bg-accent/70'

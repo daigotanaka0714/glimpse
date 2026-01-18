@@ -1,6 +1,6 @@
 /**
- * 通知音を再生するユーティリティ
- * Web Audio APIを使用してシンプルな通知音を生成
+ * Notification sound utility
+ * Uses Web Audio API to generate simple notification sounds
  */
 
 let audioContext: AudioContext | null = null;
@@ -13,24 +13,24 @@ function getAudioContext(): AudioContext {
 }
 
 /**
- * 完了通知音を再生
- * 心地よい2音のチャイム音
+ * Play completion notification sound
+ * A pleasant 2-tone chime
  */
 export function playCompletionSound(): void {
   try {
     const ctx = getAudioContext();
 
-    // 音が鳴らない場合はコンテキストを再開
+    // Resume context if sound doesn't play
     if (ctx.state === 'suspended') {
       ctx.resume();
     }
 
     const now = ctx.currentTime;
 
-    // 1音目（ド）
+    // First tone (C)
     playTone(ctx, 523.25, now, 0.15, 0.3); // C5
 
-    // 2音目（ソ）- 少し遅れて
+    // Second tone (G) - slightly delayed
     playTone(ctx, 783.99, now + 0.15, 0.2, 0.25); // G5
   } catch (error) {
     console.warn('Failed to play notification sound:', error);
@@ -38,7 +38,7 @@ export function playCompletionSound(): void {
 }
 
 /**
- * 単音を再生
+ * Play a single tone
  */
 function playTone(
   ctx: AudioContext,
@@ -56,7 +56,7 @@ function playTone(
   oscillator.type = 'sine';
   oscillator.frequency.setValueAtTime(frequency, startTime);
 
-  // フェードイン・フェードアウトで滑らかに
+  // Smooth fade in/out
   gainNode.gain.setValueAtTime(0, startTime);
   gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
   gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
@@ -66,7 +66,7 @@ function playTone(
 }
 
 /**
- * エラー通知音を再生（必要に応じて）
+ * Play error notification sound (if needed)
  */
 export function playErrorSound(): void {
   try {
@@ -78,7 +78,7 @@ export function playErrorSound(): void {
 
     const now = ctx.currentTime;
 
-    // 低めの警告音
+    // Low warning tone
     playTone(ctx, 220, now, 0.15, 0.2); // A3
     playTone(ctx, 196, now + 0.15, 0.2, 0.2); // G3
   } catch (error) {

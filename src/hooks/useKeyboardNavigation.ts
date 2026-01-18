@@ -54,7 +54,7 @@ export function useKeyboardNavigation({
         }
       }
 
-      // 詳細表示モード時
+      // Detail view mode
       if (viewMode === 'detail') {
         switch (e.key) {
           case 'Escape':
@@ -81,7 +81,7 @@ export function useKeyboardNavigation({
         return;
       }
 
-      // 比較モード時
+      // Compare mode
       if (viewMode === 'compare') {
         switch (e.key) {
           case 'Escape':
@@ -91,12 +91,12 @@ export function useKeyboardNavigation({
           case 'ArrowLeft':
             e.preventDefault();
             if (e.shiftKey) {
-              // Shift+左矢印: 右画像を前に移動
+              // Shift + Left arrow: move right image to previous
               if (compareIndex > 0 && onSelectCompare) {
                 onSelectCompare(compareIndex - 1);
               }
             } else {
-              // 左矢印: 左画像を前に移動
+              // Left arrow: move left image to previous
               if (selectedIndex > 0) {
                 onSelect(selectedIndex - 1);
               }
@@ -105,12 +105,12 @@ export function useKeyboardNavigation({
           case 'ArrowRight':
             e.preventDefault();
             if (e.shiftKey) {
-              // Shift+右矢印: 右画像を次に移動
+              // Shift + Right arrow: move right image to next
               if (compareIndex < totalItems - 1 && onSelectCompare) {
                 onSelectCompare(compareIndex + 1);
               }
             } else {
-              // 右矢印: 左画像を次に移動
+              // Right arrow: move left image to next
               if (selectedIndex < totalItems - 1) {
                 onSelect(selectedIndex + 1);
               }
@@ -128,7 +128,7 @@ export function useKeyboardNavigation({
         return;
       }
 
-      // グリッド表示モード時
+      // Grid view mode
       const { columns } = gridConfig;
 
       switch (e.key) {

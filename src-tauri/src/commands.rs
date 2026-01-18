@@ -29,7 +29,7 @@ struct ProgressPayload {
     total: usize,
 }
 
-/// フォルダを開いて画像一覧を取得
+/// Open a folder and retrieve the list of images
 #[tauri::command]
 pub async fn open_folder(
     app: AppHandle,
@@ -38,13 +38,13 @@ pub async fn open_folder(
 ) -> std::result::Result<OpenFolderResult, String> {
     let path = Path::new(&folder_path);
 
-    // フォルダをスキャン
+    // Scan the folder
     let images = scan_folder(path).map_err(|e| e.to_string())?;
 
-    // セッションIDを生成
+    // Generate session ID
     let session_id = generate_session_id(&folder_path);
 
-    // データベースに保存
+    // Save to database
     {
         let db = state.db.lock().unwrap();
 
@@ -59,19 +59,19 @@ pub async fn open_folder(
         db.upsert_session(&session).map_err(|e| e.to_string())?;
     }
 
-    // 現在のセッションIDを保存
+    // Save current session ID
     {
         let mut current = state.current_session_id.lock().unwrap();
         *current = Some(session_id.clone());
     }
 
-    // ラベル情報を取得
+    // Get label information
     let labels = {
         let db = state.db.lock().unwrap();
         db.get_labels(&session_id).map_err(|e| e.to_string())?
     };
 
-    // 前回の選択位置を取得
+    // Get last selected position
     let last_selected = {
         let db = state.db.lock().unwrap();
         db.get_session(&session_id)
@@ -80,21 +80,26 @@ pub async fn open_folder(
             .unwrap_or(0)
     };
 
-    // キャッシュディレクトリを取得
+    // Get cache directory
     let cache_dir = get_cache_dir(&session_id).map_err(|e| e.to_string())?;
 
-    // バックグラウンドでサムネイル生成
+    // Generate thumbnails in background
     let images_clone = images.clone();
     let app_for_progress = app.clone();
     let app_for_complete = app.clone();
     let cache_dir_clone = cache_dir.clone();
 
     tokio::spawn(async move {
-        let results = generate_thumbnails_parallel(&images_clone, &cache_dir_clone, move |completed, total| {
-            let _ = app_for_progress.emit("thumbnail-progress", ProgressPayload { completed, total });
-        });
+        let results = generate_thumbnails_parallel(
+            &images_clone,
+            &cache_dir_clone,
+            move |completed, total| {
+                let _ = app_for_progress
+                    .emit("thumbnail-progress", ProgressPayload { completed, total });
+            },
+        );
 
-        // 完了通知
+        // Completion notification
         let _ = app_for_complete.emit("thumbnails-complete", results);
     });
 
@@ -116,7 +121,7 @@ pub struct OpenFolderResult {
     cache_dir: String,
 }
 
-/// ラベルを設定
+/// Set a label
 #[tauri::command]
 pub fn set_label(
     state: State<'_, AppState>,
@@ -133,12 +138,9 @@ pub fn set_label(
         .map_err(|e| e.to_string())
 }
 
-/// 選択位置を保存
+/// Save selection position
 #[tauri::command]
-pub fn save_selection(
-    state: State<'_, AppState>,
-    index: i32,
-) -> std::result::Result<(), String> {
+pub fn save_selection(state: State<'_, AppState>, index: i32) -> std::result::Result<(), String> {
     let session_id = {
         let current = state.current_session_id.lock().unwrap();
         current.clone().ok_or("No session active")?
@@ -149,7 +151,7 @@ pub fn save_selection(
         .map_err(|e| e.to_string())
 }
 
-/// 採用ファイルをエクスポート
+/// Export adopted files
 #[tauri::command]
 pub async fn export_adopted(
     state: State<'_, AppState>,
@@ -162,7 +164,7 @@ pub async fn export_adopted(
         current.clone().ok_or("No session active")?
     };
 
-    // 不採用ラベルを取得
+    // Get rejected labels
     let rejected_files: std::collections::HashSet<String> = {
         let db = state.db.lock().unwrap();
         db.get_labels(&session_id)
@@ -173,10 +175,10 @@ pub async fn export_adopted(
             .collect()
     };
 
-    // フォルダ内のファイルをスキャン
+    // Scan files in folder
     let images = scan_folder(Path::new(&source_folder)).map_err(|e| e.to_string())?;
 
-    // 出力先フォルダを作成
+    // Create destination folder
     std::fs::create_dir_all(&destination_folder).map_err(|e| e.to_string())?;
 
     let is_move = mode == "move";
@@ -184,17 +186,17 @@ pub async fn export_adopted(
     let mut failed = 0;
 
     for image in &images {
-        // 不採用でない場合のみエクスポート
+        // Export only if not rejected
         if !rejected_files.contains(&image.filename) {
             let src = Path::new(&image.path);
             let dst = Path::new(&destination_folder).join(&image.filename);
 
             let result = if is_move {
-                // 移動モード: まずコピーしてから元ファイルを削除
-                std::fs::copy(&src, &dst).and_then(|_| std::fs::remove_file(&src))
+                // Move mode: copy first, then delete original
+                std::fs::copy(src, &dst).and_then(|_| std::fs::remove_file(src))
             } else {
-                // コピーモード
-                std::fs::copy(&src, &dst).map(|_| ())
+                // Copy mode
+                std::fs::copy(src, &dst).map(|_| ())
             };
 
             match result {
@@ -220,13 +222,13 @@ pub struct ExportResult {
     failed: usize,
 }
 
-/// EXIF情報を取得
+/// Get EXIF information
 #[tauri::command]
 pub fn get_exif(image_path: String) -> std::result::Result<ExifInfo, String> {
     extract_exif(std::path::Path::new(&image_path)).map_err(|e| e.to_string())
 }
 
-/// サムネイルキャッシュをクリア
+/// Clear thumbnail cache
 #[tauri::command]
 pub fn clear_cache(state: State<'_, AppState>) -> std::result::Result<(), String> {
     let session_id = {
@@ -236,17 +238,17 @@ pub fn clear_cache(state: State<'_, AppState>) -> std::result::Result<(), String
 
     let cache_dir = get_cache_dir(&session_id).map_err(|e| e.to_string())?;
 
-    // キャッシュディレクトリ内のファイルを削除
+    // Delete files in cache directory
     if cache_dir.exists() {
         std::fs::remove_dir_all(&cache_dir).map_err(|e| e.to_string())?;
-        // ディレクトリを再作成
+        // Recreate directory
         std::fs::create_dir_all(&cache_dir).map_err(|e| e.to_string())?;
     }
 
     Ok(())
 }
 
-/// システム情報を取得
+/// Get system information
 #[derive(serde::Serialize)]
 pub struct SystemInfo {
     pub cpu_count: usize,
@@ -266,7 +268,7 @@ pub fn get_system_info() -> SystemInfo {
     }
 }
 
-/// スレッド数を設定
+/// Set thread count
 #[tauri::command]
 pub fn set_thread_count(thread_count: Option<usize>) -> std::result::Result<(), String> {
     let config = AppConfig {

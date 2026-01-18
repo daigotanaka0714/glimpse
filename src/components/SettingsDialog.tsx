@@ -19,7 +19,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // システム情報を取得
+  // Fetch system info
   useEffect(() => {
     invoke<SystemInfo>('get_system_info').then((info) => {
       setSystemInfo(info);
@@ -69,7 +69,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 animate-fade-in">
       <div className="w-full max-w-md bg-bg-secondary rounded-2xl shadow-2xl animate-slide-up overflow-hidden">
-        {/* ヘッダー */}
+        {/* Header */}
         <div className="relative px-6 py-5 border-b border-white/10">
           <div className="absolute inset-0 bg-gradient-to-r from-accent/10 via-transparent to-transparent" />
           <div className="relative flex items-center justify-between">
@@ -78,8 +78,8 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                 <Cpu size={20} className="text-accent" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">パフォーマンス設定</h2>
-                <p className="text-xs text-text-secondary">サムネイル生成の処理速度を調整</p>
+                <h2 className="text-lg font-semibold">Performance Settings</h2>
+                <p className="text-xs text-text-secondary">Adjust thumbnail generation speed</p>
               </div>
             </div>
             <button
@@ -91,22 +91,22 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
           </div>
         </div>
 
-        {/* コンテンツ */}
+        {/* Content */}
         <div className="p-6 space-y-6">
-          {/* CPU情報カード */}
+          {/* CPU info card */}
           <div className="p-4 bg-bg-tertiary rounded-xl border border-white/5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-text-secondary">システム情報</span>
+              <span className="text-sm text-text-secondary">System Info</span>
               <span className="text-xs px-2 py-1 bg-accent/20 text-accent rounded-full">
-                {systemInfo.cpu_count} コア
+                {systemInfo.cpu_count} cores
               </span>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-bold tabular-nums">{threadCount}</span>
-              <span className="text-text-secondary">/ {systemInfo.cpu_count} スレッド使用</span>
+              <span className="text-text-secondary">/ {systemInfo.cpu_count} threads in use</span>
             </div>
 
-            {/* CPU使用率バー */}
+            {/* CPU usage bar */}
             <div className="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-300"
@@ -121,15 +121,15 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
               />
             </div>
             <div className="mt-2 flex justify-between text-xs text-text-secondary">
-              <span>CPU使用率: {cpuUsagePercent}%</span>
-              <span>{cpuUsagePercent > 90 ? '高負荷' : cpuUsagePercent > 70 ? '標準' : '省エネ'}</span>
+              <span>CPU Usage: {cpuUsagePercent}%</span>
+              <span>{cpuUsagePercent > 90 ? 'High Load' : cpuUsagePercent > 70 ? 'Normal' : 'Power Saving'}</span>
             </div>
           </div>
 
-          {/* スレッド数スライダー */}
+          {/* Thread count slider */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-medium">処理スレッド数</label>
+              <label className="text-sm font-medium">Processing Threads</label>
               <button
                 onClick={handleAutoClick}
                 className={`
@@ -141,7 +141,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                 `}
               >
                 <Zap size={12} />
-                自動（推奨）
+                Auto (Recommended)
               </button>
             </div>
 
@@ -166,7 +166,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                 "
               />
 
-              {/* スケールマーカー */}
+              {/* Scale markers */}
               <div className="flex justify-between mt-2 px-1">
                 {Array.from({ length: Math.min(systemInfo.cpu_count - 1, 5) + 1 }, (_, i) => {
                   const step = Math.max(1, Math.floor((systemInfo.cpu_count - 2) / 5));
@@ -184,24 +184,24 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             </div>
           </div>
 
-          {/* 説明 */}
+          {/* Description */}
           <div className="flex gap-3 p-3 bg-accent/5 border border-accent/20 rounded-xl">
             <Info size={16} className="text-accent shrink-0 mt-0.5" />
             <p className="text-xs text-text-secondary leading-relaxed">
-              スレッド数を増やすと処理速度が向上しますが、CPU使用率が高くなります。
-              低スペックのPCでは、スレッド数を減らすことでシステムの安定性を保てます。
-              <span className="text-accent"> 推奨: {systemInfo.recommended_threads}スレッド（80%）</span>
+              Increasing thread count improves processing speed but increases CPU usage.
+              On lower-spec PCs, reducing thread count can maintain system stability.
+              <span className="text-accent"> Recommended: {systemInfo.recommended_threads} threads (80%)</span>
             </p>
           </div>
         </div>
 
-        {/* フッター */}
+        {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-white/10 bg-bg-tertiary/50">
           <button
             onClick={onClose}
             className="px-4 py-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors text-sm"
           >
-            キャンセル
+            Cancel
           </button>
           <button
             onClick={handleSave}
@@ -211,12 +211,12 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             {saved ? (
               <>
                 <span className="text-green-400">✓</span>
-                <span>保存しました</span>
+                <span>Saved</span>
               </>
             ) : isSaving ? (
-              <span>保存中...</span>
+              <span>Saving...</span>
             ) : (
-              <span>保存</span>
+              <span>Save</span>
             )}
           </button>
         </div>

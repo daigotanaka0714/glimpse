@@ -39,7 +39,7 @@ export function ExportDialog({
 
   const handleExport = async () => {
     if (!destinationPath) {
-      setError('出力先フォルダを選択してください');
+      setError('Please select a destination folder');
       return;
     }
 
@@ -50,7 +50,7 @@ export function ExportDialog({
       await onExport({ destinationPath, mode: exportMode });
       setIsComplete(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'エクスポートに失敗しました');
+      setError(e instanceof Error ? e.message : 'Export failed');
     } finally {
       setIsExporting(false);
     }
@@ -59,9 +59,9 @@ export function ExportDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 animate-fade-in">
       <div className="w-full max-w-lg bg-bg-secondary rounded-2xl shadow-2xl animate-slide-up">
-        {/* ヘッダー */}
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-          <h2 className="text-lg font-semibold">採用写真をエクスポート</h2>
+          <h2 className="text-lg font-semibold">Export Adopted Photos</h2>
           <button
             onClick={onClose}
             className="p-1 rounded-lg hover:bg-white/10 transition-colors"
@@ -70,31 +70,31 @@ export function ExportDialog({
           </button>
         </div>
 
-        {/* コンテンツ */}
+        {/* Content */}
         <div className="p-6 space-y-6">
-          {/* 統計 */}
+          {/* Statistics */}
           <div className="flex gap-4">
             <div className="flex-1 p-4 bg-green-500/10 rounded-xl text-center">
               <p className="text-3xl font-bold text-green-400">{adoptedCount}</p>
-              <p className="text-sm text-white/50">採用</p>
+              <p className="text-sm text-white/50">Adopted</p>
             </div>
             <div className="flex-1 p-4 bg-rejected/10 rounded-xl text-center">
               <p className="text-3xl font-bold text-rejected">{rejectedCount}</p>
-              <p className="text-sm text-white/50">不採用</p>
+              <p className="text-sm text-white/50">Rejected</p>
             </div>
           </div>
 
-          {/* 出力先選択 */}
+          {/* Destination selection */}
           <div>
             <label className="block text-sm text-white/70 mb-2">
-              出力先フォルダ
+              Destination Folder
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={destinationPath}
                 readOnly
-                placeholder="フォルダを選択..."
+                placeholder="Select a folder..."
                 className="flex-1 px-4 py-2 bg-bg-tertiary border border-white/10 rounded-lg text-sm"
               />
               <button
@@ -107,10 +107,10 @@ export function ExportDialog({
             </div>
           </div>
 
-          {/* エクスポートモード選択 */}
+          {/* Export mode selection */}
           <div>
             <label className="block text-sm text-white/70 mb-2">
-              エクスポート方法
+              Export Method
             </label>
             <div className="flex gap-3">
               <button
@@ -125,7 +125,7 @@ export function ExportDialog({
                 `}
               >
                 <Copy size={18} />
-                <span className="text-sm font-medium">コピー</span>
+                <span className="text-sm font-medium">Copy</span>
               </button>
               <button
                 onClick={() => setExportMode('move')}
@@ -139,40 +139,40 @@ export function ExportDialog({
                 `}
               >
                 <Scissors size={18} />
-                <span className="text-sm font-medium">移動</span>
+                <span className="text-sm font-medium">Move</span>
               </button>
             </div>
             <p className="mt-2 text-xs text-white/50">
               {exportMode === 'copy'
-                ? '元のファイルは変更されません'
-                : '元のファイルは削除されます（注意: 元に戻せません）'
+                ? 'Original files will not be modified'
+                : 'Original files will be deleted (Warning: cannot be undone)'
               }
             </p>
           </div>
 
-          {/* エラーメッセージ */}
+          {/* Error message */}
           {error && (
             <div className="p-3 bg-rejected/20 border border-rejected/30 rounded-lg text-sm text-rejected">
               {error}
             </div>
           )}
 
-          {/* 完了メッセージ */}
+          {/* Complete message */}
           {isComplete && (
             <div className="p-3 bg-green-500/20 border border-green-500/30 rounded-lg text-sm text-green-400 flex items-center gap-2">
               <Check size={18} />
-              <span>エクスポートが完了しました！</span>
+              <span>Export completed!</span>
             </div>
           )}
         </div>
 
-        {/* フッター */}
+        {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-white/10">
           <button
             onClick={onClose}
             className="px-4 py-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors text-sm"
           >
-            {isComplete ? '閉じる' : 'キャンセル'}
+            {isComplete ? 'Close' : 'Cancel'}
           </button>
           {!isComplete && (
             <button
@@ -183,12 +183,12 @@ export function ExportDialog({
               {isExporting ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  <span>エクスポート中...</span>
+                  <span>Exporting...</span>
                 </>
               ) : (
                 <>
                   <FolderOutput size={16} />
-                  <span>エクスポート</span>
+                  <span>Export</span>
                 </>
               )}
             </button>
