@@ -1,10 +1,14 @@
 pub mod commands;
+pub mod config;
 pub mod database;
 pub mod error;
 pub mod image_processor;
 
 pub use commands::AppState;
-use commands::{clear_cache, export_adopted, get_exif, open_folder, save_selection, set_label};
+use commands::{
+    clear_cache, export_adopted, get_exif, get_system_info, open_folder, save_selection, set_label,
+    set_thread_count,
+};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,6 +23,8 @@ pub fn run() {
             export_adopted,
             get_exif,
             clear_cache,
+            get_system_info,
+            set_thread_count,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

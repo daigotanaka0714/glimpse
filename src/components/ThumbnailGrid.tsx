@@ -33,7 +33,7 @@ export function ThumbnailGrid({
     overscan: 3,
   });
 
-  // 選択アイテムが表示されるようにスクロール
+  // Scroll to show selected item
   useEffect(() => {
     const selectedRow = Math.floor(selectedIndex / columns);
     virtualizer.scrollToIndex(selectedRow, {
@@ -46,8 +46,8 @@ export function ThumbnailGrid({
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center text-white/50">
-          <p className="text-lg mb-2">写真がありません</p>
-          <p className="text-sm">「フォルダを開く」から写真フォルダを選択してください</p>
+          <p className="text-lg mb-2">No photos</p>
+          <p className="text-sm">Select a photo folder from "Open Folder"</p>
         </div>
       </div>
     );

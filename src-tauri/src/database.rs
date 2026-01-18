@@ -10,7 +10,7 @@ impl Database {
     pub fn new() -> Result<Self> {
         let db_path = Self::get_db_path()?;
 
-        // ディレクトリが存在しない場合は作成
+        // Create directory if it doesn't exist
         if let Some(parent) = db_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -65,10 +65,10 @@ impl Database {
         Ok(())
     }
 
-    // セッション操作
+    // Session operations
     pub fn get_session(&self, session_id: &str) -> Result<Option<Session>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, folder_path, last_opened, last_selected_index, total_files 
+            "SELECT id, folder_path, last_opened, last_selected_index, total_files
              FROM sessions WHERE id = ?1",
         )?;
 
@@ -116,7 +116,7 @@ impl Database {
         Ok(())
     }
 
-    // ラベル操作
+    // Label operations
     pub fn get_labels(&self, session_id: &str) -> Result<Vec<Label>> {
         let mut stmt = self
             .conn
@@ -155,7 +155,7 @@ impl Database {
         Ok(())
     }
 
-    // サムネイルキャッシュ操作
+    // Thumbnail cache operations
     pub fn get_thumbnail_cache(&self, session_id: &str, filename: &str) -> Result<Option<String>> {
         let mut stmt = self.conn.prepare(
             "SELECT cache_path FROM thumbnail_cache WHERE session_id = ?1 AND filename = ?2",
@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn test_init_schema() {
         let db = create_test_db();
-        // スキーマが正常に作成されたことを確認
+        // Verify schema was created successfully
         let count: i32 = db
             .conn
             .query_row(
@@ -290,7 +290,7 @@ mod tests {
     fn test_set_and_get_label() {
         let db = create_test_db();
 
-        // セッションを作成
+        // Create session
         let session = Session {
             id: "test_session".to_string(),
             folder_path: "/test".to_string(),
@@ -300,13 +300,13 @@ mod tests {
         };
         db.upsert_session(&session).unwrap();
 
-        // ラベルを設定
+        // Set labels
         db.set_label("test_session", "image1.jpg", Some("rejected"))
             .unwrap();
         db.set_label("test_session", "image2.jpg", Some("rejected"))
             .unwrap();
 
-        // ラベルを取得
+        // Get labels
         let labels = db.get_labels("test_session").unwrap();
         assert_eq!(labels.len(), 2);
 
@@ -318,7 +318,7 @@ mod tests {
     fn test_remove_label() {
         let db = create_test_db();
 
-        // セッションを作成
+        // Create session
         let session = Session {
             id: "test_session".to_string(),
             folder_path: "/test".to_string(),
@@ -328,14 +328,14 @@ mod tests {
         };
         db.upsert_session(&session).unwrap();
 
-        // ラベルを設定
+        // Set label
         db.set_label("test_session", "image1.jpg", Some("rejected"))
             .unwrap();
 
-        // ラベルを削除
+        // Remove label
         db.set_label("test_session", "image1.jpg", None).unwrap();
 
-        // ラベルを取得
+        // Get labels
         let labels = db.get_labels("test_session").unwrap();
         assert_eq!(labels.len(), 0);
     }
@@ -351,7 +351,7 @@ mod tests {
     fn test_thumbnail_cache() {
         let db = create_test_db();
 
-        // セッションを作成
+        // Create session
         let session = Session {
             id: "test_session".to_string(),
             folder_path: "/test".to_string(),
@@ -361,7 +361,7 @@ mod tests {
         };
         db.upsert_session(&session).unwrap();
 
-        // サムネイルキャッシュを設定
+        // Set thumbnail cache
         db.set_thumbnail_cache(
             "test_session",
             "image1.jpg",
@@ -370,7 +370,7 @@ mod tests {
         )
         .unwrap();
 
-        // キャッシュを取得
+        // Get cache
         let cache_path = db
             .get_thumbnail_cache("test_session", "image1.jpg")
             .unwrap();

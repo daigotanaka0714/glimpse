@@ -1,4 +1,4 @@
-// 画像ファイル情報
+// Image file information
 export interface ImageFile {
   filename: string;
   path: string;
@@ -8,16 +8,16 @@ export interface ImageFile {
   thumbnailLoaded: boolean;
 }
 
-// ラベル状態
+// Label status
 export type LabelStatus = 'rejected' | null;
 
-// 画像とラベルを含む完全な情報
+// Complete information including image and label
 export interface ImageItem extends ImageFile {
   label: LabelStatus;
   index: number;
 }
 
-// セッション情報
+// Session information
 export interface Session {
   id: string;
   folderPath: string;
@@ -26,26 +26,26 @@ export interface Session {
   totalFiles: number;
 }
 
-// アプリケーション状態
+// Application state
 export interface AppState {
-  // 現在のセッション
+  // Current session
   session: Session | null;
-  // 画像リスト
+  // Image list
   images: ImageItem[];
-  // 選択中のインデックス
+  // Selected index
   selectedIndex: number;
-  // 表示モード
+  // View mode
   viewMode: 'grid' | 'detail';
-  // ローディング状態
+  // Loading state
   loading: boolean;
-  // サムネイル生成進捗
+  // Thumbnail generation progress
   thumbnailProgress: {
     completed: number;
     total: number;
   };
 }
 
-// Tauriからのイベント
+// Tauri events
 export interface ThumbnailGeneratedEvent {
   filename: string;
   thumbnailPath: string;
@@ -56,7 +56,7 @@ export interface ThumbnailProgressEvent {
   total: number;
 }
 
-// グリッド設定
+// Grid configuration
 export interface GridConfig {
   columns: number;
   thumbnailSize: number;
@@ -64,13 +64,13 @@ export interface GridConfig {
   rowGap: number;
 }
 
-// フィルター設定
+// Filter settings
 export type FilterMode = 'all' | 'adopted' | 'rejected';
 
-// テーマ設定
+// Theme settings
 export type ThemeMode = 'dark' | 'light';
 
-// 選択状態
+// Selection state
 export interface SelectionState {
   selectedIndices: Set<number>;
   lastSelectedIndex: number;
