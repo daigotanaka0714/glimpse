@@ -18,6 +18,7 @@ interface UseKeyboardNavigationProps {
   onClearSelection?: () => void;
   onOpenFolder: () => void;
   onExport: () => void;
+  onOpenHelp?: () => void;
 }
 
 export function useKeyboardNavigation({
@@ -37,9 +38,17 @@ export function useKeyboardNavigation({
   onClearSelection,
   onOpenFolder,
   onExport,
+  onOpenHelp,
 }: UseKeyboardNavigationProps) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      // Help shortcut (works globally)
+      if (e.key === '?' && onOpenHelp) {
+        e.preventDefault();
+        onOpenHelp();
+        return;
+      }
+
       // Ctrl/Cmd + key combinations
       if (e.ctrlKey || e.metaKey) {
         switch (e.key.toLowerCase()) {
@@ -228,6 +237,7 @@ export function useKeyboardNavigation({
       onClearSelection,
       onOpenFolder,
       onExport,
+      onOpenHelp,
     ]
   );
 

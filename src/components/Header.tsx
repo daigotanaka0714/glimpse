@@ -1,4 +1,4 @@
-import { FolderOpen, Download, Loader2, RefreshCw, Settings } from 'lucide-react';
+import { FolderOpen, Download, Loader2, RefreshCw, Settings, HelpCircle } from 'lucide-react';
 
 interface HeaderProps {
   folderPath: string | null;
@@ -12,6 +12,7 @@ interface HeaderProps {
   onExport: () => void;
   onReload?: () => void;
   onOpenSettings?: () => void;
+  onOpenHelp?: () => void;
 }
 
 export function Header({
@@ -23,6 +24,7 @@ export function Header({
   onExport,
   onReload,
   onOpenSettings,
+  onOpenHelp,
 }: HeaderProps) {
   const isGeneratingThumbnails =
     thumbnailProgress.total > 0 &&
@@ -90,8 +92,17 @@ export function Header({
         )}
       </div>
 
-      {/* Right side: Settings & Export */}
+      {/* Right side: Help, Settings & Export */}
       <div className="flex items-center gap-2">
+        {onOpenHelp && (
+          <button
+            onClick={onOpenHelp}
+            className="p-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors"
+            title="Help (?)"
+          >
+            <HelpCircle size={18} />
+          </button>
+        )}
         {onOpenSettings && (
           <button
             onClick={onOpenSettings}

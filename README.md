@@ -7,10 +7,11 @@ A fast, lightweight desktop application specialized for selecting stage photogra
 ## Features
 
 - **Blazing Fast** - Browse thousands to tens of thousands of images without stress
-- **NEF Support** - Native support for Nikon RAW files
+- **Multi-RAW Support** - Nikon NEF, Sony ARW, Canon CR2/CR3, Fujifilm RAF, and more
 - **Keyboard-Driven** - Quick selection using arrow keys and label keys
 - **Pause & Resume** - Safely pause and resume your work anytime
 - **Lightweight** - Low memory consumption with Tauri + Rust
+- **Auto Update Check** - Get notified when new versions are available
 
 ## Feature List
 
@@ -50,10 +51,29 @@ A fast, lightweight desktop application specialized for selecting stage photogra
 | `C` | Enter comparison mode |
 | `Ctrl+O` | Open folder |
 | `Ctrl+E` | Export |
+| `?` | Open help |
 | `Home` | Go to first image |
 | `End` | Go to last image |
 | `PageUp` | Page up |
 | `PageDown` | Page down |
+
+## Supported RAW Formats
+
+Glimpse supports various RAW image formats from major camera manufacturers:
+
+| Format | Manufacturer |
+|--------|-------------|
+| NEF | Nikon |
+| ARW | Sony |
+| CR2, CR3 | Canon |
+| RAF | Fujifilm |
+| ORF | Olympus |
+| RW2 | Panasonic |
+| PEF | Pentax |
+| DNG | Adobe (Universal) |
+| SRW | Samsung |
+
+Standard image formats (JPEG, PNG, TIFF, WebP, BMP, GIF) are also supported.
 
 ## System Requirements
 

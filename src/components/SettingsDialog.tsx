@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, Cpu, Zap, Info, HardDrive, Trash2, Tag, AlertTriangle } from 'lucide-react';
+import { X, Cpu, Zap, Info, HardDrive, Trash2, Tag, AlertTriangle, RefreshCw, ExternalLink } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-shell';
+import {
+  checkForUpdates,
+  type UpdateInfo,
+} from '@/utils/updateChecker';
+
+// App info
+const APP_VERSION = '0.0.1'; // Testing: set to old version to trigger update notification
+const GITHUB_OWNER = 'daigotanaka0714';
+const GITHUB_REPO = 'glimpse';
 
 interface SystemInfo {
   cpu_count: number;
@@ -19,7 +29,7 @@ interface SettingsDialogProps {
   onClose: () => void;
 }
 
-type SettingsTab = 'performance' | 'storage';
+type SettingsTab = 'performance' | 'storage' | 'about';
 
 export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('performance');
@@ -32,6 +42,10 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const [isClearing, setIsClearing] = useState<'cache' | 'labels' | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<'cache' | 'labels' | null>(null);
   const [clearResult, setClearResult] = useState<string | null>(null);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [showLanguageDialog, setShowLanguageDialog] = useState(false);
 
   // Fetch system info
   useEffect(() => {
@@ -119,6 +133,41 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     }
   };
 
+  const handleCheckUpdate = async () => {
+    setIsCheckingUpdate(true);
+    setUpdateError(null);
+    try {
+      const info = await checkForUpdates({
+        owner: GITHUB_OWNER,
+        repo: GITHUB_REPO,
+        currentVersion: APP_VERSION,
+      });
+      setUpdateInfo(info);
+    } catch (error) {
+      console.error('Failed to check for updates:', error);
+      setUpdateError('Failed to check for updates');
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
+  const handleOpenRelease = async () => {
+    if (updateInfo?.releaseUrl) {
+      try {
+        await open(updateInfo.releaseUrl);
+      } catch (error) {
+        console.error('Failed to open URL:', error);
+      }
+    }
+  };
+
+  const handleReportIssue = (language: 'en' | 'ja') => {
+    const template = language === 'en' ? 'bug_report_en.yml' : 'bug_report_ja.yml';
+    const url = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/issues/new?template=${template}`;
+    open(url);
+    setShowLanguageDialog(false);
+  };
+
   if (!systemInfo) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
@@ -158,6 +207,54 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                 className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition-colors text-sm font-medium"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Language Selection Dialog for Issue Reporting */}
+      {showLanguageDialog && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60">
+          <div className="w-full max-w-sm bg-bg-secondary rounded-xl shadow-2xl p-6 animate-slide-up">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Report Issue</h3>
+              <button
+                onClick={() => setShowLanguageDialog(false)}
+                className="p-1 rounded hover:bg-white/10 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-sm text-text-secondary mb-6">
+              Select your preferred language for the bug report:
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => handleReportIssue('en')}
+                className="w-full flex items-center justify-between px-4 py-3 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🇺🇸</span>
+                  <div className="text-left">
+                    <p className="font-medium">English</p>
+                    <p className="text-xs text-text-secondary">Report in English</p>
+                  </div>
+                </div>
+                <ExternalLink size={16} className="text-text-secondary" />
+              </button>
+              <button
+                onClick={() => handleReportIssue('ja')}
+                className="w-full flex items-center justify-between px-4 py-3 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🇯🇵</span>
+                  <div className="text-left">
+                    <p className="font-medium">日本語</p>
+                    <p className="text-xs text-text-secondary">日本語で報告する</p>
+                  </div>
+                </div>
+                <ExternalLink size={16} className="text-text-secondary" />
               </button>
             </div>
           </div>
@@ -219,6 +316,19 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             <div className="flex items-center justify-center gap-2">
               <HardDrive size={16} />
               Storage
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('about')}
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'about'
+                ? 'text-accent border-b-2 border-accent bg-accent/5'
+                : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Info size={16} />
+              About
             </div>
           </button>
         </div>
@@ -355,7 +465,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
               </button>
             </div>
           </>
-        ) : (
+        ) : activeTab === 'storage' ? (
           <>
             <div className="p-6 space-y-6">
               {/* Storage info card */}
@@ -441,6 +551,105 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             </div>
 
             {/* Footer for Storage tab */}
+            <div className="flex justify-end px-6 py-4 border-t border-white/10 bg-bg-tertiary/50">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors text-sm"
+              >
+                Close
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="p-6 space-y-6">
+              {/* App info card */}
+              <div className="p-4 bg-bg-tertiary rounded-xl border border-white/5">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-xl bg-accent/20 flex items-center justify-center text-3xl">
+                    📷
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">Glimpse</h3>
+                    <p className="text-sm text-text-secondary">High-speed photo checker</p>
+                    <p className="text-xs text-text-secondary mt-1">Version {APP_VERSION}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Update check */}
+              <div className="p-4 bg-bg-tertiary rounded-xl border border-white/5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium">Updates</span>
+                </div>
+
+                {updateInfo ? (
+                  updateInfo.isUpdateAvailable ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 p-3 bg-accent/10 border border-accent/20 rounded-lg">
+                        <RefreshCw size={16} className="text-accent" />
+                        <span className="text-sm">
+                          New version available: <span className="font-medium text-accent">{updateInfo.latestVersion}</span>
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleOpenRelease}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover rounded-lg transition-colors text-sm font-medium"
+                      >
+                        <ExternalLink size={14} />
+                        Download Update
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      <span className="text-sm text-green-400">You're using the latest version</span>
+                    </div>
+                  )
+                ) : updateError ? (
+                  <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <span className="text-sm text-red-400">{updateError}</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleCheckUpdate}
+                    disabled={isCheckingUpdate}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-bg-primary hover:bg-white/10 disabled:opacity-50 rounded-lg transition-colors text-sm"
+                  >
+                    {isCheckingUpdate ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw size={14} />
+                        Check for Updates
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Links */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => open(`https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors text-sm"
+                >
+                  <ExternalLink size={14} />
+                  GitHub
+                </button>
+                <button
+                  onClick={() => setShowLanguageDialog(true)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors text-sm"
+                >
+                  <ExternalLink size={14} />
+                  Report Issue
+                </button>
+              </div>
+            </div>
+
+            {/* Footer for About tab */}
             <div className="flex justify-end px-6 py-4 border-t border-white/10 bg-bg-tertiary/50">
               <button
                 onClick={onClose}

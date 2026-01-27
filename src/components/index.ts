@@ -9,3 +9,5 @@ export { EmptyState } from './EmptyState';
 export { ExportDialog } from './ExportDialog';
 export { BatchActionBar } from './BatchActionBar';
 export { SettingsDialog } from './SettingsDialog';
+export { UpdateNotification } from './UpdateNotification';
+export { HelpDialog } from './HelpDialog';
