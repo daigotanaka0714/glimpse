@@ -276,3 +276,103 @@ pub fn set_thread_count(thread_count: Option<usize>) -> std::result::Result<(), 
     };
     config::update_config(config)
 }
+
+/// Storage information
+#[derive(serde::Serialize)]
+pub struct StorageInfo {
+    pub cache_size_bytes: u64,
+    pub cache_size_display: String,
+    pub label_count: i64,
+    pub session_count: i64,
+}
+
+/// Calculate directory size recursively
+fn get_dir_size(path: &Path) -> u64 {
+    if !path.exists() {
+        return 0;
+    }
+
+    let mut size = 0;
+    if let Ok(entries) = std::fs::read_dir(path) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                size += entry.metadata().map(|m| m.len()).unwrap_or(0);
+            } else if path.is_dir() {
+                size += get_dir_size(&path);
+            }
+        }
+    }
+    size
+}
+
+/// Format bytes to human-readable string
+fn format_bytes(bytes: u64) -> String {
+    const KB: u64 = 1024;
+    const MB: u64 = KB * 1024;
+    const GB: u64 = MB * 1024;
+
+    if bytes >= GB {
+        format!("{:.2} GB", bytes as f64 / GB as f64)
+    } else if bytes >= MB {
+        format!("{:.2} MB", bytes as f64 / MB as f64)
+    } else if bytes >= KB {
+        format!("{:.2} KB", bytes as f64 / KB as f64)
+    } else {
+        format!("{} B", bytes)
+    }
+}
+
+/// Get storage information
+#[tauri::command]
+pub fn get_storage_info(state: State<'_, AppState>) -> std::result::Result<StorageInfo, String> {
+    let db = state.db.lock().unwrap();
+
+    // Get cache directory path
+    let data_dir = dirs::data_dir().ok_or_else(|| "Cannot find data directory".to_string())?;
+    let cache_base_dir = data_dir.join("Glimpse").join("cache");
+
+    // Calculate cache size
+    let cache_size_bytes = get_dir_size(&cache_base_dir);
+
+    // Get counts from database
+    let label_count = db.get_label_count().map_err(|e| e.to_string())?;
+    let session_count = db.get_session_count().map_err(|e| e.to_string())?;
+
+    Ok(StorageInfo {
+        cache_size_bytes,
+        cache_size_display: format_bytes(cache_size_bytes),
+        label_count,
+        session_count,
+    })
+}
+
+/// Clear all thumbnail cache
+#[tauri::command]
+pub fn clear_all_cache(state: State<'_, AppState>) -> std::result::Result<u64, String> {
+    let db = state.db.lock().unwrap();
+
+    // Get cache directory path
+    let data_dir = dirs::data_dir().ok_or_else(|| "Cannot find data directory".to_string())?;
+    let cache_base_dir = data_dir.join("Glimpse").join("cache");
+
+    // Calculate size before deletion
+    let size = get_dir_size(&cache_base_dir);
+
+    // Delete cache directory
+    if cache_base_dir.exists() {
+        std::fs::remove_dir_all(&cache_base_dir).map_err(|e| e.to_string())?;
+    }
+
+    // Clear thumbnail_cache table
+    db.clear_all_sessions().map_err(|e| e.to_string())?;
+
+    Ok(size)
+}
+
+/// Clear all label data
+#[tauri::command]
+pub fn clear_all_labels(state: State<'_, AppState>) -> std::result::Result<i64, String> {
+    let db = state.db.lock().unwrap();
+    db.clear_all_labels().map_err(|e| e.to_string())
+}

@@ -187,6 +187,42 @@ impl Database {
         )?;
         Ok(())
     }
+
+    // Storage info operations
+    pub fn get_label_count(&self) -> Result<i64> {
+        let count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM labels", [], |row| row.get(0))?;
+        Ok(count)
+    }
+
+    pub fn get_session_count(&self) -> Result<i64> {
+        let count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM sessions", [], |row| row.get(0))?;
+        Ok(count)
+    }
+
+    pub fn get_all_session_ids(&self) -> Result<Vec<String>> {
+        let mut stmt = self.conn.prepare("SELECT id FROM sessions")?;
+        let ids = stmt
+            .query_map([], |row| row.get(0))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        Ok(ids)
+    }
+
+    pub fn clear_all_labels(&self) -> Result<i64> {
+        let count = self.get_label_count()?;
+        self.conn.execute("DELETE FROM labels", [])?;
+        Ok(count)
+    }
+
+    pub fn clear_all_sessions(&self) -> Result<()> {
+        self.conn.execute("DELETE FROM thumbnail_cache", [])?;
+        self.conn.execute("DELETE FROM labels", [])?;
+        self.conn.execute("DELETE FROM sessions", [])?;
+        Ok(())
+    }
 }
 
 // rusqlite Optional trait workaround
