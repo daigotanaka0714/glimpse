@@ -93,6 +93,9 @@ jobs:
       - name: Check formatting
         run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 
+      - name: Create dist directory for Tauri
+        run: mkdir -p dist && echo '<!DOCTYPE html><html><body></body></html>' > dist/index.html
+
       - name: Clippy
         run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 
