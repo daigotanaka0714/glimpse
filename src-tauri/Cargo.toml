@@ -43,6 +43,7 @@ chrono = { version = "0.4", features = ["serde"] }
 dirs = "5"
 walkdir = "2"
 thiserror = "2"
+tauri-plugin-shell = "2.3.4"
 
 [dev-dependencies]
 tempfile = "3"

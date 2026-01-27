@@ -10,6 +10,8 @@ import {
   ExportDialog,
   BatchActionBar,
   SettingsDialog,
+  UpdateNotification,
+  HelpDialog,
 } from '@/components';
 import { useKeyboardNavigation, useGridConfig, useDragAndDrop } from '@/hooks';
 import type { ImageItem, LabelStatus, FilterMode, ThemeMode } from '@/types';
@@ -28,6 +30,12 @@ import {
 } from '@/utils/tauri';
 import { playCompletionSound } from '@/utils/notification';
 
+// App version from package.json
+// TODO: Revert to actual version after testing
+const APP_VERSION = '0.0.1'; // Testing: set to old version to trigger update notification
+const GITHUB_OWNER = 'daigotanaka0714';
+const GITHUB_REPO = 'glimpse';
+
 export default function App() {
   // State management
   const [images, setImages] = useState<ImageItem[]>([]);
@@ -38,6 +46,7 @@ export default function App() {
   const [folderPath, setFolderPath] = useState<string | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [thumbnailProgress, setThumbnailProgress] = useState({
     completed: 0,
     total: 0,
@@ -489,6 +498,7 @@ export default function App() {
     onClearSelection: handleClearSelection,
     onOpenFolder: handleOpenFolder,
     onExport: () => setShowExportDialog(true),
+    onOpenHelp: () => setShowHelpDialog(true),
   });
 
   return (
@@ -502,6 +512,7 @@ export default function App() {
         onExport={() => setShowExportDialog(true)}
         onReload={handleReload}
         onOpenSettings={() => setShowSettingsDialog(true)}
+        onOpenHelp={() => setShowHelpDialog(true)}
       />
 
       {images.length > 0 && (
@@ -610,6 +621,10 @@ export default function App() {
         <SettingsDialog onClose={() => setShowSettingsDialog(false)} />
       )}
 
+      {showHelpDialog && (
+        <HelpDialog onClose={() => setShowHelpDialog(false)} />
+      )}
+
       {/* Drag & drop overlay */}
       {isDragging && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-accent/20 border-4 border-dashed border-accent pointer-events-none">
@@ -619,6 +634,14 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Update notification - disabled auto check, use Settings > About instead */}
+      <UpdateNotification
+        owner={GITHUB_OWNER}
+        repo={GITHUB_REPO}
+        currentVersion={APP_VERSION}
+        checkOnMount={false}
+      />
     </div>
   );
 }

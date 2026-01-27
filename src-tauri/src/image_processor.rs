@@ -158,9 +158,29 @@ pub fn extract_exif(image_path: &Path) -> Result<ExifInfo> {
     Ok(info)
 }
 
+/// Supported RAW file extensions
+const RAW_EXTENSIONS: &[&str] = &[
+    "nef", "NEF", // Nikon
+    "arw", "ARW", // Sony
+    "cr2", "CR2", "cr3", "CR3", // Canon
+    "raf", "RAF", // Fujifilm
+    "orf", "ORF", // Olympus
+    "rw2", "RW2", // Panasonic
+    "pef", "PEF", // Pentax
+    "dng", "DNG", // Adobe DNG
+    "srw", "SRW", // Samsung
+];
+
+/// Supported standard image extensions
+const IMAGE_EXTENSIONS: &[&str] = &["jpg", "JPG", "jpeg", "JPEG", "png", "PNG"];
+
+/// Check if extension is a RAW format
+fn is_raw_extension(ext: &str) -> bool {
+    RAW_EXTENSIONS.contains(&ext)
+}
+
 /// Scan image files in a folder
 pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
-    let extensions = ["nef", "NEF", "jpg", "JPG", "jpeg", "JPEG", "png", "PNG"];
     let mut images = Vec::new();
 
     for entry in std::fs::read_dir(folder_path)? {
@@ -173,7 +193,7 @@ pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
 
         let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
 
-        if !extensions.contains(&extension) {
+        if !RAW_EXTENSIONS.contains(&extension) && !IMAGE_EXTENSIONS.contains(&extension) {
             continue;
         }
 
@@ -231,7 +251,7 @@ pub fn generate_thumbnail(image_path: &Path, output_path: &Path) -> Result<()> {
         .map(|s| s.to_lowercase())
         .unwrap_or_default();
 
-    let img = if extension == "nef" {
+    let img = if is_raw_extension(&extension) {
         load_raw_image(image_path)?
     } else {
         image::open(image_path)?
@@ -390,16 +410,20 @@ mod tests {
         fs::write(dir.path().join("image2.JPG"), b"fake jpg").unwrap();
         fs::write(dir.path().join("image3.png"), b"fake png").unwrap();
         fs::write(dir.path().join("image4.NEF"), b"fake nef").unwrap();
+        fs::write(dir.path().join("image5.ARW"), b"fake arw").unwrap();
+        fs::write(dir.path().join("image6.CR2"), b"fake cr2").unwrap();
 
         let result = scan_folder(dir.path()).unwrap();
 
-        assert_eq!(result.len(), 4);
+        assert_eq!(result.len(), 6);
 
         // Verify sorted by filename
         assert_eq!(result[0].filename, "image1.jpg");
         assert_eq!(result[1].filename, "image2.JPG");
         assert_eq!(result[2].filename, "image3.png");
         assert_eq!(result[3].filename, "image4.NEF");
+        assert_eq!(result[4].filename, "image5.ARW");
+        assert_eq!(result[5].filename, "image6.CR2");
     }
 
     #[test]
