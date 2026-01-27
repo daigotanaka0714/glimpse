@@ -329,8 +329,7 @@ pub fn get_storage_info(state: State<'_, AppState>) -> std::result::Result<Stora
     let db = state.db.lock().unwrap();
 
     // Get cache directory path
-    let data_dir = dirs::data_dir()
-        .ok_or_else(|| "Cannot find data directory".to_string())?;
+    let data_dir = dirs::data_dir().ok_or_else(|| "Cannot find data directory".to_string())?;
     let cache_base_dir = data_dir.join("Glimpse").join("cache");
 
     // Calculate cache size
@@ -354,8 +353,7 @@ pub fn clear_all_cache(state: State<'_, AppState>) -> std::result::Result<u64, S
     let db = state.db.lock().unwrap();
 
     // Get cache directory path
-    let data_dir = dirs::data_dir()
-        .ok_or_else(|| "Cannot find data directory".to_string())?;
+    let data_dir = dirs::data_dir().ok_or_else(|| "Cannot find data directory".to_string())?;
     let cache_base_dir = data_dir.join("Glimpse").join("cache");
 
     // Calculate size before deletion
