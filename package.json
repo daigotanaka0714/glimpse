@@ -1,6 +1,6 @@
 {
   "name": "glimpse",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "High-speed photo checker for stage photography",
   "type": "module",
   "packageManager": "pnpm@9.15.4",
