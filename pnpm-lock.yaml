@@ -32,6 +32,9 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      tauri-update-notifier:
+        specifier: ^0.1.0
+        version: 0.1.0(@tauri-apps/plugin-shell@2.3.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.2
@@ -1799,6 +1802,20 @@ packages:
     resolution: {integrity: sha512-3ofp+LL8E+pK/JuPLPggVAIaEuhvIz4qNcf3nA1Xn2o/7fb7s/TYpHhwGDv1ZU3PkBluUVaF8PyCHcm48cKLWQ==}
     engines: {node: '>=14.0.0'}
     hasBin: true
+
+  tauri-update-notifier@0.1.0:
+    resolution: {integrity: sha512-y7M2IyLGjSh7VThXXe6h9XqVn59/8uGW7yUXeEn5zpItHbT1UnjIp3XqRsHQz/kbyGDlatghlHT0vrzdKOfvIw==}
+    peerDependencies:
+      '@tauri-apps/plugin-shell': '>=2.0.0'
+      react: '>=17.0.0'
+      react-dom: '>=17.0.0'
+    peerDependenciesMeta:
+      '@tauri-apps/plugin-shell':
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
 
   thenify-all@1.6.0:
     resolution: {integrity: sha512-RNxQH/qI8/t3thXJDwcstUO4zeqo64+Uy/+sNVRBx4Xn2OX+OZ9oP+iJnNFqplFra2ZUVeKCSa2oVWi3T4uVmA==}
@@ -3640,6 +3657,12 @@ snapshots:
     transitivePeerDependencies:
       - tsx
       - yaml
+
+  tauri-update-notifier@0.1.0(@tauri-apps/plugin-shell@2.3.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    optionalDependencies:
+      '@tauri-apps/plugin-shell': 2.3.4
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   thenify-all@1.6.0:
     dependencies:
