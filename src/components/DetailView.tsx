@@ -71,9 +71,9 @@ export function DetailView({
         )}
 
         {/* Main image */}
-        <div className="relative max-w-full max-h-full p-8">
+        <div className="relative w-full h-full flex items-center justify-center p-8">
           {!imageLoaded && (
-            <div className="absolute inset-8 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-16 h-16 border-4 border-border-color border-t-accent rounded-full animate-spin" />
             </div>
           )}
@@ -81,7 +81,7 @@ export function DetailView({
             src={toAssetUrl(item.path)}
             alt={item.filename}
             className={`
-              max-w-full max-h-[calc(100vh-120px)] object-contain
+              w-auto h-auto max-w-full max-h-full object-contain
               ${imageLoaded ? 'opacity-100' : 'opacity-0'}
               ${isRejected ? 'opacity-50' : ''}
               transition-all duration-300
