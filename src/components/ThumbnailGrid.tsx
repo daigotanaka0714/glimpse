@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ThumbnailItem } from './ThumbnailItem';
 import type { ImageItem, GridConfig } from '@/types';
@@ -26,12 +26,20 @@ export function ThumbnailGrid({
   const rowCount = Math.ceil(items.length / columns);
   const rowHeight = thumbnailSize + rowGap;
 
+  // Memoize estimateSize to ensure virtualizer updates when rowHeight changes
+  const getRowHeight = useCallback(() => rowHeight, [rowHeight]);
+
   const virtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => rowHeight,
+    estimateSize: getRowHeight,
     overscan: 3,
   });
+
+  // Force virtualizer to recalculate when thumbnail size changes
+  useEffect(() => {
+    virtualizer.measure();
+  }, [thumbnailSize, virtualizer]);
 
   // Scroll to show selected item
   useEffect(() => {
