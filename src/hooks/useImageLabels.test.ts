@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Mock } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useImageLabels } from './useImageLabels';
 import type { ImageItem } from '@/types';
+import type { Dispatch, SetStateAction } from 'react';
 
 // Mock the tauri utils
 vi.mock('@/utils/tauri', () => ({
@@ -44,7 +46,7 @@ describe('useImageLabels', () => {
     },
   ];
 
-  let setImages: ReturnType<typeof vi.fn>;
+  let setImages: Mock<Dispatch<SetStateAction<ImageItem[]>>>;
 
   beforeEach(() => {
     vi.clearAllMocks();
