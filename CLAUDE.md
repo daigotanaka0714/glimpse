@@ -56,14 +56,27 @@ Custom hooks in `src/hooks/`:
 - **SQLite** for session/label/cache persistence
 
 Key Tauri commands in `commands.rs`:
-- `open_folder` - Scan folder and generate thumbnails
+- `open_folder` - Scan folder and generate thumbnails/previews
 - `set_label` - Mark image as rejected/adopted
 - `export_adopted` - Export selected images
 - `get_exif` - Extract EXIF metadata
 
 Other modules:
-- `image_processor.rs` - Thumbnail generation, EXIF extraction
+- `image_processor.rs` - Thumbnail/preview generation, EXIF extraction
 - `database.rs` - SQLite operations
+
+### RAW Image Processing
+
+RAW files (NEF, ARW, CR2, CR3, RAF, ORF, RW2, PEF, DNG, SRW) are processed using:
+- **`rawloader`** - Pure Rust RAW file decoder supporting major camera manufacturers (Nikon, Canon, Sony, Fujifilm, Olympus, Panasonic, Pentax, Samsung)
+- **`imagepipe`** - RAW data processing pipeline (demosaicing, color conversion to sRGB)
+
+These are the best available pure-Rust libraries for RAW processing. Alternative options:
+- **`libraw-rs`** - Rust bindings for LibRAW (C++), supports more formats but adds native dependencies
+
+**Important**: Web browsers cannot natively decode RAW files. The backend generates:
+- Thumbnails (300x300 JPEG) for grid view
+- Previews (2000x2000 JPEG) for detail view of RAW files
 
 ### Data Flow
 ```
