@@ -60,7 +60,7 @@ export default function App() {
   const [theme, setTheme] = useState<ThemeMode>('dark');
   const [baseThumbnailSize, setBaseThumbnailSize] = useState(180);
 
-  const { config: gridConfig, setBaseThumbnailSize: updateGridSize, minSize, maxSize } = useGridConfig();
+  const { config: gridConfig, containerRef: gridContainerRef, setBaseThumbnailSize: updateGridSize, minSize, maxSize } = useGridConfig();
 
   // Store session info
   const sessionRef = useRef<{ id: string; cacheDir: string } | null>(null);
@@ -489,6 +489,7 @@ export default function App() {
           selectedIndex={selectedIndex}
           selectedIndices={selectedIndices}
           gridConfig={gridConfig}
+          containerRef={gridContainerRef}
           onSelect={handleSelect}
           onEnterDetail={handleEnterDetail}
         />
