@@ -24,8 +24,9 @@ describe('StatusBar', () => {
       />
     );
 
-    expect(screen.getByText(/移動/)).toBeInTheDocument();
-    expect(screen.getByText(/複数選択/)).toBeInTheDocument();
+    // i18n mock returns English text
+    expect(screen.getByText(/Navigate/)).toBeInTheDocument();
+    expect(screen.getByText(/Multi-select/)).toBeInTheDocument();
   });
 
   it('should display selected item filename', () => {
@@ -86,7 +87,8 @@ describe('StatusBar', () => {
       />
     );
 
-    expect(screen.getByText('不採用')).toBeInTheDocument();
+    // i18n mock returns 'Rejected' in English
+    expect(screen.getByText('Rejected')).toBeInTheDocument();
   });
 
   it('should show multi-select count when selectedCount > 1', () => {
@@ -99,7 +101,8 @@ describe('StatusBar', () => {
       />
     );
 
-    expect(screen.getByText('5件選択中')).toBeInTheDocument();
+    // i18n mock returns 'selected' in English
+    expect(screen.getByText(/5.*selected/)).toBeInTheDocument();
   });
 
   it('should not show multi-select count when selectedCount is 0 or 1', () => {
@@ -112,7 +115,7 @@ describe('StatusBar', () => {
       />
     );
 
-    expect(screen.queryByText(/件選択中/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
 
     rerender(
       <StatusBar
@@ -123,6 +126,6 @@ describe('StatusBar', () => {
       />
     );
 
-    expect(screen.queryByText(/件選択中/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
   });
 });

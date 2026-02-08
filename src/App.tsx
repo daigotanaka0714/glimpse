@@ -5,6 +5,7 @@ import {
   ThumbnailGrid,
   DetailView,
   CompareView,
+  GalleryView,
   StatusBar,
   EmptyState,
   ExportDialog,
@@ -14,7 +15,7 @@ import {
   HelpDialog,
 } from '@/components';
 import { useKeyboardNavigation, useGridConfig, useDragAndDrop } from '@/hooks';
-import type { ImageItem, LabelStatus, FilterMode, ThemeMode } from '@/types';
+import type { ImageItem, LabelStatus, FilterMode, ThemeMode, ViewMode } from '@/types';
 import {
   selectFolder,
   openFolder,
@@ -30,9 +31,8 @@ import {
 } from '@/utils/tauri';
 import { playCompletionSound } from '@/utils/notification';
 
-// App version from package.json
-// TODO: Revert to actual version after testing
-const APP_VERSION = '0.0.1'; // Testing: set to old version to trigger update notification
+// App version
+const APP_VERSION = '0.3.0';
 const GITHUB_OWNER = 'daigotanaka0714';
 const GITHUB_REPO = 'glimpse';
 
@@ -41,7 +41,7 @@ export default function App() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
-  const [viewMode, setViewMode] = useState<'grid' | 'detail' | 'compare'>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [compareIndex, setCompareIndex] = useState(1); // Second image index for compare mode
   const [folderPath, setFolderPath] = useState<string | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -404,6 +404,47 @@ export default function App() {
     setViewMode('grid');
   }, []);
 
+  // Gallery mode
+  const handleEnterGallery = useCallback(() => {
+    if (filteredImages.length > 0) {
+      setViewMode('gallery');
+    }
+  }, [filteredImages.length]);
+
+  const handleExitGallery = useCallback(() => {
+    setViewMode('grid');
+  }, []);
+
+  // Batch toggle label for gallery view
+  const handleGalleryBatchToggleLabel = useCallback(async (indices: number[], label: 'rejected' | null) => {
+    if (indices.length === 0) return;
+
+    // Immediate UI update
+    const filenames = indices.map(idx => filteredImages[idx]?.filename).filter(Boolean);
+    const filenameSet = new Set(filenames);
+
+    setImages((prev) =>
+      prev.map((img) => {
+        if (filenameSet.has(img.filename)) {
+          return { ...img, label };
+        }
+        return img;
+      })
+    );
+
+    // Save to backend
+    try {
+      for (const idx of indices) {
+        const img = filteredImages[idx];
+        if (img) {
+          await setLabelApi(img.filename, label);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to set labels:', error);
+    }
+  }, [filteredImages]);
+
   const handleToggleLabelCompareLeft = useCallback(async () => {
     const img = filteredImages[selectedIndex];
     if (!img) return;
@@ -495,6 +536,8 @@ export default function App() {
     onExitDetail: handleExitDetail,
     onEnterCompare: handleEnterCompare,
     onExitCompare: handleExitCompare,
+    onEnterGallery: handleEnterGallery,
+    onExitGallery: handleExitGallery,
     onClearSelection: handleClearSelection,
     onOpenFolder: handleOpenFolder,
     onExport: () => setShowExportDialog(true),
@@ -525,6 +568,9 @@ export default function App() {
           onFilterModeChange={setFilterMode}
           theme={theme}
           onThemeChange={setTheme}
+          viewMode={viewMode}
+          onEnterGallery={handleEnterGallery}
+          hasSelection={selectedIndex >= 0}
           counts={{
             all: images.length,
             adopted: adoptedCount,
@@ -604,6 +650,17 @@ export default function App() {
           onSelectRight={(index) => setCompareIndex(index)}
           onToggleLabelLeft={handleToggleLabelCompareLeft}
           onToggleLabelRight={handleToggleLabelCompareRight}
+        />
+      )}
+
+      {viewMode === 'gallery' && filteredImages.length > 0 && (
+        <GalleryView
+          items={filteredImages}
+          selectedIndex={selectedIndex}
+          onClose={handleExitGallery}
+          onSelect={handleSelect}
+          onToggleLabel={handleToggleLabel}
+          onBatchToggleLabel={handleGalleryBatchToggleLabel}
         />
       )}
 

@@ -13,9 +13,17 @@ export default {
         text: {
           primary: 'var(--text-primary)',
           secondary: 'var(--text-secondary)',
+          muted: 'var(--text-muted)',
+          subtle: 'var(--text-subtle)',
         },
         border: {
           color: 'var(--border-color)',
+          subtle: 'var(--border-subtle)',
+        },
+        theme: {
+          hover: 'var(--hover-bg)',
+          active: 'var(--active-bg)',
+          overlay: 'var(--overlay-bg)',
         },
         accent: {
           DEFAULT: '#3b82f6',
@@ -29,6 +37,9 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
+      },
+      boxShadow: {
+        'theme': 'var(--card-shadow)',
       },
     },
   },

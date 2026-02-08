@@ -26,6 +26,9 @@ export interface Session {
   totalFiles: number;
 }
 
+// View mode
+export type ViewMode = 'grid' | 'detail' | 'compare' | 'gallery';
+
 // Application state
 export interface AppState {
   // Current session
@@ -35,7 +38,7 @@ export interface AppState {
   // Selected index
   selectedIndex: number;
   // View mode
-  viewMode: 'grid' | 'detail';
+  viewMode: ViewMode;
   // Loading state
   loading: boolean;
   // Thumbnail generation progress

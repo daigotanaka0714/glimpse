@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, Info, RotateCcw, RotateCw } from 'lucide-react';
 import type { ImageItem } from '@/types';
 import { getExif, toAssetUrl, type ExifInfo } from '@/utils/tauri';
+import { useTranslation } from '@/i18n';
 
 interface DetailViewProps {
   item: ImageItem;
@@ -20,6 +21,7 @@ export function DetailView({
   onNext,
   onToggleLabel,
 }: DetailViewProps) {
+  const t = useTranslation();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showExif, setShowExif] = useState(false);
   const [exifInfo, setExifInfo] = useState<ExifInfo | null>(null);
@@ -55,14 +57,14 @@ export function DetailView({
   }, [showExif, item.path, exifInfo]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-bg-primary flex flex-col animate-fade-in">
       {/* Image area */}
       <div className="flex-1 flex items-center justify-center relative overflow-hidden">
         {/* Navigation button - left */}
         {item.index > 0 && (
           <button
             onClick={onPrevious}
-            className="absolute left-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            className="absolute left-4 z-10 p-3 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
             <ChevronLeft size={32} />
           </button>
@@ -72,7 +74,7 @@ export function DetailView({
         <div className="relative max-w-full max-h-full p-8">
           {!imageLoaded && (
             <div className="absolute inset-8 flex items-center justify-center">
-              <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+              <div className="w-16 h-16 border-4 border-border-color border-t-accent rounded-full animate-spin" />
             </div>
           )}
           <img
@@ -101,7 +103,7 @@ export function DetailView({
         {item.index < totalItems - 1 && (
           <button
             onClick={onNext}
-            className="absolute right-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            className="absolute right-4 z-10 p-3 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
             <ChevronRight size={32} />
           </button>
@@ -110,7 +112,7 @@ export function DetailView({
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+          className="absolute top-4 right-4 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
         >
           <X size={24} />
         </button>
@@ -119,20 +121,20 @@ export function DetailView({
         <div className="absolute top-4 left-4 flex gap-2">
           <button
             onClick={rotateLeft}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-            title="Rotate 90° left"
+            className="p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
+            title={t.detailView.rotateLeft}
           >
             <RotateCcw size={24} />
           </button>
           <button
             onClick={rotateRight}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-            title="Rotate 90° right"
+            className="p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
+            title={t.detailView.rotateRight}
           >
             <RotateCw size={24} />
           </button>
           {rotation !== 0 && (
-            <span className="flex items-center px-2 text-sm text-white/70">
+            <span className="flex items-center px-2 text-sm text-text-muted">
               {rotation}°
             </span>
           )}
@@ -142,18 +144,18 @@ export function DetailView({
         <button
           onClick={() => setShowExif(!showExif)}
           className={`absolute top-4 right-16 p-2 rounded-full transition-colors ${
-            showExif ? 'bg-accent text-white' : 'bg-white/10 hover:bg-white/20'
+            showExif ? 'bg-accent text-white' : 'bg-theme-hover hover:bg-theme-active'
           }`}
-          title="Show EXIF info"
+          title={t.detailView.showExif}
         >
           <Info size={24} />
         </button>
 
         {/* EXIF info panel */}
         {showExif && (
-          <div className="absolute top-16 right-4 w-72 bg-bg-secondary/95 backdrop-blur-sm rounded-lg border border-white/10 shadow-xl overflow-hidden animate-slide-up">
-            <div className="px-4 py-3 bg-bg-tertiary border-b border-white/10">
-              <h3 className="font-medium text-sm">EXIF Info</h3>
+          <div className="absolute top-16 right-4 w-72 bg-bg-secondary/95 backdrop-blur-sm rounded-lg border border-border-subtle shadow-xl overflow-hidden animate-slide-up">
+            <div className="px-4 py-3 bg-bg-tertiary border-b border-border-subtle">
+              <h3 className="font-medium text-sm">{t.detailView.exifInfo}</h3>
             </div>
             {exifLoading ? (
               <div className="p-4 text-center">
@@ -162,36 +164,36 @@ export function DetailView({
             ) : exifInfo ? (
               <div className="p-3 space-y-2 text-sm max-h-96 overflow-y-auto">
                 {exifInfo.camera_model && (
-                  <ExifRow label="Camera" value={`${exifInfo.camera_make || ''} ${exifInfo.camera_model}`.trim()} />
+                  <ExifRow label={t.detailView.camera} value={`${exifInfo.camera_make || ''} ${exifInfo.camera_model}`.trim()} />
                 )}
                 {exifInfo.lens_model && (
-                  <ExifRow label="Lens" value={exifInfo.lens_model} />
+                  <ExifRow label={t.detailView.lens} value={exifInfo.lens_model} />
                 )}
                 {exifInfo.focal_length && (
-                  <ExifRow label="Focal Length" value={exifInfo.focal_length} />
+                  <ExifRow label={t.detailView.focalLength} value={exifInfo.focal_length} />
                 )}
                 {exifInfo.aperture && (
-                  <ExifRow label="Aperture" value={exifInfo.aperture} />
+                  <ExifRow label={t.detailView.aperture} value={exifInfo.aperture} />
                 )}
                 {exifInfo.shutter_speed && (
-                  <ExifRow label="Shutter Speed" value={exifInfo.shutter_speed} />
+                  <ExifRow label={t.detailView.shutterSpeed} value={exifInfo.shutter_speed} />
                 )}
                 {exifInfo.iso && (
-                  <ExifRow label="ISO" value={exifInfo.iso} />
+                  <ExifRow label={t.detailView.iso} value={exifInfo.iso} />
                 )}
                 {exifInfo.exposure_compensation && (
-                  <ExifRow label="Exposure Comp." value={exifInfo.exposure_compensation} />
+                  <ExifRow label={t.detailView.exposureComp} value={exifInfo.exposure_compensation} />
                 )}
                 {exifInfo.date_taken && (
-                  <ExifRow label="Date Taken" value={exifInfo.date_taken} />
+                  <ExifRow label={t.detailView.dateTaken} value={exifInfo.date_taken} />
                 )}
                 {exifInfo.width && exifInfo.height && (
-                  <ExifRow label="Resolution" value={`${exifInfo.width} × ${exifInfo.height}`} />
+                  <ExifRow label={t.detailView.resolution} value={`${exifInfo.width} × ${exifInfo.height}`} />
                 )}
               </div>
             ) : (
-              <div className="p-4 text-center text-white/50 text-sm">
-                Could not retrieve EXIF info
+              <div className="p-4 text-center text-text-muted text-sm">
+                {t.detailView.noExif}
               </div>
             )}
           </div>
@@ -199,16 +201,16 @@ export function DetailView({
       </div>
 
       {/* Footer info bar */}
-      <div className="h-16 px-6 bg-bg-secondary border-t border-white/10 flex items-center justify-between">
+      <div className="h-16 px-6 bg-bg-secondary border-t border-border-subtle flex items-center justify-between">
         <div className="flex items-center gap-6">
           <span className="font-mono text-sm">{item.filename}</span>
-          <span className="text-white/50 text-sm">
+          <span className="text-text-muted text-sm">
             {(item.size / 1024 / 1024).toFixed(1)} MB
           </span>
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="text-white/50">
+          <span className="text-text-muted">
             {item.index + 1} / {totalItems}
           </span>
 
@@ -218,12 +220,12 @@ export function DetailView({
               px-4 py-2 rounded-lg font-medium text-sm transition-colors
               ${isRejected
                 ? 'bg-rejected text-white'
-                : 'bg-bg-tertiary hover:bg-white/10 text-white/70'
+                : 'bg-bg-tertiary hover:bg-theme-hover text-text-secondary'
               }
             `}
           >
             <span className="mr-2">1</span>
-            Reject{isRejected ? ' ✓' : ''}
+            {isRejected ? t.detailView.rejected : t.detailView.reject}{isRejected ? ' ✓' : ''}
           </button>
         </div>
       </div>

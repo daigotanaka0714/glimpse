@@ -4,6 +4,7 @@ export { ThumbnailGrid } from './ThumbnailGrid';
 export { ThumbnailItem } from './ThumbnailItem';
 export { DetailView } from './DetailView';
 export { CompareView } from './CompareView';
+export { GalleryView } from './GalleryView';
 export { StatusBar } from './StatusBar';
 export { EmptyState } from './EmptyState';
 export { ExportDialog } from './ExportDialog';
