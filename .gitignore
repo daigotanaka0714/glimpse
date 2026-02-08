@@ -30,3 +30,4 @@ src-tauri/Cargo.lock
 # Internal design documents
 DESIGN.md
 .playwright-mcp/
+docs-internal/

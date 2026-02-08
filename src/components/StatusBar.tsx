@@ -1,4 +1,6 @@
 import type { ImageItem } from '@/types';
+import { useTranslation } from '@/i18n';
+import { getModifierKey } from '@/utils/platform';
 
 interface StatusBarProps {
   selectedItem: ImageItem | null;
@@ -13,11 +15,14 @@ export function StatusBar({
   totalItems,
   selectedCount = 0,
 }: StatusBarProps) {
+  const t = useTranslation();
+  const modKey = getModifierKey();
+
   if (!selectedItem) {
     return (
       <footer className="h-10 px-4 bg-bg-secondary border-t border-border-color flex items-center">
         <span className="text-sm text-text-secondary">
-          ← → ↑ ↓: 移動 | 1: 不採用 | Enter: 詳細表示 | Ctrl+O: フォルダを開く | Ctrl/⌘+クリック: 複数選択
+          ← → ↑ ↓: {t.statusBar.navigation} | 1: {t.statusBar.reject} | Enter: {t.statusBar.detailView} | {modKey}+O: {t.statusBar.openFolder} | {modKey}/Click: {t.statusBar.multiSelect}
         </span>
       </footer>
     );
@@ -38,7 +43,7 @@ export function StatusBar({
       <div className="flex items-center gap-4 text-sm">
         {selectedCount > 1 && (
           <span className="px-2 py-0.5 rounded bg-accent/20 text-accent">
-            {selectedCount}件選択中
+            {selectedCount}{t.statusBar.selected}
           </span>
         )}
         <span
@@ -46,7 +51,7 @@ export function StatusBar({
             isRejected ? 'bg-rejected/20 text-rejected' : 'text-text-secondary'
           }`}
         >
-          {isRejected ? '不採用' : '-'}
+          {isRejected ? t.statusBar.rejected : '-'}
         </span>
         <span className="text-text-secondary">
           {selectedIndex + 1} / {totalItems}

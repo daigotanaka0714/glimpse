@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Toolbar } from './Toolbar';
-import type { FilterMode, ThemeMode } from '@/types';
+import type { FilterMode, ThemeMode, ViewMode } from '@/types';
 
 describe('Toolbar', () => {
   const defaultProps = {
@@ -13,6 +13,9 @@ describe('Toolbar', () => {
     onFilterModeChange: vi.fn(),
     theme: 'dark' as ThemeMode,
     onThemeChange: vi.fn(),
+    viewMode: 'grid' as ViewMode,
+    onEnterGallery: vi.fn(),
+    hasSelection: false,
     counts: {
       all: 100,
       adopted: 80,

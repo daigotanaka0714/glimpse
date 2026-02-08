@@ -6,7 +6,7 @@ interface UseKeyboardNavigationProps {
   selectedIndex: number;
   compareIndex?: number;
   gridConfig: GridConfig;
-  viewMode: 'grid' | 'detail' | 'compare';
+  viewMode: 'grid' | 'detail' | 'compare' | 'gallery';
   onSelect: (index: number) => void;
   onSelectCompare?: (index: number) => void;
   onToggleLabel: () => void;
@@ -15,6 +15,8 @@ interface UseKeyboardNavigationProps {
   onExitDetail: () => void;
   onEnterCompare?: () => void;
   onExitCompare?: () => void;
+  onEnterGallery?: () => void;
+  onExitGallery?: () => void;
   onClearSelection?: () => void;
   onOpenFolder: () => void;
   onExport: () => void;
@@ -35,6 +37,8 @@ export function useKeyboardNavigation({
   onExitDetail,
   onEnterCompare,
   onExitCompare,
+  onEnterGallery,
+  onExitGallery,
   onClearSelection,
   onOpenFolder,
   onExport,
@@ -69,6 +73,33 @@ export function useKeyboardNavigation({
           case 'Escape':
             e.preventDefault();
             onExitDetail();
+            return;
+          case 'ArrowLeft':
+            e.preventDefault();
+            if (selectedIndex > 0) {
+              onSelect(selectedIndex - 1);
+            }
+            return;
+          case 'ArrowRight':
+            e.preventDefault();
+            if (selectedIndex < totalItems - 1) {
+              onSelect(selectedIndex + 1);
+            }
+            return;
+          case '1':
+            e.preventDefault();
+            onToggleLabel();
+            return;
+        }
+        return;
+      }
+
+      // Gallery view mode
+      if (viewMode === 'gallery') {
+        switch (e.key) {
+          case 'Escape':
+            e.preventDefault();
+            onExitGallery?.();
             return;
           case 'ArrowLeft':
             e.preventDefault();
@@ -218,6 +249,12 @@ export function useKeyboardNavigation({
           e.preventDefault();
           onEnterCompare?.();
           break;
+
+        case 'g':
+        case 'G':
+          e.preventDefault();
+          onEnterGallery?.();
+          break;
       }
     },
     [
@@ -234,6 +271,8 @@ export function useKeyboardNavigation({
       onExitDetail,
       onEnterCompare,
       onExitCompare,
+      onEnterGallery,
+      onExitGallery,
       onClearSelection,
       onOpenFolder,
       onExport,

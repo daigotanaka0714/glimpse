@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { X, ChevronRight, Keyboard, Settings, FileImage, Zap, Info } from 'lucide-react';
+import { useI18n } from '@/i18n';
+import { getModifierKey } from '@/utils/platform';
 
-type Language = 'en' | 'ja';
 type Section = 'overview' | 'keyboard' | 'settings' | 'raw';
 
 interface HelpDialogProps {
   onClose: () => void;
 }
 
-const content = {
+const getContent = (modKey: string) => ({
   en: {
     title: 'Help',
     language: 'English',
@@ -33,6 +34,7 @@ Glimpse is a high-speed photo checker designed for selecting stage photography. 
 - **Session persistence** - Your progress is automatically saved
 - **Multiple RAW support** - NEF, ARW, CR2, CR3, RAF, and more
 - **Comparison mode** - Compare two photos side by side
+- **Gallery mode** - Browse with thumbnail strip
         `.trim(),
       },
       keyboard: {
@@ -58,21 +60,22 @@ Glimpse is a high-speed photo checker designed for selecting stage photography. 
 |-----|--------|
 | \`1\` | Toggle rejection label |
 | \`Enter\` / \`Space\` | Enter detail view |
-| \`Esc\` | Exit detail/compare view |
+| \`Esc\` | Exit detail/compare/gallery view |
 | \`C\` | Enter comparison mode |
+| \`G\` | Enter gallery mode |
 
 ## File Operations
 
 | Key | Action |
 |-----|--------|
-| \`Ctrl+O\` | Open folder |
-| \`Ctrl+E\` | Export |
+| \`${modKey}+O\` | Open folder |
+| \`${modKey}+E\` | Export |
 
 ## Multi-Select
 
 | Key | Action |
 |-----|--------|
-| \`Ctrl/Cmd+Click\` | Toggle selection |
+| \`${modKey}+Click\` | Toggle selection |
 | \`Shift+Click\` | Range selection |
         `.trim(),
       },
@@ -103,16 +106,18 @@ Manage cached data:
   - Thumbnails will regenerate when you open folders
 
 - **Label Data** - Adopted/rejected status for all sessions
-  - ⚠️ Clearing this cannot be undone
+  - Clearing this cannot be undone
 
 ## About Tab
 
 ![About Settings](/docs/images/settings-about.png)
 
 - **Version info** - Current app version
+- **Language** - Switch between English and Japanese
 - **Check for Updates** - Manually check for new releases
 - **GitHub** - Visit the project repository
 - **Report Issue** - Submit bug reports (English/Japanese)
+- **Sponsor** - Support development via GitHub Sponsors
         `.trim(),
       },
       raw: {
@@ -176,6 +181,7 @@ Glimpseは舞台写真の選別作業に特化した高速写真チェッカー�
 - **セッション保存** - 作業進捗は自動保存
 - **複数RAW対応** - NEF、ARW、CR2、CR3、RAFなど
 - **比較モード** - 2枚の写真を並べて比較
+- **ギャラリーモード** - サムネイルストリップで閲覧
         `.trim(),
       },
       keyboard: {
@@ -201,21 +207,22 @@ Glimpseは舞台写真の選別作業に特化した高速写真チェッカー�
 |------|------|
 | \`1\` | 不採用ラベルをトグル |
 | \`Enter\` / \`Space\` | 詳細表示モードへ |
-| \`Esc\` | 詳細/比較表示から戻る |
+| \`Esc\` | 詳細/比較/ギャラリー表示から戻る |
 | \`C\` | 比較モードへ |
+| \`G\` | ギャラリーモードへ |
 
 ## ファイル操作
 
 | キー | 動作 |
 |------|------|
-| \`Ctrl+O\` | フォルダを開く |
-| \`Ctrl+E\` | エクスポート |
+| \`${modKey}+O\` | フォルダを開く |
+| \`${modKey}+E\` | エクスポート |
 
 ## 複数選択
 
 | キー | 動作 |
 |------|------|
-| \`Ctrl/Cmd+クリック\` | 選択をトグル |
+| \`${modKey}+クリック\` | 選択をトグル |
 | \`Shift+クリック\` | 範囲選択 |
         `.trim(),
       },
@@ -246,16 +253,18 @@ Glimpseは舞台写真の選別作業に特化した高速写真チェッカー�
   - フォルダを開くとサムネイルは再生成
 
 - **ラベルデータ** - 全セッションの採用/不採用ステータス
-  - ⚠️ クリアすると元に戻せません
+  - クリアすると元に戻せません
 
 ## Aboutタブ
 
 ![About設定](/docs/images/settings-about.png)
 
 - **バージョン情報** - 現在のアプリバージョン
+- **言語** - 英語と日本語を切り替え
 - **Check for Updates** - 新しいリリースを手動で確認
 - **GitHub** - プロジェクトリポジトリを表示
 - **Report Issue** - バグ報告を送信（英語/日本語）
+- **スポンサー** - GitHub Sponsorsで開発を支援
         `.trim(),
       },
       raw: {
@@ -295,13 +304,15 @@ Glimpseは主要カメラメーカーの様々なRAW画像フォーマットに�
       },
     },
   },
-};
+});
 
 export function HelpDialog({ onClose }: HelpDialogProps) {
-  const [language, setLanguage] = useState<Language>('en');
+  const { language, setLanguage, t: translations } = useI18n();
   const [activeSection, setActiveSection] = useState<Section>('overview');
 
-  const t = content[language];
+  const modKey = getModifierKey();
+  const content = getContent(modKey);
+  const langContent = language === 'ja' ? content.ja : content.en;
   const sections: Section[] = ['overview', 'keyboard', 'settings', 'raw'];
 
   const renderMarkdown = (text: string) => {
@@ -440,10 +451,6 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
               </code>
             );
           }
-          // Warning emoji
-          if (codePart.includes('⚠️')) {
-            return <span key={`${i}-${j}`} className="text-yellow-400">{codePart}</span>;
-          }
           return codePart;
         });
       });
@@ -509,8 +516,8 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
                 <Info size={20} className="text-accent" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">{t.title}</h2>
-                <p className="text-xs text-text-secondary">Glimpse User Guide</p>
+                <h2 className="text-lg font-semibold">{translations.help.title}</h2>
+                <p className="text-xs text-text-secondary">{translations.help.subtitle}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -553,7 +560,7 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
           <div className="w-56 border-r border-white/10 p-4 shrink-0">
             <nav className="space-y-1">
               {sections.map((section) => {
-                const sectionContent = t.sections[section];
+                const sectionContent = langContent.sections[section];
                 const Icon = sectionContent.icon;
                 return (
                   <button
@@ -580,13 +587,11 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
               <div className="flex items-center gap-2 mb-2">
                 <Zap size={14} className="text-accent" />
                 <span className="text-xs font-medium text-accent">
-                  {language === 'en' ? 'Quick Tip' : 'クイックヒント'}
+                  {translations.help.quickTip}
                 </span>
               </div>
               <p className="text-xs text-text-secondary">
-                {language === 'en'
-                  ? 'Press ? anytime to open this help dialog'
-                  : '?キーでいつでもこのヘルプを開けます'}
+                {translations.help.pressToOpen}
               </p>
             </div>
           </div>
@@ -594,7 +599,7 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
           {/* Main content */}
           <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-2xl">
-              {renderMarkdown(t.sections[activeSection].content)}
+              {renderMarkdown(langContent.sections[activeSection].content)}
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ImageItem } from '@/types';
 import { toAssetUrl } from '@/utils/tauri';
+import { useTranslation } from '@/i18n';
 
 interface CompareViewProps {
   leftItem: ImageItem;
@@ -24,6 +25,7 @@ export function CompareView({
   onToggleLabelLeft,
   onToggleLabelRight,
 }: CompareViewProps) {
+  const t = useTranslation();
   const [leftLoaded, setLeftLoaded] = useState(false);
   const [rightLoaded, setRightLoaded] = useState(false);
 
@@ -37,11 +39,11 @@ export function CompareView({
   }, [rightItem.path]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-bg-primary flex flex-col animate-fade-in">
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+        className="absolute top-4 right-4 z-20 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
       >
         <X size={24} />
       </button>
@@ -60,7 +62,7 @@ export function CompareView({
         />
 
         {/* Center divider */}
-        <div className="w-1 bg-white/20" />
+        <div className="w-1 bg-border-color" />
 
         {/* Right image */}
         <ComparePanel
@@ -75,9 +77,9 @@ export function CompareView({
       </div>
 
       {/* Footer */}
-      <div className="h-12 px-6 bg-bg-secondary border-t border-white/10 flex items-center justify-center">
-        <span className="text-sm text-white/50">
-          ← → to navigate left image | Shift + ← → to navigate right image | 1 to reject left | 2 to reject right | ESC to close
+      <div className="h-12 px-6 bg-bg-secondary border-t border-border-subtle flex items-center justify-center">
+        <span className="text-sm text-text-muted">
+          ← → {t.compareView.navigateLeft} | Shift + ← → {t.compareView.navigateRight} | 1 {t.compareView.rejectLeft} | 2 {t.compareView.rejectRight} | ESC {t.compareView.close}
         </span>
       </div>
     </div>
@@ -113,7 +115,7 @@ function ComparePanel({
         {onPrevious && (
           <button
             onClick={onPrevious}
-            className="absolute left-2 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            className="absolute left-2 z-10 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
             <ChevronLeft size={24} />
           </button>
@@ -123,11 +125,11 @@ function ComparePanel({
         <div className="relative max-w-full max-h-full">
           {!isLoaded && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+              <div className="w-12 h-12 border-4 border-border-color border-t-accent rounded-full animate-spin" />
             </div>
           )}
           <img
-            src={toAssetUrl(item.path)}
+            src={toAssetUrl(item.previewPath || item.path)}
             alt={item.filename}
             className={`
               max-w-full max-h-[calc(100vh-160px)] object-contain
@@ -151,7 +153,7 @@ function ComparePanel({
         {onNext && (
           <button
             onClick={onNext}
-            className="absolute right-2 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            className="absolute right-2 z-10 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
             <ChevronRight size={24} />
           </button>
@@ -159,10 +161,10 @@ function ComparePanel({
       </div>
 
       {/* Info bar */}
-      <div className="h-14 px-4 bg-bg-tertiary border-t border-white/10 flex items-center justify-between">
+      <div className="h-14 px-4 bg-bg-tertiary border-t border-border-subtle flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
           <span className="font-mono text-xs truncate">{item.filename}</span>
-          <span className="text-white/50 text-xs flex-shrink-0">
+          <span className="text-text-muted text-xs flex-shrink-0">
             {(item.size / 1024 / 1024).toFixed(1)} MB
           </span>
         </div>
@@ -172,7 +174,7 @@ function ComparePanel({
             px-3 py-1.5 rounded-lg font-medium text-xs transition-colors flex-shrink-0
             ${isRejected
               ? 'bg-rejected text-white'
-              : 'bg-bg-secondary hover:bg-white/10 text-white/70'
+              : 'bg-bg-secondary hover:bg-theme-hover text-text-secondary'
             }
           `}
         >

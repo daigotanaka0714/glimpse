@@ -2,8 +2,8 @@ use crate::config::{self, AppConfig};
 use crate::database::{Database, Label, Session};
 use crate::error::Result;
 use crate::image_processor::{
-    extract_exif, generate_session_id, generate_thumbnails_parallel, get_cache_dir, normalize_path,
-    scan_folder, ExifInfo, ImageInfo,
+    extract_exif, generate_session_id, generate_thumbnails_parallel, get_cache_dir,
+    get_preview_dir, normalize_path, scan_folder, ExifInfo, ImageInfo,
 };
 use std::path::Path;
 use std::sync::Mutex;
@@ -80,19 +80,22 @@ pub async fn open_folder(
             .unwrap_or(0)
     };
 
-    // Get cache directory
+    // Get cache directory and preview directory
     let cache_dir = get_cache_dir(&session_id).map_err(|e| e.to_string())?;
+    let preview_dir = get_preview_dir(&session_id).map_err(|e| e.to_string())?;
 
-    // Generate thumbnails in background
+    // Generate thumbnails and previews in background
     let images_clone = images.clone();
     let app_for_progress = app.clone();
     let app_for_complete = app.clone();
     let cache_dir_clone = cache_dir.clone();
+    let preview_dir_clone = preview_dir.clone();
 
     tokio::spawn(async move {
         let results = generate_thumbnails_parallel(
             &images_clone,
             &cache_dir_clone,
+            &preview_dir_clone,
             move |completed, total| {
                 let _ = app_for_progress
                     .emit("thumbnail-progress", ProgressPayload { completed, total });

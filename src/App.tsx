@@ -5,6 +5,7 @@ import {
   ThumbnailGrid,
   DetailView,
   CompareView,
+  GalleryView,
   StatusBar,
   EmptyState,
   ExportDialog,
@@ -13,12 +14,12 @@ import {
   UpdateNotification,
   HelpDialog,
 } from '@/components';
-import { useKeyboardNavigation, useGridConfig, useDragAndDrop } from '@/hooks';
-import type { ImageItem, LabelStatus, FilterMode, ThemeMode } from '@/types';
+import { useKeyboardNavigation, useGridConfig, useDragAndDrop, useImageLabels } from '@/hooks';
+import { useTranslation } from '@/i18n';
+import type { ImageItem, LabelStatus, FilterMode, ThemeMode, ViewMode } from '@/types';
 import {
   selectFolder,
   openFolder,
-  setLabel as setLabelApi,
   saveSelection,
   exportAdopted,
   selectExportFolder,
@@ -30,18 +31,19 @@ import {
 } from '@/utils/tauri';
 import { playCompletionSound } from '@/utils/notification';
 
-// App version from package.json
-// TODO: Revert to actual version after testing
-const APP_VERSION = '0.0.1'; // Testing: set to old version to trigger update notification
+// App version
+const APP_VERSION = '0.3.0';
 const GITHUB_OWNER = 'daigotanaka0714';
 const GITHUB_REPO = 'glimpse';
 
 export default function App() {
+  const t = useTranslation();
+
   // State management
   const [images, setImages] = useState<ImageItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
-  const [viewMode, setViewMode] = useState<'grid' | 'detail' | 'compare'>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [compareIndex, setCompareIndex] = useState(1); // Second image index for compare mode
   const [folderPath, setFolderPath] = useState<string | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -58,7 +60,7 @@ export default function App() {
   const [theme, setTheme] = useState<ThemeMode>('dark');
   const [baseThumbnailSize, setBaseThumbnailSize] = useState(180);
 
-  const { config: gridConfig, setBaseThumbnailSize: updateGridSize, minSize, maxSize } = useGridConfig();
+  const { config: gridConfig, containerRef: gridContainerRef, setBaseThumbnailSize: updateGridSize, minSize, maxSize } = useGridConfig();
 
   // Store session info
   const sessionRef = useRef<{ id: string; cacheDir: string } | null>(null);
@@ -134,12 +136,16 @@ export default function App() {
       });
 
       unlistenComplete = await onThumbnailsComplete((results: ThumbnailResult[]) => {
-        // Update thumbnailLoaded to true after thumbnail generation completes
+        // Update thumbnailLoaded to true and previewPath after thumbnail generation completes
         setImages((prev) =>
           prev.map((img) => {
             const result = results.find((r) => r.filename === img.filename);
             if (result && result.success) {
-              return { ...img, thumbnailLoaded: true };
+              return {
+                ...img,
+                thumbnailLoaded: true,
+                previewPath: result.preview_path || undefined,
+              };
             }
             return img;
           })
@@ -189,6 +195,23 @@ export default function App() {
   // Selected item (from filtered index)
   const selectedItem = filteredImages[selectedIndex] || null;
 
+  // Image label operations (with proper error handling)
+  const {
+    toggleLabel,
+    markSelectedRejected,
+    removeSelectedRejected,
+    markAllRejected,
+    removeAllRejected,
+    toggleLabelByFilename,
+    batchToggleLabelByIndices,
+  } = useImageLabels({
+    images,
+    filteredImages,
+    setImages,
+    selectedIndex,
+    selectedIndices,
+  });
+
   // Actions
   const handleSelect = useCallback((index: number, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
     const isMultiSelect = event?.ctrlKey || event?.metaKey;
@@ -223,150 +246,41 @@ export default function App() {
     }
   }, [selectedIndex, selectedIndices]);
 
+  // Wrapper handlers that use the useImageLabels hook
   const handleToggleLabel = useCallback(async () => {
-    // When multiple items selected, apply label to all selected images
-    const indicesToToggle = selectedIndices.size > 0
-      ? Array.from(selectedIndices)
-      : [selectedIndex];
-
-    if (indicesToToggle.length === 0 || indicesToToggle.some(i => i < 0 || i >= filteredImages.length)) return;
-
-    // Use the first selected image's label state as reference
-    const firstImage = filteredImages[indicesToToggle[0]];
-    const newLabel: LabelStatus = firstImage.label === 'rejected' ? null : 'rejected';
-
-    // Immediate UI update
-    setImages((prev) =>
-      prev.map((img) => {
-        const filteredIndex = filteredImages.findIndex(fi => fi.filename === img.filename);
-        if (indicesToToggle.includes(filteredIndex)) {
-          return { ...img, label: newLabel };
-        }
-        return img;
-      })
-    );
-
-    // Save to backend
-    try {
-      for (const idx of indicesToToggle) {
-        const img = filteredImages[idx];
-        await setLabelApi(img.filename, newLabel);
-      }
-    } catch (error) {
-      console.error('Failed to set label:', error);
-      // Should revert to original state on error, but simplified here
+    const result = await toggleLabel();
+    if (!result.success && result.failedCount > 0) {
+      console.warn(`Failed to update ${result.failedCount} label(s)`);
     }
-  }, [selectedIndex, selectedIndices, filteredImages]);
+  }, [toggleLabel]);
 
-  // Batch mark as rejected
   const handleBatchMarkRejected = useCallback(async () => {
-    if (selectedIndices.size === 0) return;
-
-    const indicesToMark = Array.from(selectedIndices);
-
-    // Immediate UI update
-    setImages((prev) =>
-      prev.map((img) => {
-        const filteredIndex = filteredImages.findIndex(fi => fi.filename === img.filename);
-        if (indicesToMark.includes(filteredIndex)) {
-          return { ...img, label: 'rejected' };
-        }
-        return img;
-      })
-    );
-
-    // Save to backend
-    try {
-      for (const idx of indicesToMark) {
-        const img = filteredImages[idx];
-        if (img) {
-          await setLabelApi(img.filename, 'rejected');
-        }
-      }
-    } catch (error) {
-      console.error('Failed to set labels:', error);
+    const result = await markSelectedRejected();
+    if (!result.success && result.failedCount > 0) {
+      console.warn(`Failed to update ${result.failedCount} label(s)`);
     }
-  }, [selectedIndices, filteredImages]);
+  }, [markSelectedRejected]);
 
-  // Batch remove rejected label
   const handleBatchRemoveRejected = useCallback(async () => {
-    if (selectedIndices.size === 0) return;
-
-    const indicesToMark = Array.from(selectedIndices);
-
-    // Immediate UI update
-    setImages((prev) =>
-      prev.map((img) => {
-        const filteredIndex = filteredImages.findIndex(fi => fi.filename === img.filename);
-        if (indicesToMark.includes(filteredIndex)) {
-          return { ...img, label: null };
-        }
-        return img;
-      })
-    );
-
-    // Save to backend
-    try {
-      for (const idx of indicesToMark) {
-        const img = filteredImages[idx];
-        if (img) {
-          await setLabelApi(img.filename, null);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to remove labels:', error);
+    const result = await removeSelectedRejected();
+    if (!result.success && result.failedCount > 0) {
+      console.warn(`Failed to update ${result.failedCount} label(s)`);
     }
-  }, [selectedIndices, filteredImages]);
+  }, [removeSelectedRejected]);
 
-  // Mark all filtered images as rejected
   const handleBatchMarkAllRejected = useCallback(async () => {
-    if (filteredImages.length === 0) return;
-
-    // Immediate UI update
-    const filteredFilenames = new Set(filteredImages.map(fi => fi.filename));
-    setImages((prev) =>
-      prev.map((img) => {
-        if (filteredFilenames.has(img.filename)) {
-          return { ...img, label: 'rejected' };
-        }
-        return img;
-      })
-    );
-
-    // Save to backend
-    try {
-      for (const img of filteredImages) {
-        await setLabelApi(img.filename, 'rejected');
-      }
-    } catch (error) {
-      console.error('Failed to set labels:', error);
+    const result = await markAllRejected();
+    if (!result.success && result.failedCount > 0) {
+      console.warn(`Failed to update ${result.failedCount} label(s)`);
     }
-  }, [filteredImages]);
+  }, [markAllRejected]);
 
-  // Remove rejected label from all filtered images
   const handleBatchRemoveAllRejected = useCallback(async () => {
-    if (filteredImages.length === 0) return;
-
-    // Immediate UI update
-    const filteredFilenames = new Set(filteredImages.map(fi => fi.filename));
-    setImages((prev) =>
-      prev.map((img) => {
-        if (filteredFilenames.has(img.filename)) {
-          return { ...img, label: null };
-        }
-        return img;
-      })
-    );
-
-    // Save to backend
-    try {
-      for (const img of filteredImages) {
-        await setLabelApi(img.filename, null);
-      }
-    } catch (error) {
-      console.error('Failed to remove labels:', error);
+    const result = await removeAllRejected();
+    if (!result.success && result.failedCount > 0) {
+      console.warn(`Failed to update ${result.failedCount} label(s)`);
     }
-  }, [filteredImages]);
+  }, [removeAllRejected]);
 
   // Clear selection
   const handleClearSelection = useCallback(() => {
@@ -404,39 +318,42 @@ export default function App() {
     setViewMode('grid');
   }, []);
 
+  // Gallery mode
+  const handleEnterGallery = useCallback(() => {
+    if (filteredImages.length > 0) {
+      setViewMode('gallery');
+    }
+  }, [filteredImages.length]);
+
+  const handleExitGallery = useCallback(() => {
+    setViewMode('grid');
+  }, []);
+
+  // Batch toggle label for gallery view
+  const handleGalleryBatchToggleLabel = useCallback(async (indices: number[], label: 'rejected' | null) => {
+    const result = await batchToggleLabelByIndices(indices, label);
+    if (!result.success && result.failedCount > 0) {
+      console.warn(`Failed to update ${result.failedCount} label(s)`);
+    }
+  }, [batchToggleLabelByIndices]);
+
   const handleToggleLabelCompareLeft = useCallback(async () => {
     const img = filteredImages[selectedIndex];
     if (!img) return;
-
-    const newLabel: LabelStatus = img.label === 'rejected' ? null : 'rejected';
-
-    setImages((prev) =>
-      prev.map((i) => i.filename === img.filename ? { ...i, label: newLabel } : i)
-    );
-
-    try {
-      await setLabelApi(img.filename, newLabel);
-    } catch (error) {
-      console.error('Failed to set label:', error);
+    const result = await toggleLabelByFilename(img.filename);
+    if (!result.success) {
+      console.warn('Failed to toggle label');
     }
-  }, [filteredImages, selectedIndex]);
+  }, [filteredImages, selectedIndex, toggleLabelByFilename]);
 
   const handleToggleLabelCompareRight = useCallback(async () => {
     const img = filteredImages[compareIndex];
     if (!img) return;
-
-    const newLabel: LabelStatus = img.label === 'rejected' ? null : 'rejected';
-
-    setImages((prev) =>
-      prev.map((i) => i.filename === img.filename ? { ...i, label: newLabel } : i)
-    );
-
-    try {
-      await setLabelApi(img.filename, newLabel);
-    } catch (error) {
-      console.error('Failed to set label:', error);
+    const result = await toggleLabelByFilename(img.filename);
+    if (!result.success) {
+      console.warn('Failed to toggle label');
     }
-  }, [filteredImages, compareIndex]);
+  }, [filteredImages, compareIndex, toggleLabelByFilename]);
 
   const handleOpenFolder = useCallback(async () => {
     try {
@@ -495,6 +412,8 @@ export default function App() {
     onExitDetail: handleExitDetail,
     onEnterCompare: handleEnterCompare,
     onExitCompare: handleExitCompare,
+    onEnterGallery: handleEnterGallery,
+    onExitGallery: handleExitGallery,
     onClearSelection: handleClearSelection,
     onOpenFolder: handleOpenFolder,
     onExport: () => setShowExportDialog(true),
@@ -525,6 +444,9 @@ export default function App() {
           onFilterModeChange={setFilterMode}
           theme={theme}
           onThemeChange={setTheme}
+          viewMode={viewMode}
+          onEnterGallery={handleEnterGallery}
+          hasSelection={selectedIndex >= 0}
           counts={{
             all: images.length,
             adopted: adoptedCount,
@@ -549,7 +471,7 @@ export default function App() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-text-secondary">
             <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p>Loading...</p>
+            <p>{t.common.loading}</p>
           </div>
         </div>
       ) : images.length === 0 ? (
@@ -557,8 +479,8 @@ export default function App() {
       ) : filteredImages.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-text-secondary">
-            <p className="text-lg mb-2">No matching photos</p>
-            <p className="text-sm">Please change the filter</p>
+            <p className="text-lg mb-2">{t.filters.noMatching}</p>
+            <p className="text-sm">{t.filters.changeFilter}</p>
           </div>
         </div>
       ) : (
@@ -567,6 +489,7 @@ export default function App() {
           selectedIndex={selectedIndex}
           selectedIndices={selectedIndices}
           gridConfig={gridConfig}
+          containerRef={gridContainerRef}
           onSelect={handleSelect}
           onEnterDetail={handleEnterDetail}
         />
@@ -604,6 +527,17 @@ export default function App() {
           onSelectRight={(index) => setCompareIndex(index)}
           onToggleLabelLeft={handleToggleLabelCompareLeft}
           onToggleLabelRight={handleToggleLabelCompareRight}
+        />
+      )}
+
+      {viewMode === 'gallery' && filteredImages.length > 0 && (
+        <GalleryView
+          items={filteredImages}
+          selectedIndex={selectedIndex}
+          onClose={handleExitGallery}
+          onSelect={handleSelect}
+          onToggleLabel={handleToggleLabel}
+          onBatchToggleLabel={handleGalleryBatchToggleLabel}
         />
       )}
 

@@ -6,6 +6,7 @@ export interface ImageFile {
   modifiedAt: string;
   thumbnailPath?: string;
   thumbnailLoaded: boolean;
+  previewPath?: string; // For RAW files, a larger preview image path
 }
 
 // Label status
@@ -26,6 +27,9 @@ export interface Session {
   totalFiles: number;
 }
 
+// View mode
+export type ViewMode = 'grid' | 'detail' | 'compare' | 'gallery';
+
 // Application state
 export interface AppState {
   // Current session
@@ -35,7 +39,7 @@ export interface AppState {
   // Selected index
   selectedIndex: number;
   // View mode
-  viewMode: 'grid' | 'detail';
+  viewMode: ViewMode;
   // Loading state
   loading: boolean;
   // Thumbnail generation progress
@@ -49,6 +53,7 @@ export interface AppState {
 export interface ThumbnailGeneratedEvent {
   filename: string;
   thumbnailPath: string;
+  previewPath?: string; // For RAW files
 }
 
 export interface ThumbnailProgressEvent {
