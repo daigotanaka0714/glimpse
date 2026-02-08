@@ -413,7 +413,10 @@ where
                         match generate_preview(Path::new(&image.path), &preview_path_buf) {
                             Ok(_) => Some(normalize_path(&preview_path_buf)),
                             Err(e) => {
-                                eprintln!("Failed to generate preview for {}: {}", image.filename, e);
+                                eprintln!(
+                                    "Failed to generate preview for {}: {}",
+                                    image.filename, e
+                                );
                                 None
                             }
                         }
