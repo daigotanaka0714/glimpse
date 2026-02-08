@@ -129,7 +129,7 @@ function ComparePanel({
             </div>
           )}
           <img
-            src={toAssetUrl(item.path)}
+            src={toAssetUrl(item.previewPath || item.path)}
             alt={item.filename}
             className={`
               max-w-full max-h-[calc(100vh-160px)] object-contain

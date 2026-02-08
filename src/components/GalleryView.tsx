@@ -162,7 +162,7 @@ export function GalleryView({
             </div>
           )}
           <img
-            src={toAssetUrl(currentItem.path)}
+            src={toAssetUrl(currentItem.previewPath || currentItem.path)}
             alt={currentItem.filename}
             className={`
               w-auto h-auto max-w-full max-h-full object-contain

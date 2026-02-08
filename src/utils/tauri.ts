@@ -36,6 +36,7 @@ export interface ThumbnailProgress {
 export interface ThumbnailResult {
   filename: string;
   thumbnail_path: string;
+  preview_path: string | null; // For RAW files, path to larger preview image
   success: boolean;
   error: string | null;
 }

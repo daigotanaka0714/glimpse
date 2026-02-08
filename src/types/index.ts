@@ -6,6 +6,7 @@ export interface ImageFile {
   modifiedAt: string;
   thumbnailPath?: string;
   thumbnailLoaded: boolean;
+  previewPath?: string; // For RAW files, a larger preview image path
 }
 
 // Label status
@@ -52,6 +53,7 @@ export interface AppState {
 export interface ThumbnailGeneratedEvent {
   filename: string;
   thumbnailPath: string;
+  previewPath?: string; // For RAW files
 }
 
 export interface ThumbnailProgressEvent {

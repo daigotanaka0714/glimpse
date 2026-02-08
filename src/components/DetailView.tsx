@@ -78,7 +78,7 @@ export function DetailView({
             </div>
           )}
           <img
-            src={toAssetUrl(item.path)}
+            src={toAssetUrl(item.previewPath || item.path)}
             alt={item.filename}
             className={`
               w-auto h-auto max-w-full max-h-full object-contain

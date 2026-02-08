@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 
 const THUMBNAIL_SIZE: u32 = 300;
+const PREVIEW_SIZE: u32 = 2000;
 
 /// Normalize path (convert backslashes to forward slashes)
 /// Convert Windows paths to a format usable with the asset:// protocol
@@ -29,6 +30,7 @@ pub struct ImageInfo {
 pub struct ThumbnailResult {
     pub filename: String,
     pub thumbnail_path: String,
+    pub preview_path: Option<String>,
     pub success: bool,
     pub error: Option<String>,
 }
@@ -230,7 +232,7 @@ pub fn generate_session_id(folder_path: &str) -> String {
     hex::encode(&result[..16])
 }
 
-/// Get cache directory path
+/// Get cache directory path for thumbnails
 pub fn get_cache_dir(session_id: &str) -> Result<PathBuf> {
     let data_dir = dirs::data_dir()
         .ok_or_else(|| GlimpseError::InvalidPath("Cannot find data directory".into()))?;
@@ -241,6 +243,19 @@ pub fn get_cache_dir(session_id: &str) -> Result<PathBuf> {
         .join("thumbnails");
     std::fs::create_dir_all(&cache_dir)?;
     Ok(cache_dir)
+}
+
+/// Get cache directory path for previews (larger images for detail view)
+pub fn get_preview_dir(session_id: &str) -> Result<PathBuf> {
+    let data_dir = dirs::data_dir()
+        .ok_or_else(|| GlimpseError::InvalidPath("Cannot find data directory".into()))?;
+    let preview_dir = data_dir
+        .join("Glimpse")
+        .join("cache")
+        .join(session_id)
+        .join("previews");
+    std::fs::create_dir_all(&preview_dir)?;
+    Ok(preview_dir)
 }
 
 /// Generate thumbnail
@@ -264,6 +279,40 @@ pub fn generate_thumbnail(image_path: &Path, output_path: &Path) -> Result<()> {
     thumbnail.save_with_format(output_path, ImageFormat::Jpeg)?;
 
     Ok(())
+}
+
+/// Generate preview image (larger size for detail view)
+/// Only generates for RAW files since standard images can be displayed directly
+pub fn generate_preview(image_path: &Path, output_path: &Path) -> Result<()> {
+    let extension = image_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_lowercase())
+        .unwrap_or_default();
+
+    // Only generate previews for RAW files
+    if !is_raw_extension(&extension) {
+        return Err(crate::error::GlimpseError::InvalidPath(
+            "Preview generation only needed for RAW files".into(),
+        ));
+    }
+
+    let img = load_raw_image(image_path)?;
+
+    // Resize to preview size (larger than thumbnail)
+    let preview = img.thumbnail(PREVIEW_SIZE, PREVIEW_SIZE);
+
+    // Save as high-quality JPEG
+    let mut output_file = std::fs::File::create(output_path)?;
+    let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut output_file, 90);
+    preview.write_with_encoder(encoder)?;
+
+    Ok(())
+}
+
+/// Check if an extension is a RAW format (public version)
+pub fn is_raw_format(extension: &str) -> bool {
+    is_raw_extension(extension)
 }
 
 /// Load RAW image
@@ -290,11 +339,13 @@ fn load_raw_image(path: &Path) -> Result<DynamicImage> {
     Ok(DynamicImage::ImageRgb8(img))
 }
 
-/// Generate multiple thumbnails in parallel
+/// Generate multiple thumbnails and previews in parallel
 /// Limit thread count to control CPU usage
+/// For RAW files, also generates a larger preview image for detail view
 pub fn generate_thumbnails_parallel<F>(
     images: &[ImageInfo],
     cache_dir: &Path,
+    preview_dir: &Path,
     progress_callback: F,
 ) -> Vec<ThumbnailResult>
 where
@@ -323,42 +374,69 @@ where
         .expect("Failed to create thread pool");
 
     let cache_dir = cache_dir.to_path_buf();
+    let preview_dir = preview_dir.to_path_buf();
     let results = pool.install(|| {
         images
             .par_iter()
             .map(|image| {
-                let thumbnail_filename = format!(
-                    "{}.jpg",
-                    Path::new(&image.filename)
-                        .file_stem()
-                        .unwrap()
-                        .to_string_lossy()
-                );
+                let file_stem = Path::new(&image.filename)
+                    .file_stem()
+                    .unwrap()
+                    .to_string_lossy();
+                let thumbnail_filename = format!("{}.jpg", file_stem);
                 let thumbnail_path = cache_dir.join(&thumbnail_filename);
 
-                let result = if thumbnail_path.exists() {
-                    // Skip if cache exists
-                    ThumbnailResult {
-                        filename: image.filename.clone(),
-                        thumbnail_path: normalize_path(&thumbnail_path),
-                        success: true,
-                        error: None,
+                // Check if this is a RAW file
+                let extension = Path::new(&image.filename)
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .map(|s| s.to_lowercase())
+                    .unwrap_or_default();
+                let is_raw = is_raw_extension(&extension);
+
+                // Preview path for RAW files
+                let preview_filename = format!("{}_preview.jpg", file_stem);
+                let preview_path_buf = preview_dir.join(&preview_filename);
+
+                // Generate thumbnail
+                let thumbnail_result = if thumbnail_path.exists() {
+                    Ok(())
+                } else {
+                    generate_thumbnail(Path::new(&image.path), &thumbnail_path)
+                };
+
+                // Generate preview for RAW files
+                let preview_path = if is_raw {
+                    if preview_path_buf.exists() {
+                        Some(normalize_path(&preview_path_buf))
+                    } else {
+                        match generate_preview(Path::new(&image.path), &preview_path_buf) {
+                            Ok(_) => Some(normalize_path(&preview_path_buf)),
+                            Err(e) => {
+                                eprintln!("Failed to generate preview for {}: {}", image.filename, e);
+                                None
+                            }
+                        }
                     }
                 } else {
-                    match generate_thumbnail(Path::new(&image.path), &thumbnail_path) {
-                        Ok(_) => ThumbnailResult {
-                            filename: image.filename.clone(),
-                            thumbnail_path: normalize_path(&thumbnail_path),
-                            success: true,
-                            error: None,
-                        },
-                        Err(e) => ThumbnailResult {
-                            filename: image.filename.clone(),
-                            thumbnail_path: String::new(),
-                            success: false,
-                            error: Some(e.to_string()),
-                        },
-                    }
+                    None
+                };
+
+                let result = match thumbnail_result {
+                    Ok(_) => ThumbnailResult {
+                        filename: image.filename.clone(),
+                        thumbnail_path: normalize_path(&thumbnail_path),
+                        preview_path,
+                        success: true,
+                        error: None,
+                    },
+                    Err(e) => ThumbnailResult {
+                        filename: image.filename.clone(),
+                        thumbnail_path: String::new(),
+                        preview_path: None,
+                        success: false,
+                        error: Some(e.to_string()),
+                    },
                 };
 
                 // Progress notification

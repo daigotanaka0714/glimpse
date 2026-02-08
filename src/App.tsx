@@ -136,12 +136,16 @@ export default function App() {
       });
 
       unlistenComplete = await onThumbnailsComplete((results: ThumbnailResult[]) => {
-        // Update thumbnailLoaded to true after thumbnail generation completes
+        // Update thumbnailLoaded to true and previewPath after thumbnail generation completes
         setImages((prev) =>
           prev.map((img) => {
             const result = results.find((r) => r.filename === img.filename);
             if (result && result.success) {
-              return { ...img, thumbnailLoaded: true };
+              return {
+                ...img,
+                thumbnailLoaded: true,
+                previewPath: result.preview_path || undefined,
+              };
             }
             return img;
           })
