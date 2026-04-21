@@ -32,6 +32,16 @@ export interface Translations {
     shortcutHint: string;
   };
 
+  // Empty Folder State (folder loaded but no images)
+  emptyFolder: {
+    title: string;
+    description: string;
+    subfoldersFound: string;
+    photosUnit: string;
+    openAnother: string;
+    noSubfolders: string;
+  };
+
   // Status Bar
   statusBar: {
     navigation: string;

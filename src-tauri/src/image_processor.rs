@@ -223,6 +223,86 @@ pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
     Ok(images)
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SubfolderInfo {
+    pub name: String,
+    pub path: String,
+    pub image_count: usize,
+}
+
+/// Maximum number of subfolders reported to the UI.
+const MAX_SUBFOLDERS: usize = 50;
+/// Upper bound on files inspected per subfolder (prevents pathological folders).
+const SUBFOLDER_SCAN_CAP: usize = 5000;
+
+/// Scan the immediate child directories of `folder_path`, returning the ones that contain
+/// image files together with a lightweight (extension-only) count.
+///
+/// Intentionally non-recursive and metadata-free so it stays cheap even when the target
+/// holds many subfolders. Subfolders with zero images are omitted.
+pub fn scan_subfolders(folder_path: &Path) -> Result<Vec<SubfolderInfo>> {
+    let mut subfolders = Vec::new();
+
+    for entry in std::fs::read_dir(folder_path)? {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+
+        let mut image_count = 0usize;
+        let read = match std::fs::read_dir(&path) {
+            Ok(r) => r,
+            Err(_) => continue,
+        };
+        for (i, child) in read.enumerate() {
+            if i >= SUBFOLDER_SCAN_CAP {
+                break;
+            }
+            let child = match child {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            let child_path = child.path();
+            if !child_path.is_file() {
+                continue;
+            }
+            let ext = child_path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("");
+            if RAW_EXTENSIONS.contains(&ext) || IMAGE_EXTENSIONS.contains(&ext) {
+                image_count += 1;
+            }
+        }
+
+        if image_count == 0 {
+            continue;
+        }
+
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+
+        subfolders.push(SubfolderInfo {
+            name,
+            path: normalize_path(&path),
+            image_count,
+        });
+
+        if subfolders.len() >= MAX_SUBFOLDERS {
+            break;
+        }
+    }
+
+    subfolders.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(subfolders)
+}
+
 /// Generate session ID (hash of folder path)
 pub fn generate_session_id(folder_path: &str) -> String {
     use sha2::{Digest, Sha256};

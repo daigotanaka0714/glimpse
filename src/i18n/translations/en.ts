@@ -25,6 +25,15 @@ export const en: Translations = {
     shortcutHint: 'or',
   },
 
+  emptyFolder: {
+    title: 'No images found in this folder',
+    description: 'There are no supported image files (JPEG / PNG / RAW) directly inside this folder.',
+    subfoldersFound: 'Images were found in subfolders. Pick one to open:',
+    photosUnit: 'photos',
+    openAnother: 'Open another folder',
+    noSubfolders: 'No images in subfolders either.',
+  },
+
   statusBar: {
     navigation: 'Navigate',
     reject: 'Reject',
