@@ -3,7 +3,8 @@ use crate::database::{Database, Label, Session};
 use crate::error::Result;
 use crate::image_processor::{
     extract_exif, generate_session_id, generate_thumbnails_parallel, get_cache_dir,
-    get_preview_dir, normalize_path, scan_folder, ExifInfo, ImageInfo,
+    get_preview_dir, normalize_path, scan_folder, scan_subfolders, ExifInfo, ImageInfo,
+    SubfolderInfo,
 };
 use std::path::Path;
 use std::sync::Mutex;
@@ -40,6 +41,14 @@ pub async fn open_folder(
 
     // Scan the folder
     let images = scan_folder(path).map_err(|e| e.to_string())?;
+
+    // Only look for subfolders with images when the top level is empty — keeps the common
+    // path allocation-free while giving the UI enough info to guide the user.
+    let subfolders = if images.is_empty() {
+        scan_subfolders(path).unwrap_or_default()
+    } else {
+        Vec::new()
+    };
 
     // Generate session ID
     let session_id = generate_session_id(&folder_path);
@@ -112,6 +121,7 @@ pub async fn open_folder(
         labels,
         last_selected_index: last_selected,
         cache_dir: normalize_path(&cache_dir),
+        subfolders,
     })
 }
 
@@ -122,6 +132,7 @@ pub struct OpenFolderResult {
     labels: Vec<Label>,
     last_selected_index: i32,
     cache_dir: String,
+    subfolders: Vec<SubfolderInfo>,
 }
 
 /// Set a label

@@ -20,12 +20,19 @@ export interface Label {
   label: string | null;
 }
 
+export interface SubfolderInfo {
+  name: string;
+  path: string;
+  image_count: number;
+}
+
 export interface OpenFolderResult {
   session_id: string;
   images: ImageInfo[];
   labels: Label[];
   last_selected_index: number;
   cache_dir: string;
+  subfolders: SubfolderInfo[];
 }
 
 export interface ThumbnailProgress {

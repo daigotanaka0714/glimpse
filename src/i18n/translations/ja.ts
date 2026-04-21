@@ -25,6 +25,15 @@ export const ja: Translations = {
     shortcutHint: 'または',
   },
 
+  emptyFolder: {
+    title: 'このフォルダに画像が見つかりません',
+    description: 'このフォルダ直下には対応している画像ファイル（JPEG / PNG / RAW）がありません。',
+    subfoldersFound: 'サブフォルダに画像が見つかりました。開くフォルダを選んでください：',
+    photosUnit: '枚',
+    openAnother: '別のフォルダを開く',
+    noSubfolders: 'サブフォルダにも画像は見つかりませんでした。',
+  },
+
   statusBar: {
     navigation: '移動',
     reject: '不採用',

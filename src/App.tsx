@@ -8,6 +8,7 @@ import {
   GalleryView,
   StatusBar,
   EmptyState,
+  EmptyFolderState,
   ExportDialog,
   BatchActionBar,
   SettingsDialog,
@@ -28,6 +29,7 @@ import {
   toImageItem,
   clearCache,
   type ThumbnailResult,
+  type SubfolderInfo,
 } from '@/utils/tauri';
 import { playCompletionSound } from '@/utils/notification';
 
@@ -46,6 +48,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [compareIndex, setCompareIndex] = useState(1); // Second image index for compare mode
   const [folderPath, setFolderPath] = useState<string | null>(null);
+  const [subfolders, setSubfolders] = useState<SubfolderInfo[]>([]);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
@@ -88,6 +91,7 @@ export default function App() {
 
       // Open folder via backend
       const result = await openFolder(path);
+      setSubfolders(result.subfolders);
 
       // Save session info
       sessionRef.current = {
@@ -475,7 +479,16 @@ export default function App() {
           </div>
         </div>
       ) : images.length === 0 ? (
-        <EmptyState onOpenFolder={handleOpenFolder} />
+        folderPath ? (
+          <EmptyFolderState
+            folderPath={folderPath}
+            subfolders={subfolders}
+            onOpenSubfolder={handleOpenFolderByPath}
+            onOpenAnother={handleOpenFolder}
+          />
+        ) : (
+          <EmptyState onOpenFolder={handleOpenFolder} />
+        )
       ) : filteredImages.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-text-secondary">

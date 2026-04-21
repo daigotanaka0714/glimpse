@@ -181,6 +181,10 @@ fn is_raw_extension(ext: &str) -> bool {
     RAW_EXTENSIONS.contains(&ext)
 }
 
+fn is_supported_image_extension(ext: &str) -> bool {
+    RAW_EXTENSIONS.contains(&ext) || IMAGE_EXTENSIONS.contains(&ext)
+}
+
 /// Scan image files in a folder
 pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
     let mut images = Vec::new();
@@ -195,7 +199,7 @@ pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
 
         let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
 
-        if !RAW_EXTENSIONS.contains(&extension) && !IMAGE_EXTENSIONS.contains(&extension) {
+        if !is_supported_image_extension(extension) {
             continue;
         }
 
@@ -221,6 +225,73 @@ pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
     images.sort_by(|a, b| a.filename.cmp(&b.filename));
 
     Ok(images)
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SubfolderInfo {
+    pub name: String,
+    pub path: String,
+    pub image_count: usize,
+}
+
+const MAX_SUBFOLDERS: usize = 50;
+const SUBFOLDER_SCAN_CAP: usize = 5000;
+
+/// Scan the immediate child directories of `folder_path`, returning the ones that contain
+/// image files together with a lightweight (extension-only) count.
+///
+/// Intentionally non-recursive and metadata-free so it stays cheap even when the target
+/// holds many subfolders. Subfolders with zero images are omitted.
+pub fn scan_subfolders(folder_path: &Path) -> Result<Vec<SubfolderInfo>> {
+    let mut subfolders = Vec::new();
+
+    for entry in std::fs::read_dir(folder_path)?.flatten() {
+        if !entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+            continue;
+        }
+        let path = entry.path();
+
+        let Ok(children) = std::fs::read_dir(&path) else {
+            continue;
+        };
+
+        let mut image_count = 0usize;
+        for child in children.flatten().take(SUBFOLDER_SCAN_CAP) {
+            if !child.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
+                continue;
+            }
+            let child_path = child.path();
+            let ext = child_path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("");
+            if is_supported_image_extension(ext) {
+                image_count += 1;
+            }
+        }
+
+        if image_count == 0 {
+            continue;
+        }
+
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+
+        subfolders.push(SubfolderInfo {
+            name,
+            path: normalize_path(&path),
+            image_count,
+        });
+
+        if subfolders.len() >= MAX_SUBFOLDERS {
+            break;
+        }
+    }
+
+    subfolders.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(subfolders)
 }
 
 /// Generate session ID (hash of folder path)

@@ -21,35 +21,43 @@ export function useDragAndDrop({ onDrop, enabled = true }: UseDragAndDropProps):
   useEffect(() => {
     if (!enabled) return;
 
+    // `cancelled` guards against the async setup racing with StrictMode's double-invoke:
+    // if cleanup runs before a `listen()` call resolves, we unregister on the spot.
+    let cancelled = false;
     let unlistenDragEnter: (() => void) | undefined;
     let unlistenDragLeave: (() => void) | undefined;
     let unlistenDrop: (() => void) | undefined;
 
     const setupListeners = async () => {
-      // Listen for drag enter
-      unlistenDragEnter = await listen('tauri://drag-enter', () => {
+      const enterFn = await listen('tauri://drag-enter', () => {
         setIsDragging(true);
       });
+      if (cancelled) { enterFn(); return; }
+      unlistenDragEnter = enterFn;
 
-      // Listen for drag leave
-      unlistenDragLeave = await listen('tauri://drag-leave', () => {
+      const leaveFn = await listen('tauri://drag-leave', () => {
         setIsDragging(false);
       });
+      if (cancelled) { leaveFn(); return; }
+      unlistenDragLeave = leaveFn;
 
-      // Listen for file drop
-      unlistenDrop = await listen<TauriDragDropPayload>('tauri://drag-drop', (event) => {
+      const dropFn = await listen<TauriDragDropPayload>('tauri://drag-drop', (event) => {
         setIsDragging(false);
         const paths = event.payload.paths;
         if (paths && paths.length > 0) {
-          // Use the first dropped path (assuming it's a folder)
           onDrop(paths[0]);
         }
       });
+      if (cancelled) { dropFn(); return; }
+      unlistenDrop = dropFn;
     };
 
-    setupListeners();
+    setupListeners().catch((err) => {
+      console.error('Failed to register drag-drop listeners:', err);
+    });
 
     return () => {
+      cancelled = true;
       unlistenDragEnter?.();
       unlistenDragLeave?.();
       unlistenDrop?.();
