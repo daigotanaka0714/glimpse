@@ -234,9 +234,7 @@ pub struct SubfolderInfo {
     pub image_count: usize,
 }
 
-/// Maximum number of subfolders reported to the UI.
 const MAX_SUBFOLDERS: usize = 50;
-/// Upper bound on files inspected per subfolder (prevents pathological folders).
 const SUBFOLDER_SCAN_CAP: usize = 5000;
 
 /// Scan the immediate child directories of `folder_path`, returning the ones that contain

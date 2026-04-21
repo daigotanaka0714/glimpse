@@ -91,7 +91,7 @@ export default function App() {
 
       // Open folder via backend
       const result = await openFolder(path);
-      setSubfolders(result.subfolders ?? []);
+      setSubfolders(result.subfolders);
 
       // Save session info
       sessionRef.current = {

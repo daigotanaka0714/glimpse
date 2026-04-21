@@ -23,10 +23,8 @@ export function EmptyFolderState({
   return (
     <div className="flex-1 flex items-center justify-center overflow-auto">
       <div className="text-center max-w-xl w-full px-6 py-10 animate-slide-up">
-        <div className="relative inline-block mb-6">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent/15 to-accent/5 flex items-center justify-center">
-            <ImageOff size={40} className="text-accent" />
-          </div>
+        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-accent/15 to-accent/5 flex items-center justify-center">
+          <ImageOff size={40} className="text-accent" />
         </div>
 
         <h2 className="text-xl font-semibold mb-2">{t.emptyFolder.title}</h2>
