@@ -181,6 +181,10 @@ fn is_raw_extension(ext: &str) -> bool {
     RAW_EXTENSIONS.contains(&ext)
 }
 
+fn is_supported_image_extension(ext: &str) -> bool {
+    RAW_EXTENSIONS.contains(&ext) || IMAGE_EXTENSIONS.contains(&ext)
+}
+
 /// Scan image files in a folder
 pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
     let mut images = Vec::new();
@@ -195,7 +199,7 @@ pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
 
         let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
 
-        if !RAW_EXTENSIONS.contains(&extension) && !IMAGE_EXTENSIONS.contains(&extension) {
+        if !is_supported_image_extension(extension) {
             continue;
         }
 
@@ -243,38 +247,27 @@ const SUBFOLDER_SCAN_CAP: usize = 5000;
 pub fn scan_subfolders(folder_path: &Path) -> Result<Vec<SubfolderInfo>> {
     let mut subfolders = Vec::new();
 
-    for entry in std::fs::read_dir(folder_path)? {
-        let entry = match entry {
-            Ok(e) => e,
-            Err(_) => continue,
-        };
-        let path = entry.path();
-        if !path.is_dir() {
+    for entry in std::fs::read_dir(folder_path)?.flatten() {
+        if !entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
             continue;
         }
+        let path = entry.path();
+
+        let Ok(children) = std::fs::read_dir(&path) else {
+            continue;
+        };
 
         let mut image_count = 0usize;
-        let read = match std::fs::read_dir(&path) {
-            Ok(r) => r,
-            Err(_) => continue,
-        };
-        for (i, child) in read.enumerate() {
-            if i >= SUBFOLDER_SCAN_CAP {
-                break;
-            }
-            let child = match child {
-                Ok(c) => c,
-                Err(_) => continue,
-            };
-            let child_path = child.path();
-            if !child_path.is_file() {
+        for child in children.flatten().take(SUBFOLDER_SCAN_CAP) {
+            if !child.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
                 continue;
             }
+            let child_path = child.path();
             let ext = child_path
                 .extension()
                 .and_then(|e| e.to_str())
                 .unwrap_or("");
-            if RAW_EXTENSIONS.contains(&ext) || IMAGE_EXTENSIONS.contains(&ext) {
+            if is_supported_image_extension(ext) {
                 image_count += 1;
             }
         }
