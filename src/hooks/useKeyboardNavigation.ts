@@ -1,13 +1,19 @@
 import { useEffect, useCallback } from 'react';
 import type { GridConfig } from '@/types';
 
+export interface SelectEventModifiers {
+  shiftKey?: boolean;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+}
+
 interface UseKeyboardNavigationProps {
   totalItems: number;
   selectedIndex: number;
   compareIndex?: number;
   gridConfig: GridConfig;
   viewMode: 'grid' | 'detail' | 'compare' | 'gallery';
-  onSelect: (index: number) => void;
+  onSelect: (index: number, event?: SelectEventModifiers) => void;
   onSelectCompare?: (index: number) => void;
   onToggleLabel: () => void;
   onToggleLabelCompare?: () => void;
@@ -18,6 +24,7 @@ interface UseKeyboardNavigationProps {
   onEnterGallery?: () => void;
   onExitGallery?: () => void;
   onClearSelection?: () => void;
+  onSelectAll?: () => void;
   onOpenFolder: () => void;
   onExport: () => void;
   onOpenHelp?: () => void;
@@ -40,6 +47,7 @@ export function useKeyboardNavigation({
   onEnterGallery,
   onExitGallery,
   onClearSelection,
+  onSelectAll,
   onOpenFolder,
   onExport,
   onOpenHelp,
@@ -64,6 +72,13 @@ export function useKeyboardNavigation({
             e.preventDefault();
             onExport();
             return;
+          case 'a':
+            if (viewMode === 'grid' && onSelectAll) {
+              e.preventDefault();
+              onSelectAll();
+              return;
+            }
+            break;
         }
       }
 
@@ -170,6 +185,7 @@ export function useKeyboardNavigation({
 
       // Grid view mode
       const { columns } = gridConfig;
+      const navModifiers: SelectEventModifiers = { shiftKey: e.shiftKey };
 
       switch (e.key) {
         case 'Escape':
@@ -180,30 +196,30 @@ export function useKeyboardNavigation({
         case 'ArrowLeft':
           e.preventDefault();
           if (selectedIndex > 0) {
-            onSelect(selectedIndex - 1);
+            onSelect(selectedIndex - 1, navModifiers);
           }
           break;
 
         case 'ArrowRight':
           e.preventDefault();
           if (selectedIndex < totalItems - 1) {
-            onSelect(selectedIndex + 1);
+            onSelect(selectedIndex + 1, navModifiers);
           }
           break;
 
         case 'ArrowUp':
           e.preventDefault();
           if (selectedIndex >= columns) {
-            onSelect(selectedIndex - columns);
+            onSelect(selectedIndex - columns, navModifiers);
           }
           break;
 
         case 'ArrowDown':
           e.preventDefault();
           if (selectedIndex + columns < totalItems) {
-            onSelect(selectedIndex + columns);
+            onSelect(selectedIndex + columns, navModifiers);
           } else if (selectedIndex < totalItems - 1) {
-            onSelect(totalItems - 1);
+            onSelect(totalItems - 1, navModifiers);
           }
           break;
 
@@ -220,19 +236,19 @@ export function useKeyboardNavigation({
 
         case 'Home':
           e.preventDefault();
-          onSelect(0);
+          onSelect(0, navModifiers);
           break;
 
         case 'End':
           e.preventDefault();
-          onSelect(totalItems - 1);
+          onSelect(totalItems - 1, navModifiers);
           break;
 
         case 'PageUp':
           e.preventDefault();
           {
             const pageSize = columns * 5;
-            onSelect(Math.max(0, selectedIndex - pageSize));
+            onSelect(Math.max(0, selectedIndex - pageSize), navModifiers);
           }
           break;
 
@@ -240,7 +256,7 @@ export function useKeyboardNavigation({
           e.preventDefault();
           {
             const pageSize = columns * 5;
-            onSelect(Math.min(totalItems - 1, selectedIndex + pageSize));
+            onSelect(Math.min(totalItems - 1, selectedIndex + pageSize), navModifiers);
           }
           break;
 
@@ -274,6 +290,7 @@ export function useKeyboardNavigation({
       onEnterGallery,
       onExitGallery,
       onClearSelection,
+      onSelectAll,
       onOpenFolder,
       onExport,
       onOpenHelp,

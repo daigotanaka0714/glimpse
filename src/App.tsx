@@ -45,6 +45,9 @@ export default function App() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  // Anchor for range selection (Shift+click / Shift+arrow).
+  // Stays fixed while extending range so repeated Shift+arrow keeps the same origin.
+  const [anchorIndex, setAnchorIndex] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [compareIndex, setCompareIndex] = useState(1); // Second image index for compare mode
   const [folderPath, setFolderPath] = useState<string | null>(null);
@@ -115,6 +118,7 @@ export default function App() {
       setImages(imageItems);
       setSelectedIndex(result.last_selected_index);
       setSelectedIndices(new Set());
+      setAnchorIndex(result.last_selected_index);
       setThumbnailProgress({ completed: 0, total: result.images.length });
     } catch (error) {
       console.error('Failed to open folder:', error);
@@ -233,22 +237,33 @@ export default function App() {
         return newSet;
       });
       setSelectedIndex(index);
-    } else if (isRangeSelect && selectedIndices.size > 0) {
-      // Shift + click: range selection
-      const start = Math.min(selectedIndex, index);
-      const end = Math.max(selectedIndex, index);
+      setAnchorIndex(index);
+    } else if (isRangeSelect) {
+      // Shift + click / Shift + arrow: range selection from anchor
+      const start = Math.min(anchorIndex, index);
+      const end = Math.max(anchorIndex, index);
       const newSet = new Set<number>();
       for (let i = start; i <= end; i++) {
         newSet.add(i);
       }
       setSelectedIndices(newSet);
       setSelectedIndex(index);
+      // anchor stays fixed for continued range extension
     } else {
-      // Normal click: single selection
+      // Normal click / plain arrow: single selection
       setSelectedIndex(index);
       setSelectedIndices(new Set([index]));
+      setAnchorIndex(index);
     }
-  }, [selectedIndex, selectedIndices]);
+  }, [anchorIndex]);
+
+  // Select all images (Cmd/Ctrl + A)
+  const handleSelectAll = useCallback(() => {
+    if (filteredImages.length === 0) return;
+    const all = new Set<number>();
+    for (let i = 0; i < filteredImages.length; i++) all.add(i);
+    setSelectedIndices(all);
+  }, [filteredImages.length]);
 
   // Wrapper handlers that use the useImageLabels hook
   const handleToggleLabel = useCallback(async () => {
@@ -419,6 +434,7 @@ export default function App() {
     onEnterGallery: handleEnterGallery,
     onExitGallery: handleExitGallery,
     onClearSelection: handleClearSelection,
+    onSelectAll: handleSelectAll,
     onOpenFolder: handleOpenFolder,
     onExport: () => setShowExportDialog(true),
     onOpenHelp: () => setShowHelpDialog(true),

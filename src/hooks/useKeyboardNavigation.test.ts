@@ -52,7 +52,7 @@ describe('useKeyboardNavigation', () => {
 
       dispatchKeyDown('ArrowLeft');
 
-      expect(mockHandlers.onSelect).toHaveBeenCalledWith(4);
+      expect(mockHandlers.onSelect).toHaveBeenCalledWith(4, { shiftKey: false });
     });
 
     it('should not move left when at index 0', () => {
@@ -84,7 +84,7 @@ describe('useKeyboardNavigation', () => {
 
       dispatchKeyDown('ArrowRight');
 
-      expect(mockHandlers.onSelect).toHaveBeenCalledWith(6);
+      expect(mockHandlers.onSelect).toHaveBeenCalledWith(6, { shiftKey: false });
     });
 
     it('should not move right when at last index', () => {
@@ -116,7 +116,7 @@ describe('useKeyboardNavigation', () => {
 
       dispatchKeyDown('ArrowUp');
 
-      expect(mockHandlers.onSelect).toHaveBeenCalledWith(4); // Previous row
+      expect(mockHandlers.onSelect).toHaveBeenCalledWith(4, { shiftKey: false }); // Previous row
     });
 
     it('should move down with ArrowDown', () => {
@@ -132,7 +132,7 @@ describe('useKeyboardNavigation', () => {
 
       dispatchKeyDown('ArrowDown');
 
-      expect(mockHandlers.onSelect).toHaveBeenCalledWith(8);
+      expect(mockHandlers.onSelect).toHaveBeenCalledWith(8, { shiftKey: false });
     });
 
     it('should toggle label with 1 key', () => {
@@ -196,7 +196,7 @@ describe('useKeyboardNavigation', () => {
 
       dispatchKeyDown('Home');
 
-      expect(mockHandlers.onSelect).toHaveBeenCalledWith(0);
+      expect(mockHandlers.onSelect).toHaveBeenCalledWith(0, { shiftKey: false });
     });
 
     it('should go to last item with End', () => {
@@ -212,7 +212,7 @@ describe('useKeyboardNavigation', () => {
 
       dispatchKeyDown('End');
 
-      expect(mockHandlers.onSelect).toHaveBeenCalledWith(19);
+      expect(mockHandlers.onSelect).toHaveBeenCalledWith(19, { shiftKey: false });
     });
   });
 
@@ -283,6 +283,142 @@ describe('useKeyboardNavigation', () => {
       dispatchKeyDown('e', { ctrlKey: true });
 
       expect(mockHandlers.onExport).toHaveBeenCalled();
+    });
+  });
+
+  describe('Keyboard-only multi-selection', () => {
+    it('should select all with Cmd+A in grid mode', () => {
+      const onSelectAll = vi.fn();
+      renderHook(() =>
+        useKeyboardNavigation({
+          totalItems: 20,
+          selectedIndex: 5,
+          gridConfig: mockGridConfig,
+          viewMode: 'grid',
+          ...mockHandlers,
+          onSelectAll,
+        })
+      );
+
+      dispatchKeyDown('a', { metaKey: true });
+
+      expect(onSelectAll).toHaveBeenCalled();
+    });
+
+    it('should select all with Ctrl+A in grid mode', () => {
+      const onSelectAll = vi.fn();
+      renderHook(() =>
+        useKeyboardNavigation({
+          totalItems: 20,
+          selectedIndex: 5,
+          gridConfig: mockGridConfig,
+          viewMode: 'grid',
+          ...mockHandlers,
+          onSelectAll,
+        })
+      );
+
+      dispatchKeyDown('a', { ctrlKey: true });
+
+      expect(onSelectAll).toHaveBeenCalled();
+    });
+
+    it('should not trigger select all in detail mode', () => {
+      const onSelectAll = vi.fn();
+      renderHook(() =>
+        useKeyboardNavigation({
+          totalItems: 20,
+          selectedIndex: 5,
+          gridConfig: mockGridConfig,
+          viewMode: 'detail',
+          ...mockHandlers,
+          onSelectAll,
+        })
+      );
+
+      dispatchKeyDown('a', { metaKey: true });
+
+      expect(onSelectAll).not.toHaveBeenCalled();
+    });
+
+    it('should pass shiftKey modifier on Shift+ArrowRight', () => {
+      renderHook(() =>
+        useKeyboardNavigation({
+          totalItems: 20,
+          selectedIndex: 5,
+          gridConfig: mockGridConfig,
+          viewMode: 'grid',
+          ...mockHandlers,
+        })
+      );
+
+      dispatchKeyDown('ArrowRight', { shiftKey: true });
+
+      expect(mockHandlers.onSelect).toHaveBeenCalledWith(6, { shiftKey: true });
+    });
+
+    it('should pass shiftKey modifier on Shift+ArrowDown', () => {
+      renderHook(() =>
+        useKeyboardNavigation({
+          totalItems: 20,
+          selectedIndex: 4,
+          gridConfig: mockGridConfig,
+          viewMode: 'grid',
+          ...mockHandlers,
+        })
+      );
+
+      dispatchKeyDown('ArrowDown', { shiftKey: true });
+
+      expect(mockHandlers.onSelect).toHaveBeenCalledWith(8, { shiftKey: true });
+    });
+
+    it('should pass shiftKey modifier on Shift+Home', () => {
+      renderHook(() =>
+        useKeyboardNavigation({
+          totalItems: 20,
+          selectedIndex: 10,
+          gridConfig: mockGridConfig,
+          viewMode: 'grid',
+          ...mockHandlers,
+        })
+      );
+
+      dispatchKeyDown('Home', { shiftKey: true });
+
+      expect(mockHandlers.onSelect).toHaveBeenCalledWith(0, { shiftKey: true });
+    });
+
+    it('should pass shiftKey modifier on Shift+End', () => {
+      renderHook(() =>
+        useKeyboardNavigation({
+          totalItems: 20,
+          selectedIndex: 5,
+          gridConfig: mockGridConfig,
+          viewMode: 'grid',
+          ...mockHandlers,
+        })
+      );
+
+      dispatchKeyDown('End', { shiftKey: true });
+
+      expect(mockHandlers.onSelect).toHaveBeenCalledWith(19, { shiftKey: true });
+    });
+
+    it('should pass shiftKey=false on plain arrow navigation', () => {
+      renderHook(() =>
+        useKeyboardNavigation({
+          totalItems: 20,
+          selectedIndex: 5,
+          gridConfig: mockGridConfig,
+          viewMode: 'grid',
+          ...mockHandlers,
+        })
+      );
+
+      dispatchKeyDown('ArrowRight');
+
+      expect(mockHandlers.onSelect).toHaveBeenCalledWith(6, { shiftKey: false });
     });
   });
 });
