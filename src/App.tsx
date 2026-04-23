@@ -32,9 +32,8 @@ import {
   type SubfolderInfo,
 } from '@/utils/tauri';
 import { playCompletionSound } from '@/utils/notification';
+import { getVersion } from '@tauri-apps/api/app';
 
-// App version
-const APP_VERSION = '0.4.0';
 const GITHUB_OWNER = 'daigotanaka0714';
 const GITHUB_REPO = 'glimpse';
 
@@ -65,6 +64,11 @@ export default function App() {
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [theme, setTheme] = useState<ThemeMode>('dark');
   const [baseThumbnailSize, setBaseThumbnailSize] = useState(180);
+  const [appVersion, setAppVersion] = useState('');
+
+  useEffect(() => {
+    getVersion().then(setAppVersion).catch(console.error);
+  }, []);
 
   const { config: gridConfig, containerRef: gridContainerRef, setBaseThumbnailSize: updateGridSize, minSize, maxSize } = useGridConfig();
 
@@ -602,7 +606,7 @@ export default function App() {
       <UpdateNotification
         owner={GITHUB_OWNER}
         repo={GITHUB_REPO}
-        currentVersion={APP_VERSION}
+        currentVersion={appVersion}
         checkOnMount={false}
       />
     </div>
