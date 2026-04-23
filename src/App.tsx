@@ -34,7 +34,7 @@ import {
 import { playCompletionSound } from '@/utils/notification';
 
 // App version
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.4.0';
 const GITHUB_OWNER = 'daigotanaka0714';
 const GITHUB_REPO = 'glimpse';
 
