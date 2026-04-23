@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, Cpu, Zap, Info, HardDrive, Trash2, Tag, AlertTriangle, RefreshCw, ExternalLink, Heart, Globe, MessageCircle } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
+import { getVersion } from '@tauri-apps/api/app';
 import { open } from '@tauri-apps/plugin-shell';
 import {
   checkForUpdates,
@@ -9,7 +10,6 @@ import {
 import { useI18n } from '@/i18n';
 
 // App info
-const APP_VERSION = '0.3.0';
 const GITHUB_OWNER = 'daigotanaka0714';
 const GITHUB_REPO = 'glimpse';
 const SPONSOR_URL = 'https://github.com/sponsors/daigotanaka0714';
@@ -54,6 +54,11 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [feedbackStep, setFeedbackStep] = useState<FeedbackStep>('language');
   const [feedbackLanguage, setFeedbackLanguage] = useState<'en' | 'ja'>('en');
+  const [appVersion, setAppVersion] = useState('');
+
+  useEffect(() => {
+    getVersion().then(setAppVersion).catch(console.error);
+  }, []);
 
   // Fetch system info
   useEffect(() => {
@@ -148,7 +153,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
       const info = await checkForUpdates({
         owner: GITHUB_OWNER,
         repo: GITHUB_REPO,
-        currentVersion: APP_VERSION,
+        currentVersion: appVersion,
       });
       setUpdateInfo(info);
     } catch (error) {
@@ -662,7 +667,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                   <div>
                     <h3 className="text-xl font-bold">Glimpse</h3>
                     <p className="text-sm text-text-secondary">{t.app.tagline}</p>
-                    <p className="text-xs text-text-secondary mt-1">{t.app.version} {APP_VERSION}</p>
+                    <p className="text-xs text-text-secondary mt-1">{t.app.version} {appVersion}</p>
                   </div>
                 </div>
               </div>

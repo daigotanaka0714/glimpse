@@ -11,6 +11,10 @@ vi.mock('@tauri-apps/api/event', () => ({
   listen: vi.fn(() => Promise.resolve(() => {})),
 }));
 
+vi.mock('@tauri-apps/api/app', () => ({
+  getVersion: vi.fn(() => Promise.resolve('0.0.0-test')),
+}));
+
 vi.mock('@tauri-apps/plugin-dialog', () => ({
   open: vi.fn(),
 }));
