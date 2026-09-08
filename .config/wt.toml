@@ -1,0 +1,37 @@
+# worktrunk プロジェクト設定 (https://worktrunk.dev/hook/)
+#
+# 方針:
+#   - pre-start … 新しい worktree を「すぐ使える状態」にする（ブロッキング）
+#   - pre-merge … マージ前に必ず完了条件を検査する（落ちたらマージは進まない）
+#   - マージ操作そのものは人間が実行する。エージェントには wt merge を叩かせない。
+
+# --- 新しい worktree 作成時 ---------------------------------------------------
+# pnpm はストアがグローバル共有なので install は 2秒台で終わる（実測 2.3s）。
+# したがって node_modules をコピーする必要はない。
+[[pre-start]]
+install = "pnpm install --frozen-lockfile"
+
+# 【重要】wt step copy-ignored は使わないこと。
+#   gitignore 対象を全部コピーするため、src-tauri/target（12GB）まで複製される。
+#   実測で 40,827 files / 17.0 GiB がコピーされた。APFS の CoW で作成自体は速いが、
+#   ビルドが走った時点で実ディスクを消費する。空き容量が尽きる。
+#
+# glimpse には worktree へ持ち込む必要のある gitignore ファイルが無いため、コピーは行わない。
+# 将来 .env 等が必要になったら、対象を絞って明示的にコピーすること。
+
+# --- Rust の target について ---------------------------------------------------
+# 【調査結果】target を worktree 間で共有してはいけない。
+#   Cargo は target/.cargo-lock で排他を取るため、共有すると同時に1ビルドしか
+#   走らず、並列エージェントの意味がなくなる。加えて同名 path 依存を区別できない
+#   既知バグ (rust-lang/cargo#12516) がある。
+#   代わりに src-tauri/.cargo/config.toml の build.build-dir で中間成果物を
+#   リポジトリ外へ退避し、Cargo.toml の profile で debuginfo を削る方針を採る。
+
+# --- マージ前の門番 -----------------------------------------------------------
+# rebase 後・マージ前に走る。ここが赤ならマージは進まない。
+[pre-merge]
+check = "bin/agent-check"
+
+# --- 参考: dev サーバを常時立てたい場合 ---------------------------------------
+# [post-start]
+# server = "pnpm dev"

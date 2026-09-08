@@ -51,3 +51,39 @@ tempfile = "3"
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+
+# ============================================================
+# 開発プロファイル: target のディスク使用量とビルド時間を優先
+# 参考: https://doc.rust-lang.org/cargo/guide/build-performance.html
+#
+# macOS では split-debuginfo = "unpacked" が既定のため、デバッグ情報は
+# .o ファイル側に載る。target を小さくする唯一の有効手段は
+# 「そもそも debuginfo を生成しない」こと。
+# ============================================================
+[profile.dev]
+# 自分のコード: 行番号とバックトレースは残す（変数の中身は見えなくなる）
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+# 依存クレート（数百個）の debuginfo を全カット ← target 削減の本命
+debug = false
+
+[profile.dev.build-override]
+debug = false
+opt-level = 0
+
+# 本気でデバッガを使うときだけ: cargo run --profile debugging
+# 使い終わったら cargo clean --profile debugging でディスクを戻すこと
+[profile.debugging]
+inherits = "dev"
+debug = true
+
+# ============================================================
+# リリース: Tauri v2 公式推奨 https://v2.tauri.app/concept/size/
+# ============================================================
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

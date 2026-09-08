@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+# bin/agent-check — AIエージェントの「完了条件」チェッカー
+#
+# 目的:
+#   .github/workflows/ci.yml と同じ検査をローカルで、速い順に fail-fast で走らせる。
+#   エージェントはこれが green になるまで PR を作らない。
+#
+# 使い方:
+#   bin/agent-check           # 通常（変更があれば Rust も検査）
+#   bin/agent-check --quick   # フロントエンドのみ（Rust をスキップ）
+#   bin/agent-check --fix     # eslint --fix を先に走らせてから検査
+#
+# 環境変数:
+#   AGENT_CHECK_MAX_WARNINGS=0   # ESLint の警告も失敗扱いにする（既定: CI と同じく警告は許容）
+#   AGENT_CHECK_BASE=main        # Rust 差分判定の基準ブランチ（既定: main）
+#
+# 終了コード: 0=green / 1=いずれかの検査が失敗
+
+set -uo pipefail
+cd "$(dirname "$0")/.." || exit 1
+
+QUICK=0
+FIX=0
+for arg in "$@"; do
+  case "$arg" in
+    --quick) QUICK=1 ;;
+    --fix)   FIX=1 ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    *) echo "unknown option: $arg" >&2; exit 2 ;;
+  esac
+done
+
+BASE="${AGENT_CHECK_BASE:-main}"
+MAX_WARNINGS="${AGENT_CHECK_MAX_WARNINGS:-}"
+
+# ---- pnpm の解決 -------------------------------------------------------------
+if command -v pnpm >/dev/null 2>&1; then
+  PNPM="pnpm"
+elif command -v corepack >/dev/null 2>&1; then
+  PNPM="corepack pnpm"
+else
+  echo "AGENT-CHECK: FAIL stage=bootstrap reason=pnpm-not-found" >&2
+  echo "  → corepack enable もしくは pnpm のインストールが必要です" >&2
+  exit 1
+fi
+
+# ---- ステージ実行ヘルパ ------------------------------------------------------
+FAILED_STAGE=""
+FAILED_OUTPUT=""
+declare -a TIMINGS=()
+
+run_stage() {
+  # run_stage <stage名> <説明> <コマンド...>
+  local name="$1"; shift
+  local desc="$1"; shift
+  [ -n "$FAILED_STAGE" ] && return 0
+
+  local start end elapsed out status
+  start=$(date +%s)
+  printf '── %-10s %s\n' "$name" "$desc"
+  out=$("$@" 2>&1)
+  status=$?
+  end=$(date +%s)
+  elapsed=$((end - start))
+  TIMINGS+=("$name:${elapsed}s")
+
+  if [ $status -ne 0 ]; then
+    FAILED_STAGE="$name"
+    FAILED_OUTPUT="$out"
+    return 1
+  fi
+  # 成功時も警告は見せる（エージェントが放置しないように）
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out" | tail -n 30
+  fi
+  return 0
+}
+
+# ---- Rust 側に差分があるか ---------------------------------------------------
+rust_touched() {
+  [ -d src-tauri ] || return 1
+  if git rev-parse --verify --quiet "$BASE" >/dev/null 2>&1; then
+    if [ -n "$(git diff --name-only "$BASE"...HEAD -- src-tauri 2>/dev/null)" ]; then return 0; fi
+  fi
+  [ -n "$(git status --porcelain -- src-tauri 2>/dev/null)" ]
+}
+
+echo "=== agent-check start ($(date '+%H:%M:%S')) ==="
+
+# ---- 0. 任意: 自動修正 -------------------------------------------------------
+if [ $FIX -eq 1 ]; then
+  echo "── autofix    eslint --fix"
+  $PNPM exec eslint . --fix >/dev/null 2>&1
+fi
+
+# ---- 1. 型チェック（最速・最も効く） -----------------------------------------
+run_stage typecheck "tsc --noEmit" $PNPM exec tsc --noEmit
+
+# ---- 2. Lint -----------------------------------------------------------------
+if [ -n "$MAX_WARNINGS" ]; then
+  run_stage lint "eslint (max-warnings=$MAX_WARNINGS)" $PNPM exec eslint . --max-warnings "$MAX_WARNINGS"
+else
+  run_stage lint "eslint" $PNPM exec eslint .
+fi
+
+# ---- 3. テスト ---------------------------------------------------------------
+run_stage test "vitest run" $PNPM run test:run
+
+# ---- 4. Rust（差分がある時だけ） ---------------------------------------------
+if [ $QUICK -eq 0 ] && [ -z "$FAILED_STAGE" ]; then
+  if rust_touched; then
+    # 注意: cargo の設定探索は「カレントディレクトリ」基準なので、
+    #       --manifest-path では src-tauri/.cargo/config.toml が読まれない。
+    #       build-dir を効かせるため、必ず src-tauri に cd してから実行する。
+    run_stage rustfmt  "cargo fmt --check"      bash -c 'cd src-tauri && cargo fmt --all -- --check'
+    run_stage clippy   "cargo clippy -D warnings" bash -c 'cd src-tauri && cargo clippy --all-targets -- -D warnings'
+    run_stage rusttest "cargo test"             bash -c 'cd src-tauri && cargo test'
+  else
+    echo "── rust       skip (src-tauri に差分なし)"
+  fi
+fi
+
+# ---- 結果 --------------------------------------------------------------------
+echo
+echo "=== AGENT-CHECK RESULT ==="
+if [ -n "$FAILED_STAGE" ]; then
+  echo "STATUS: FAIL"
+  echo "FAILED_STAGE: $FAILED_STAGE"
+  echo "TIMINGS: ${TIMINGS[*]:-none}"
+  echo "--- output ---"
+  printf '%s\n' "$FAILED_OUTPUT"
+  echo "--- end output ---"
+  echo "NEXT: 上の $FAILED_STAGE エラーを修正し、bin/agent-check を再実行すること。"
+  echo "NEXT: green になるまで PR を作成しないこと。"
+  exit 1
+fi
+echo "STATUS: PASS"
+echo "TIMINGS: ${TIMINGS[*]:-none}"
+echo "NEXT: PR を作成してよい。マージは人間が行うため、マージはしないこと。"
+exit 0

@@ -1,0 +1,13 @@
+# 中間成果物（incremental / build script 出力 / コンパイル成果物）を
+# リポジトリの外へ退避する。Cargo 1.91+ で安定。
+#
+# ねらい:
+#   - worktree 直下の target/ を「最終成果物だけ」の軽いディレクトリにする
+#   - {workspace-path-hash} は worktree ごとに別ディレクトリになるので、
+#     target を共有した場合のようなロック競合は起きない
+#   - 中間物が ~/.cargo/build/ に集約されるので、まとめて掃除できる
+#       du -sh ~/.cargo/build/*
+#
+# 参考: https://doc.rust-lang.org/cargo/reference/config.html
+[build]
+build-dir = "{cargo-cache-home}/build/{workspace-path-hash}"
