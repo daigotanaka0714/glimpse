@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { I18nProvider, useI18n, useTranslation } from './context';
+import { I18nProvider } from './context';
+import { useI18n, useTranslation } from './hooks';
 
 // Test component to access hook values
 function TestComponent() {
