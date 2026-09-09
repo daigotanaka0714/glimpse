@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { Language, Translations } from './types';
 import { en } from './translations/en';
 import { ja } from './translations/ja';
+import { I18nContext } from './i18nContext';
 
 const STORAGE_KEY = 'glimpse-language';
 
@@ -9,14 +10,6 @@ const translations: Record<Language, Translations> = {
   en,
   ja,
 };
-
-interface I18nContextType {
-  language: Language;
-  setLanguage: (lang: Language) => void;
-  t: Translations;
-}
-
-const I18nContext = createContext<I18nContextType | null>(null);
 
 /**
  * Detect browser language and return closest match
@@ -78,23 +71,4 @@ export function I18nProvider({ children }: I18nProviderProps) {
       {children}
     </I18nContext.Provider>
   );
-}
-
-/**
- * Hook to access i18n context
- */
-export function useI18n(): I18nContextType {
-  const context = useContext(I18nContext);
-  if (!context) {
-    throw new Error('useI18n must be used within an I18nProvider');
-  }
-  return context;
-}
-
-/**
- * Hook to get translations only (for components that don't need to change language)
- */
-export function useTranslation(): Translations {
-  const { t } = useI18n();
-  return t;
 }
