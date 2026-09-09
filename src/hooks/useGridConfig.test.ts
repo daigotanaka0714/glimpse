@@ -63,7 +63,7 @@ describe('useGridConfig', () => {
         if (container) {
           ref.current = container;
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- container は renderUseGridConfig の引数で、この renderHook の生存期間中は不変
+        // container は renderUseGridConfig の引数で、この renderHook の生存期間中は不変のため依存に含めない
       }, [ref]);
       return grid;
     });
