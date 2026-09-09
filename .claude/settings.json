@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(./bin/agent-check)",
+      "Bash(./bin/agent-check *)",
+      "Bash(pnpm install)",
+      "Bash(pnpm install *)",
+      "Bash(pnpm run test:run)",
+      "Bash(pnpm exec tsc *)",
+      "Bash(pnpm exec eslint *)",
+      "Bash(pnpm exec vitest *)",
+      "Bash(cargo fmt *)",
+      "Bash(cargo clippy *)",
+      "Bash(cargo test *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git switch *)",
+      "Bash(git restore *)",
+      "Bash(git push -u origin *)",
+      "Bash(git push origin *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr checks *)",
+      "Bash(gh pr diff *)"
+    ],
+    "deny": [
+      "Bash(git merge *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(gh pr merge *)",
+      "Bash(wt merge *)",
+      "Bash(rm -rf *)"
+    ]
+  }
+}
