@@ -142,7 +142,7 @@ Releases are triggered by version tags (e.g., `v0.2.0`) and build for macOS ARM6
 
 1. `bin/agent-check` が `STATUS: PASS` を返す
 2. 変更が依頼された範囲に収まっている
-3. PR が作成されている
+3. **作業ブランチから PR が作成されている**（main への直接 push は禁止）
 
 `bin/agent-check` は CI (`.github/workflows/ci.yml`) と同じ検査を、速い順に fail-fast で実行する。
 
@@ -150,8 +150,23 @@ Releases are triggered by version tags (e.g., `v0.2.0`) and build for macOS ARM6
 tsc --noEmit  →  eslint  →  vitest run  →  (src-tauri に差分がある時だけ) cargo fmt / clippy / test
 ```
 
+### ブランチと PR
+
+このリポジトリは main が保護されている。エージェントは必ず次の順で進めること。
+
+```bash
+git switch -c <種別>/<内容>        # 例: fix/thumbnail-overflow
+# ... 作業 ...
+./bin/agent-check                  # green を確認してから
+git push -u origin <branch>
+gh pr create --fill                # PR 本文に agent-check の結果を書く
+```
+
+PR を作ったら、その URL を報告して手を止める。**レビューとマージは人間が行う。**
+
 ### 禁止事項
 
+- **`main` へ直接 push しない。** 必ずブランチを切って PR を作る
 - `bin/agent-check` が FAIL の状態で PR を作らない
 - **マージは絶対に行わない**（`git merge` / `wt merge` / PR のマージ操作すべて）。マージ判断は人間が行う
 - 検査を通すために `bin/agent-check` 自体を書き換えない
