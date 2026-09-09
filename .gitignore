@@ -31,3 +31,4 @@ src-tauri/Cargo.lock
 DESIGN.md
 .playwright-mcp/
 docs-internal/
+.claude/*.lock
