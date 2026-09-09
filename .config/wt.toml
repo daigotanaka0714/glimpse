@@ -29,8 +29,10 @@ install = "pnpm install --frozen-lockfile"
 
 # --- マージ前の門番 -----------------------------------------------------------
 # rebase 後・マージ前に走る。ここが赤ならマージは進まない。
+# AGENT_CHECK_MAX_WARNINGS=1 で現在の警告数を天井に固定する。
+# 並列エージェントは完了条件に無い品質基準を守らないため、警告の増加をここで止める。
 [pre-merge]
-check = "bin/agent-check"
+check = "AGENT_CHECK_MAX_WARNINGS=1 bin/agent-check"
 
 # --- 参考: dev サーバを常時立てたい場合 ---------------------------------------
 # [post-start]
