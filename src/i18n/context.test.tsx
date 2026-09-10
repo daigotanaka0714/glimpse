@@ -11,8 +11,12 @@ function TestComponent() {
       <span data-testid="language">{language}</span>
       <span data-testid="app-name">{t.app.name}</span>
       <span data-testid="open-folder">{t.emptyState.openFolder}</span>
-      <button onClick={() => setLanguage("ja")}>Switch to Japanese</button>
-      <button onClick={() => setLanguage("en")}>Switch to English</button>
+      <button type="button" onClick={() => setLanguage("ja")}>
+        Switch to Japanese
+      </button>
+      <button type="button" onClick={() => setLanguage("en")}>
+        Switch to English
+      </button>
     </div>
   );
 }

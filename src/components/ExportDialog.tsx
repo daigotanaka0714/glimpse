@@ -63,6 +63,7 @@ export function ExportDialog({
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <h2 className="text-lg font-semibold">Export Adopted Photos</h2>
           <button
+            type="button"
             onClick={onClose}
             className="p-1 rounded-lg hover:bg-white/10 transition-colors"
           >
@@ -102,6 +103,7 @@ export function ExportDialog({
                 className="flex-1 px-4 py-2 bg-bg-tertiary border border-white/10 rounded-lg text-sm"
               />
               <button
+                type="button"
                 onClick={handleSelectFolder}
                 disabled={isExporting}
                 className="px-4 py-2 bg-bg-tertiary hover:bg-white/10 border border-white/10 rounded-lg transition-colors"
@@ -118,6 +120,7 @@ export function ExportDialog({
             </label>
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={() => setExportMode("copy")}
                 disabled={isExporting}
                 className={`
@@ -133,6 +136,7 @@ export function ExportDialog({
                 <span className="text-sm font-medium">Copy</span>
               </button>
               <button
+                type="button"
                 onClick={() => setExportMode("move")}
                 disabled={isExporting}
                 className={`
@@ -174,6 +178,7 @@ export function ExportDialog({
         {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-white/10">
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors text-sm"
           >
@@ -181,6 +186,7 @@ export function ExportDialog({
           </button>
           {!isComplete && (
             <button
+              type="button"
               onClick={handleExport}
               disabled={isExporting || !destinationPath}
               className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-sm font-medium"

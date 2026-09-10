@@ -251,12 +251,14 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             </p>
             <div className="flex justify-end gap-3">
               <button
+                type="button"
                 onClick={() => setConfirmDialog(null)}
                 className="px-4 py-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors text-sm"
               >
                 {t.common.cancel}
               </button>
               <button
+                type="button"
                 onClick={
                   confirmDialog === "cache"
                     ? handleClearCache
@@ -278,6 +280,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">{t.feedback.title}</h3>
               <button
+                type="button"
                 onClick={() => setShowFeedbackDialog(false)}
                 className="p-1 rounded hover:bg-white/10 transition-colors"
               >
@@ -292,6 +295,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                 </p>
                 <div className="space-y-3">
                   <button
+                    type="button"
                     onClick={() => handleSelectFeedbackLanguage("en")}
                     className="w-full flex items-center justify-between px-4 py-3 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors"
                   >
@@ -307,6 +311,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                     <ExternalLink size={16} className="text-text-secondary" />
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleSelectFeedbackLanguage("ja")}
                     className="w-full flex items-center justify-between px-4 py-3 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors"
                   >
@@ -330,6 +335,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                 </p>
                 <div className="space-y-3">
                   <button
+                    type="button"
                     onClick={handleGitHubIssue}
                     className="w-full flex items-center justify-between px-4 py-3 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors"
                   >
@@ -353,6 +359,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                     <ExternalLink size={16} className="text-text-secondary" />
                   </button>
                   <button
+                    type="button"
                     onClick={handleFeedbackForm}
                     className="w-full flex items-center justify-between px-4 py-3 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors"
                   >
@@ -371,6 +378,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                   </button>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setFeedbackStep("language")}
                   className="mt-4 text-sm text-text-secondary hover:text-text-primary transition-colors"
                 >
@@ -409,6 +417,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
               className="p-2 rounded-lg hover:bg-white/10 transition-colors"
             >
@@ -420,6 +429,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
         {/* Tabs */}
         <div className="flex border-b border-white/10">
           <button
+            type="button"
             onClick={() => setActiveTab("performance")}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === "performance"
@@ -433,6 +443,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             </div>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("storage")}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === "storage"
@@ -446,6 +457,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             </div>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("about")}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === "about"
@@ -520,6 +532,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                     {t.settings.performance.processingThreads}
                   </label>
                   <button
+                    type="button"
                     onClick={handleAutoClick}
                     className={`
                       flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all
@@ -600,12 +613,14 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             {/* Footer for Performance tab */}
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-white/10 bg-bg-tertiary/50">
               <button
+                type="button"
                 onClick={onClose}
                 className="px-4 py-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors text-sm"
               >
                 {t.common.cancel}
               </button>
               <button
+                type="button"
                 onClick={handleSave}
                 disabled={isSaving}
                 className="flex items-center gap-2 px-5 py-2 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded-lg transition-all text-sm font-medium"
@@ -655,6 +670,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                         </div>
                       </div>
                       <button
+                        type="button"
                         onClick={() => setConfirmDialog("cache")}
                         disabled={
                           isClearing === "cache" ||
@@ -684,6 +700,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                         </div>
                       </div>
                       <button
+                        type="button"
                         onClick={() => setConfirmDialog("labels")}
                         disabled={
                           isClearing === "labels" ||
@@ -743,6 +760,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             {/* Footer for Storage tab */}
             <div className="flex justify-end px-6 py-4 border-t border-white/10 bg-bg-tertiary/50">
               <button
+                type="button"
                 onClick={onClose}
                 className="px-4 py-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors text-sm"
               >
@@ -783,6 +801,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                 </div>
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => setLanguage("en")}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${
                       language === "en"
@@ -794,6 +813,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                     <span>English</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => setLanguage("ja")}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${
                       language === "ja"
@@ -828,6 +848,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                         </span>
                       </div>
                       <button
+                        type="button"
                         onClick={handleOpenRelease}
                         className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover rounded-lg transition-colors text-sm font-medium"
                       >
@@ -848,6 +869,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                   </div>
                 ) : (
                   <button
+                    type="button"
                     onClick={handleCheckUpdate}
                     disabled={isCheckingUpdate}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-bg-primary hover:bg-white/10 disabled:opacity-50 rounded-lg transition-colors text-sm"
@@ -871,6 +893,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
               <div className="space-y-2">
                 <div className="flex gap-3">
                   <button
+                    type="button"
                     onClick={() =>
                       open(`https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`)
                     }
@@ -880,6 +903,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                     {t.settings.about.github}
                   </button>
                   <button
+                    type="button"
                     onClick={handleOpenFeedbackDialog}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors text-sm"
                   >
@@ -890,6 +914,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
 
                 {/* Sponsor button */}
                 <button
+                  type="button"
                   onClick={handleOpenSponsor}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 rounded-lg transition-colors text-sm group"
                 >
@@ -910,6 +935,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             {/* Footer for About tab */}
             <div className="flex justify-end px-6 py-4 border-t border-white/10 bg-bg-tertiary/50">
               <button
+                type="button"
                 onClick={onClose}
                 className="px-4 py-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors text-sm"
               >

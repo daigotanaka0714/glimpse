@@ -31,6 +31,7 @@ export function EmptyState({ onOpenFolder }: EmptyStateProps) {
 
         {/* Button */}
         <button
+          type="button"
           onClick={onOpenFolder}
           className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-hover rounded-xl transition-colors font-medium text-white"
         >

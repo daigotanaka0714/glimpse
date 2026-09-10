@@ -47,6 +47,7 @@ export function EmptyFolderState({
               {subfolders.map((sf) => (
                 <li key={sf.path}>
                   <button
+                    type="button"
                     onClick={() => onOpenSubfolder(sf.path)}
                     className="w-full flex items-center justify-between gap-3 px-4 py-2.5 theme-hover-bg transition-colors text-left"
                   >
@@ -74,6 +75,7 @@ export function EmptyFolderState({
         )}
 
         <button
+          type="button"
           onClick={onOpenAnother}
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-hover rounded-xl transition-colors font-medium text-white"
         >

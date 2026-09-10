@@ -59,6 +59,7 @@ export function Toolbar({
         <div className="flex items-center gap-1">
           {filterOptions.map(({ mode, label, count }) => (
             <button
+              type="button"
               key={mode}
               onClick={() => onFilterModeChange(mode)}
               className={`
@@ -107,6 +108,7 @@ export function Toolbar({
         {/* View mode toggle */}
         <div className="flex items-center gap-1 mr-2">
           <button
+            type="button"
             onClick={() => {}}
             disabled={viewMode === "grid"}
             className={`
@@ -122,6 +124,7 @@ export function Toolbar({
             <LayoutGrid size={16} />
           </button>
           <button
+            type="button"
             onClick={onEnterGallery}
             disabled={!hasSelection}
             className={`
@@ -147,6 +150,7 @@ export function Toolbar({
 
         {/* Theme toggle */}
         <button
+          type="button"
           onClick={() => onThemeChange(theme === "dark" ? "light" : "dark")}
           className="flex items-center gap-2 px-3 py-1.5 text-xs text-text-secondary hover:bg-theme-hover rounded-md transition-colors"
           title={theme === "dark" ? t.toolbar.light : t.toolbar.dark}

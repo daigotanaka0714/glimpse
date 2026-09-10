@@ -42,6 +42,7 @@ export function CompareView({
     <div className="fixed inset-0 z-50 bg-bg-primary flex flex-col animate-fade-in">
       {/* Close button */}
       <button
+        type="button"
         onClick={onClose}
         className="absolute top-4 right-4 z-20 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
       >
@@ -132,6 +133,7 @@ function ComparePanel({
         {/* Navigation button - left */}
         {onPrevious && (
           <button
+            type="button"
             onClick={onPrevious}
             className="absolute left-2 z-10 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
@@ -170,6 +172,7 @@ function ComparePanel({
         {/* Navigation button - right */}
         {onNext && (
           <button
+            type="button"
             onClick={onNext}
             className="absolute right-2 z-10 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
@@ -187,6 +190,7 @@ function ComparePanel({
           </span>
         </div>
         <button
+          type="button"
           onClick={onToggleLabel}
           className={`
             px-3 py-1.5 rounded-lg font-medium text-xs transition-colors flex-shrink-0

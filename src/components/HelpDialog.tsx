@@ -574,6 +574,7 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
               {/* Language toggle */}
               <div className="flex bg-bg-tertiary rounded-lg p-1">
                 <button
+                  type="button"
                   onClick={() => setLanguage("en")}
                   className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                     language === "en"
@@ -584,6 +585,7 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
                   EN
                 </button>
                 <button
+                  type="button"
                   onClick={() => setLanguage("ja")}
                   className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                     language === "ja"
@@ -595,6 +597,7 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
                 </button>
               </div>
               <button
+                type="button"
                 onClick={onClose}
                 className="p-2 rounded-lg hover:bg-white/10 transition-colors"
               >
@@ -614,6 +617,7 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
                 const Icon = sectionContent.icon;
                 return (
                   <button
+                    type="button"
                     key={section}
                     onClick={() => setActiveSection(section)}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${

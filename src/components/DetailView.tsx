@@ -70,6 +70,7 @@ export function DetailView({
         {/* Navigation button - left */}
         {item.index > 0 && (
           <button
+            type="button"
             onClick={onPrevious}
             className="absolute left-4 z-10 p-3 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
@@ -109,6 +110,7 @@ export function DetailView({
         {/* Navigation button - right */}
         {item.index < totalItems - 1 && (
           <button
+            type="button"
             onClick={onNext}
             className="absolute right-4 z-10 p-3 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
@@ -118,6 +120,7 @@ export function DetailView({
 
         {/* Close button */}
         <button
+          type="button"
           onClick={onClose}
           className="absolute top-4 right-4 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
         >
@@ -127,6 +130,7 @@ export function DetailView({
         {/* Rotation buttons */}
         <div className="absolute top-4 left-4 flex gap-2">
           <button
+            type="button"
             onClick={rotateLeft}
             className="p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
             title={t.detailView.rotateLeft}
@@ -134,6 +138,7 @@ export function DetailView({
             <RotateCcw size={24} />
           </button>
           <button
+            type="button"
             onClick={rotateRight}
             className="p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
             title={t.detailView.rotateRight}
@@ -149,6 +154,7 @@ export function DetailView({
 
         {/* EXIF info button */}
         <button
+          type="button"
           onClick={() => setShowExif(!showExif)}
           className={`absolute top-4 right-16 p-2 rounded-full transition-colors ${
             showExif
@@ -248,6 +254,7 @@ export function DetailView({
           </span>
 
           <button
+            type="button"
             onClick={onToggleLabel}
             className={`
               px-4 py-2 rounded-lg font-medium text-sm transition-colors

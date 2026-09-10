@@ -104,6 +104,7 @@ export function UpdateNotification({
             </span>
           </div>
           <button
+            type="button"
             onClick={handleDismiss}
             className="p-1 rounded hover:bg-white/10 transition-colors"
             aria-label="Close"
@@ -138,6 +139,7 @@ export function UpdateNotification({
           {/* Actions */}
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={handleDownload}
               className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-accent hover:bg-accent/80 text-white rounded-md text-sm font-medium transition-colors"
             >
@@ -145,6 +147,7 @@ export function UpdateNotification({
               Download
             </button>
             <button
+              type="button"
               onClick={handleSkipVersion}
               className="px-3 py-2 text-text-secondary hover:bg-white/10 rounded-md text-sm transition-colors"
             >

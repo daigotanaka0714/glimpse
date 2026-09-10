@@ -162,6 +162,7 @@ export function GalleryView({
         {/* Navigation button - left */}
         {selectedIndex > 0 && (
           <button
+            type="button"
             onClick={handlePrevious}
             className="absolute left-4 z-10 p-3 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
@@ -200,6 +201,7 @@ export function GalleryView({
         {/* Navigation button - right */}
         {selectedIndex < items.length - 1 && (
           <button
+            type="button"
             onClick={handleNext}
             className="absolute right-4 z-10 p-3 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
@@ -209,6 +211,7 @@ export function GalleryView({
 
         {/* Close button */}
         <button
+          type="button"
           onClick={onClose}
           className="absolute top-4 right-4 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
         >
@@ -227,6 +230,7 @@ export function GalleryView({
               </span>
             </div>
             <button
+              type="button"
               onClick={handleClearSelection}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-text-muted hover:text-text-primary hover:bg-theme-hover rounded-md transition-all"
             >
@@ -237,6 +241,7 @@ export function GalleryView({
 
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handleBatchMarkRejected}
               className="group flex items-center gap-2 px-4 py-2 bg-rejected/10 hover:bg-rejected/20 border border-rejected/30 hover:border-rejected/50 text-rejected rounded-lg transition-all"
             >
@@ -249,6 +254,7 @@ export function GalleryView({
               </span>
             </button>
             <button
+              type="button"
               onClick={handleBatchMarkAdopted}
               className="group flex items-center gap-2 px-4 py-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 hover:border-green-500/50 text-green-600 rounded-lg transition-all"
             >
@@ -277,6 +283,7 @@ export function GalleryView({
 
             return (
               <button
+                type="button"
                 key={item.filename}
                 ref={isCurrentImage ? selectedThumbnailRef : null}
                 onClick={(e) => handleThumbnailClick(index, e)}
@@ -340,6 +347,7 @@ export function GalleryView({
           </span>
 
           <button
+            type="button"
             onClick={onToggleLabel}
             className={`
               px-4 py-2 rounded-lg font-medium text-sm transition-colors

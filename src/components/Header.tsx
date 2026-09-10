@@ -49,6 +49,7 @@ export function Header({
       {/* Left side: Open folder - shrink-0 prevents compression */}
       <div className="flex items-center gap-2 shrink-0">
         <button
+          type="button"
           onClick={onOpenFolder}
           className="flex items-center gap-2 px-3 py-2 bg-bg-tertiary hover:bg-theme-hover rounded-lg transition-colors text-sm font-medium whitespace-nowrap"
           title={t.header.openFolder}
@@ -59,6 +60,7 @@ export function Header({
 
         {folderPath && onReload && (
           <button
+            type="button"
             onClick={onReload}
             disabled={isGeneratingThumbnails}
             className="p-2 bg-bg-tertiary hover:bg-theme-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
@@ -131,6 +133,7 @@ export function Header({
       <div className="flex items-center gap-1.5 shrink-0">
         {onOpenHelp && (
           <button
+            type="button"
             onClick={onOpenHelp}
             className="p-2 bg-bg-tertiary hover:bg-theme-hover rounded-lg transition-colors"
             title={`${t.header.help} (?)`}
@@ -140,6 +143,7 @@ export function Header({
         )}
         {onOpenSettings && (
           <button
+            type="button"
             onClick={onOpenSettings}
             className="p-2 bg-bg-tertiary hover:bg-theme-hover rounded-lg transition-colors"
             title={t.header.settings}
@@ -148,6 +152,7 @@ export function Header({
           </button>
         )}
         <button
+          type="button"
           onClick={onExport}
           disabled={totalFiles === 0}
           className="flex items-center gap-2 px-3 py-2 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-sm font-medium text-white whitespace-nowrap"
