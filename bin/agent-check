@@ -19,6 +19,17 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
+# 【重要】検査は自分の環境を正規化してから走らせる。
+#   Claude デスクトップ等のホストプロセスは NODE_ENV=production を持っており、
+#   そこから起動したエージェントのシェルはそれを継承する。
+#   その状態で vitest を走らせると React が production ビルドに解決され、
+#   act() が使えず @testing-library/react のテストが全滅する
+#   （"act(...) is not supported in production builds of React"）。
+#   CI には NODE_ENV が無いので CI は green のまま＝ローカルだけ赤くなる。
+#   ここで固定しておけば、どこから起動されても同じ結果になる。
+NODE_ENV=test
+export NODE_ENV
+
 QUICK=0
 FIX=0
 for arg in "$@"; do
