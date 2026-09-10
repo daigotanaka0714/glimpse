@@ -22,11 +22,9 @@ pnpm test:run           # Run all tests once
 pnpm test               # Run tests in watch mode
 pnpm test:coverage      # Generate coverage report
 
-# Linting / Formatting
-pnpm lint               # Run Biome (format + lint check, warnings are errors)
-pnpm lint:fix           # Auto-fix with Biome
-pnpm format             # Format only
-pnpm typecheck          # tsc --noEmit
+# Linting
+pnpm lint               # Run Biome (format + lint)
+pnpm lint:fix           # Auto-fix linting issues
 
 # Rust-specific (from src-tauri/)
 cargo fmt               # Format Rust code
@@ -138,45 +136,7 @@ Releases are triggered by version tags (e.g., `v0.2.0`) and build for macOS ARM6
 - `/bugfix` - 体系的なバグ調査・修正ワークフロー
 - `/investigate` - コードベースの網羅的調査
 
-## エージェントの完了条件
-
-「完了」と判断してよいのは、以下をすべて満たしたときのみ。
-
-1. `bin/agent-check` が `STATUS: PASS` を返す
-2. 変更が依頼された範囲に収まっている
-3. **作業ブランチから PR が作成されている**（main への直接 push は禁止）
-
-`bin/agent-check` は CI (`.github/workflows/ci.yml`) と同じ検査を、速い順に fail-fast で実行する。
-
-```
-tsc --noEmit  →  biome check  →  vitest run  →  (src-tauri に差分がある時だけ) cargo fmt / clippy / test
-```
-
-### ブランチと PR
-
-このリポジトリは main が保護されている。エージェントは必ず次の順で進めること。
-
-```bash
-git switch -c <種別>/<内容>        # 例: fix/thumbnail-overflow
-# ... 作業 ...
-./bin/agent-check                  # green を確認してから
-git push -u origin <branch>
-gh pr create --fill                # PR 本文に agent-check の結果を書く
-```
-
-PR を作ったら、その URL を報告して手を止める。**レビューとマージは人間が行う。**
-
-### 禁止事項
-
-- **`main` へ直接 push しない。** 必ずブランチを切って PR を作る
-- `bin/agent-check` が FAIL の状態で PR を作らない
-- **マージは絶対に行わない**（`git merge` / `wt merge` / PR のマージ操作すべて）。マージ判断は人間が行う
-- 検査を通すために `bin/agent-check` 自体を書き換えない
-
-### 失敗したとき
-
-出力の `FAILED_STAGE` のエラーだけを直し、`bin/agent-check` を再実行する。
-フロントエンドのみの変更を反復する間は `--quick`（Rust をスキップ）を使ってよい。
+## このリポジトリ固有のこと
 
 ### 警告について
 
@@ -184,7 +144,39 @@ Biome の指摘は現状ゼロ。`pnpm lint`（= `biome check --error-on-warning
 警告が 1 件でも出た時点で失敗する。CI・`bin/agent-check`・worktree のマージ前フック
 （`.config/wt.toml`）はいずれもこの同じコマンドを叩くため、**新しい警告を残すとマージできない。**
 
-### 並列作業（git worktree）
+ESLint 時代は `AGENT_CHECK_MAX_WARNINGS` によるラチェットで頭打ちにしていたが、
+Biome 移行で指摘がゼロになったため、ラチェットは廃止した。
 
-`wt switch -c <branch>` で worktree を作ると、`pnpm install` が自動で走る。
-複数のエージェントが並列で作業する前提のため、**自分に割り当てられた範囲外のファイルは触らないこと。**
+### 失敗したとき
+
+出力の `FAILED_STAGE` のエラーだけを直し、`bin/agent-check` を再実行する。
+フロントエンドのみの変更を反復する間は `--quick`（Rust をスキップ）を使ってよい。
+
+<!-- daigo-lab-ops:completion-criteria:start -->
+<!-- 自動生成。daigo-lab-ops/docs/completion-criteria.md が唯一の出どころ。
+     ここを手で編集しない。`lab sync` で作り直す。 -->
+
+## エージェントの完了条件
+
+### 「終わった」と言える条件
+
+1. そのリポジトリの `bin/agent-check` が `STATUS: PASS` を返している
+2. 変更が依頼された範囲に収まっている
+3. main / master ではないブランチから PR を作成している
+
+### 禁止事項
+
+- **既定ブランチへの直接 push は禁止。** 必ずブランチを切って PR を作る。
+- **マージは行わない。** `git merge` / `gh pr merge` はすべて人間の仕事。
+- **ゲートを「通すために」書き換えない。** ゲートを緩める変更は、それ自体を
+  独立した PR として提案し、理由を説明すること。
+- **ルールを off にして lint を通さない。** 指摘は直す。
+
+### PR を作るときの注意
+
+- PR 本文にもコミットメッセージにも Claude のセッション URL
+  （`claude.ai/code/session_...`）や `Claude-Session:` 行を入れない
+- 積み上げ（stacked）PR に `--delete-branch` を使わない
+  （土台のブランチを消すと GitHub が上の PR を自動クローズする）
+
+<!-- daigo-lab-ops:completion-criteria:end -->
