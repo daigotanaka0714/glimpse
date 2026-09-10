@@ -30,29 +30,28 @@ export function GalleryView({
   onBatchToggleLabel,
 }: GalleryViewProps) {
   const t = useTranslation();
-  const [imageLoaded, setImageLoaded] = useState(false);
+  // 読み込み済みかどうかは「どの画像を読み終えたか」から導出する。
+  // 表示中の画像が変わった瞬間に false に戻るので、リセット用の useEffect は要らない。
+  const [loadedPath, setLoadedPath] = useState<string | null>(null);
   const [selectedThumbnails, setSelectedThumbnails] = useState<Set<number>>(
     new Set(),
   );
   const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null);
   const thumbnailStripRef = useRef<HTMLDivElement>(null);
-  const selectedThumbnailRef = useRef<HTMLButtonElement>(null);
 
   const currentItem = items[selectedIndex];
+  const imageLoaded = loadedPath !== null && loadedPath === currentItem?.path;
   const isRejected = currentItem?.label === "rejected";
   const hasMultiSelection = selectedThumbnails.size > 1;
 
-  // Reset when image changes
-  useEffect(() => {
-    setImageLoaded(false);
-  }, [currentItem?.path]);
-
   // Scroll selected thumbnail into view
   useEffect(() => {
-    if (selectedThumbnailRef.current && thumbnailStripRef.current) {
-      const container = thumbnailStripRef.current;
-      const thumbnail = selectedThumbnailRef.current;
-
+    const container = thumbnailStripRef.current;
+    // サムネイルはストリップ直下に items の順で並ぶため、
+    // 選択中の要素は selectedIndex で引ける（ref を選択中だけに付け替えると
+    // selectedIndex を本文で読まないことになり、依存配列と噛み合わない）
+    const thumbnail = container?.children[selectedIndex];
+    if (container && thumbnail) {
       const containerRect = container.getBoundingClientRect();
       const thumbnailRect = thumbnail.getBoundingClientRect();
 
@@ -186,7 +185,7 @@ export function GalleryView({
               ${isRejected ? "opacity-50" : ""}
               transition-opacity duration-200
             `}
-            onLoad={() => setImageLoaded(true)}
+            onLoad={() => setLoadedPath(currentItem?.path ?? null)}
           />
           {/* Rejected mark */}
           {isRejected && (
@@ -285,7 +284,6 @@ export function GalleryView({
               <button
                 type="button"
                 key={item.filename}
-                ref={isCurrentImage ? selectedThumbnailRef : null}
                 onClick={(e) => handleThumbnailClick(index, e)}
                 className={`
                   relative flex-shrink-0 w-18 h-18 rounded-lg overflow-hidden transition-all

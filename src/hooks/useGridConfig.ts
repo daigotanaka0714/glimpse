@@ -39,7 +39,7 @@ function debounce<T extends (...args: Parameters<T>) => void>(
  * 4. Memoizes calculations to prevent unnecessary re-renders
  */
 export function useGridConfig(): UseGridConfigReturn {
-  const containerRef = useRef<HTMLDivElement>(null!);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [baseThumbnailSize, setBaseThumbnailSize] = useState(
     DEFAULT_THUMBNAIL_SIZE,
   );
@@ -108,12 +108,15 @@ export function useGridConfig(): UseGridConfigReturn {
   }, [calculateGrid]);
 
   // Recalculate when base thumbnail size changes (from slider)
+  // calculateGrid は baseThumbnailSize だけに依存する useCallback なので、
+  // baseThumbnailSize を依存配列に並べても calculateGrid と同じタイミングでしか
+  // 変わらない（本文でも読んでいない）。calculateGrid だけを見れば十分。
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
       calculateGrid(container.clientWidth);
     }
-  }, [baseThumbnailSize, calculateGrid]);
+  }, [calculateGrid]);
 
   return {
     config,

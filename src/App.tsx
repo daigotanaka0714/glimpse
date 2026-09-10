@@ -175,7 +175,7 @@ export default function App() {
           setImages((prev) =>
             prev.map((img) => {
               const result = results.find((r) => r.filename === img.filename);
-              if (result && result.success) {
+              if (result?.success) {
                 return {
                   ...img,
                   thumbnailLoaded: true,

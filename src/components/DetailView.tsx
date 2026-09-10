@@ -37,11 +37,16 @@ export function DetailView({
   const isRejected = item.label === "rejected";
 
   // Reset when image changes
-  useEffect(() => {
+  // props が変わったときに state を調整する React 公式の書き方に合わせ、
+  // レンダー中に前回の path と比べる。リセット専用の useEffect を置くと
+  // 依存配列に「本文で読まない値」が並ぶことになる。
+  const [renderedPath, setRenderedPath] = useState(item.path);
+  if (renderedPath !== item.path) {
+    setRenderedPath(item.path);
     setImageLoaded(false);
     setExifInfo(null);
     setRotation(0);
-  }, [item.path]);
+  }
 
   // Rotation operations
   const rotateLeft = useCallback(() => {

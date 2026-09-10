@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "@/i18n";
 import type { ImageItem } from "@/types";
 import { toAssetUrl } from "@/utils/tauri";
@@ -26,17 +26,12 @@ export function CompareView({
   onToggleLabelRight,
 }: CompareViewProps) {
   const t = useTranslation();
-  const [leftLoaded, setLeftLoaded] = useState(false);
-  const [rightLoaded, setRightLoaded] = useState(false);
-
-  // Reset when image changes
-  useEffect(() => {
-    setLeftLoaded(false);
-  }, [leftItem.path]);
-
-  useEffect(() => {
-    setRightLoaded(false);
-  }, [rightItem.path]);
+  // 読み込み済みかどうかは「どの画像を読み終えたか」から導出する。
+  // 画像が変わった瞬間に false へ戻るので、リセット用の useEffect は要らない。
+  const [loadedLeftPath, setLoadedLeftPath] = useState<string | null>(null);
+  const [loadedRightPath, setLoadedRightPath] = useState<string | null>(null);
+  const leftLoaded = loadedLeftPath === leftItem.path;
+  const rightLoaded = loadedRightPath === rightItem.path;
 
   return (
     <div className="fixed inset-0 z-50 bg-bg-primary flex flex-col animate-fade-in">
@@ -56,7 +51,7 @@ export function CompareView({
           item={leftItem}
           side="left"
           isLoaded={leftLoaded}
-          onLoad={() => setLeftLoaded(true)}
+          onLoad={() => setLoadedLeftPath(leftItem.path)}
           onPrevious={
             leftItem.index > 0
               ? () => onSelectLeft(leftItem.index - 1)
@@ -78,7 +73,7 @@ export function CompareView({
           item={rightItem}
           side="right"
           isLoaded={rightLoaded}
-          onLoad={() => setRightLoaded(true)}
+          onLoad={() => setLoadedRightPath(rightItem.path)}
           onPrevious={
             rightItem.index > 0
               ? () => onSelectRight(rightItem.index - 1)

@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { GridConfig, ImageItem } from "@/types";
 import { ThumbnailItem } from "./ThumbnailItem";
 
@@ -58,9 +58,18 @@ export function ThumbnailGrid({
   });
 
   // Update virtualizer when size changes (debounced by useGridConfig)
+  // 行の高さ・列数が実際に変わったときだけ実測キャッシュを捨てる。
+  // 依存配列に並べるだけだと本文で読んでいない値になるため、
+  // 前回値との比較をここで行う（virtualizer の再生成では測り直さない）。
+  const measuredLayoutRef = useRef({ rowHeight, columns });
   useEffect(() => {
+    const previous = measuredLayoutRef.current;
+    if (previous.rowHeight === rowHeight && previous.columns === columns) {
+      return;
+    }
+    measuredLayoutRef.current = { rowHeight, columns };
     virtualizer.measure();
-  }, [thumbnailSize, columns, virtualizer]);
+  }, [rowHeight, columns, virtualizer]);
 
   // Scroll to show selected item
   useEffect(() => {
