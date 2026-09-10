@@ -24,7 +24,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # Frontend checks (TypeScript, ESLint, Vitest)
+  # Frontend checks (TypeScript, Biome, Vitest)
   frontend:
     name: Frontend
     if: github.event.pull_request.draft != true
@@ -58,14 +58,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # bin/agent-check と同じコマンドを叩くこと。
+      # ずれると「CI は通るのに手元が赤い」状態になる。
       - name: TypeScript type check
-        run: pnpm tsc --noEmit
+        run: pnpm run typecheck
 
-      - name: ESLint
-        run: pnpm lint
+      - name: Biome (format + lint)
+        run: pnpm run lint
 
       - name: Run tests
-        run: pnpm test:run
+        run: pnpm run test:run
 
   # Backend checks (Rust: clippy, fmt, test)
   backend:

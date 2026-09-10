@@ -22,9 +22,11 @@ pnpm test:run           # Run all tests once
 pnpm test               # Run tests in watch mode
 pnpm test:coverage      # Generate coverage report
 
-# Linting
-pnpm lint               # Run ESLint
-pnpm lint:fix           # Auto-fix linting issues
+# Linting / Formatting
+pnpm lint               # Run Biome (format + lint check, warnings are errors)
+pnpm lint:fix           # Auto-fix with Biome
+pnpm format             # Format only
+pnpm typecheck          # tsc --noEmit
 
 # Rust-specific (from src-tauri/)
 cargo fmt               # Format Rust code
@@ -106,7 +108,7 @@ pnpm vitest run src/components/ThumbnailItem.test.tsx
 ## CI/CD
 
 GitHub Actions run on PR/push to main:
-- **Frontend**: TypeScript check, ESLint, Vitest
+- **Frontend**: TypeScript check, Biome, Vitest
 - **Backend**: cargo fmt, cargo clippy (fail on warnings), cargo test
 
 Releases are triggered by version tags (e.g., `v0.2.0`) and build for macOS ARM64/x64 and Windows x64.
@@ -147,7 +149,7 @@ Releases are triggered by version tags (e.g., `v0.2.0`) and build for macOS ARM6
 `bin/agent-check` は CI (`.github/workflows/ci.yml`) と同じ検査を、速い順に fail-fast で実行する。
 
 ```
-tsc --noEmit  →  eslint  →  vitest run  →  (src-tauri に差分がある時だけ) cargo fmt / clippy / test
+tsc --noEmit  →  biome check  →  vitest run  →  (src-tauri に差分がある時だけ) cargo fmt / clippy / test
 ```
 
 ### ブランチと PR
@@ -178,9 +180,9 @@ PR を作ったら、その URL を報告して手を止める。**レビュー�
 
 ### 警告について
 
-ESLint の警告は現状 1 件（`ThumbnailGrid.tsx` の Compilation Skipped）で頭打ちにしている。
-`AGENT_CHECK_MAX_WARNINGS=1` を付けて実行すると、警告が増えた時点で失敗する。
-worktree のマージ前フック（`.config/wt.toml`）はこの指定で走るため、**新しい警告を残すとマージできない。**
+Biome の指摘は現状ゼロ。`pnpm lint`（= `biome check --error-on-warnings .`）は
+警告が 1 件でも出た時点で失敗する。CI・`bin/agent-check`・worktree のマージ前フック
+（`.config/wt.toml`）はいずれもこの同じコマンドを叩くため、**新しい警告を残すとマージできない。**
 
 ### 並列作業（git worktree）
 
