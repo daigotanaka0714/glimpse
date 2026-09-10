@@ -11,7 +11,7 @@
 #   bin/agent-check --fix     # eslint --fix を先に走らせてから検査
 #
 # 環境変数:
-#   AGENT_CHECK_MAX_WARNINGS=0   # ESLint の警告も失敗扱いにする（既定: CI と同じく警告は許容）
+#   AGENT_CHECK_MAX_WARNINGS=n   # ESLint の警告数の上限（既定は .config/agent-check.env の値）
 #   AGENT_CHECK_BASE=main        # Rust 差分判定の基準ブランチ（既定: main）
 #
 # 終了コード: 0=green / 1=いずれかの検査が失敗
@@ -31,7 +31,21 @@ for arg in "$@"; do
 done
 
 BASE="${AGENT_CHECK_BASE:-main}"
-MAX_WARNINGS="${AGENT_CHECK_MAX_WARNINGS:-}"
+
+# 警告のラチェット。
+#   .config/agent-check.env に AGENT_CHECK_MAX_WARNINGS=<n> を書くと既定値になる。
+#   環境変数はそれを上書きする。
+#
+# 【重要】既定値をファイルに置いているのは、Claude Code の allow ルールが
+#   「既知の安全な環境変数以外の代入をまたいでマッチしない」ため。
+#   AGENT_CHECK_MAX_WARNINGS=1 ./bin/agent-check は事前許可できないので、
+#   エージェントは素の ./bin/agent-check を叩けば済むようにしてある。
+#   https://code.claude.com/docs/en/permissions
+_default_max_warnings=""
+if [ -f .config/agent-check.env ]; then
+  _default_max_warnings=$(sed -n 's/^AGENT_CHECK_MAX_WARNINGS=//p' .config/agent-check.env | tail -1)
+fi
+MAX_WARNINGS="${AGENT_CHECK_MAX_WARNINGS:-$_default_max_warnings}"
 
 # ---- pnpm の解決 -------------------------------------------------------------
 if command -v pnpm >/dev/null 2>&1; then
