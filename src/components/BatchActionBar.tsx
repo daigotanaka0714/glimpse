@@ -1,10 +1,10 @@
-import { X, XCircle, CheckCircle, Layers } from 'lucide-react';
-import { useTranslation } from '@/i18n';
+import { CheckCircle, Layers, X, XCircle } from "lucide-react";
+import { useTranslation } from "@/i18n";
 
 interface BatchActionBarProps {
   selectedCount: number;
   filteredCount: number;
-  filterMode: 'all' | 'adopted' | 'rejected';
+  filterMode: "all" | "adopted" | "rejected";
   onMarkRejected: () => void;
   onRemoveRejected: () => void;
   onMarkAllRejected: () => void;
@@ -26,11 +26,12 @@ export function BatchActionBar({
 
   if (selectedCount <= 1) return null;
 
-  const filterModeLabel = filterMode === 'all'
-    ? t.batchActions.all
-    : filterMode === 'adopted'
-    ? t.batchActions.adopted
-    : t.batchActions.rejected;
+  const filterModeLabel =
+    filterMode === "all"
+      ? t.batchActions.all
+      : filterMode === "adopted"
+        ? t.batchActions.adopted
+        : t.batchActions.rejected;
 
   return (
     <div className="animate-slide-up">
@@ -63,8 +64,13 @@ export function BatchActionBar({
             className="group flex items-center gap-2 px-4 py-2 bg-rejected/10 hover:bg-rejected/20 border border-rejected/30 hover:border-rejected/50 text-rejected rounded-lg transition-all duration-200"
             title={t.batchActions.markRejected}
           >
-            <XCircle size={16} className="group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-medium">{t.batchActions.markRejected}</span>
+            <XCircle
+              size={16}
+              className="group-hover:scale-110 transition-transform"
+            />
+            <span className="text-sm font-medium">
+              {t.batchActions.markRejected}
+            </span>
           </button>
 
           {/* Remove rejected label from selected images */}
@@ -73,8 +79,13 @@ export function BatchActionBar({
             className="group flex items-center gap-2 px-4 py-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 hover:border-green-500/50 text-green-600 rounded-lg transition-all duration-200"
             title={t.batchActions.markAdopted}
           >
-            <CheckCircle size={16} className="group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-medium">{t.batchActions.markAdopted}</span>
+            <CheckCircle
+              size={16}
+              className="group-hover:scale-110 transition-transform"
+            />
+            <span className="text-sm font-medium">
+              {t.batchActions.markAdopted}
+            </span>
           </button>
 
           {/* Separator */}

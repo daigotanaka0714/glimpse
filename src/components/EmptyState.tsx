@@ -1,6 +1,6 @@
-import { FolderOpen, Image } from 'lucide-react';
-import { useTranslation } from '@/i18n';
-import { getModifierKey } from '@/utils/platform';
+import { FolderOpen, Image } from "lucide-react";
+import { useTranslation } from "@/i18n";
+import { getModifierKey } from "@/utils/platform";
 
 interface EmptyStateProps {
   onOpenFolder: () => void;
@@ -40,9 +40,14 @@ export function EmptyState({ onOpenFolder }: EmptyStateProps) {
 
         {/* Shortcut hint */}
         <p className="mt-6 text-sm text-text-subtle">
-          {t.emptyState.shortcutHint}{' '}
-          <kbd className="px-2 py-1 bg-bg-tertiary rounded text-text-secondary">{modKey}</kbd> +{' '}
-          <kbd className="px-2 py-1 bg-bg-tertiary rounded text-text-secondary">O</kbd>
+          {t.emptyState.shortcutHint}{" "}
+          <kbd className="px-2 py-1 bg-bg-tertiary rounded text-text-secondary">
+            {modKey}
+          </kbd>{" "}
+          +{" "}
+          <kbd className="px-2 py-1 bg-bg-tertiary rounded text-text-secondary">
+            O
+          </kbd>
         </p>
       </div>
     </div>

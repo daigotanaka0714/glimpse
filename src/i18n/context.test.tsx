@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
-import { I18nProvider } from './context';
-import { useI18n, useTranslation } from './hooks';
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "./context";
+import { useI18n, useTranslation } from "./hooks";
 
 // Test component to access hook values
 function TestComponent() {
@@ -11,8 +11,8 @@ function TestComponent() {
       <span data-testid="language">{language}</span>
       <span data-testid="app-name">{t.app.name}</span>
       <span data-testid="open-folder">{t.emptyState.openFolder}</span>
-      <button onClick={() => setLanguage('ja')}>Switch to Japanese</button>
-      <button onClick={() => setLanguage('en')}>Switch to English</button>
+      <button onClick={() => setLanguage("ja")}>Switch to Japanese</button>
+      <button onClick={() => setLanguage("en")}>Switch to English</button>
     </div>
   );
 }
@@ -27,141 +27,162 @@ function TranslationTestComponent() {
   );
 }
 
-describe('I18n Context', () => {
+describe("I18n Context", () => {
   beforeEach(() => {
     localStorage.clear();
-    vi.spyOn(Storage.prototype, 'getItem');
-    vi.spyOn(Storage.prototype, 'setItem');
+    vi.spyOn(Storage.prototype, "getItem");
+    vi.spyOn(Storage.prototype, "setItem");
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe('I18nProvider', () => {
-    it('should provide default language as English', () => {
+  describe("I18nProvider", () => {
+    it("should provide default language as English", () => {
       render(
         <I18nProvider>
           <TestComponent />
-        </I18nProvider>
+        </I18nProvider>,
       );
 
-      expect(screen.getByTestId('language')).toHaveTextContent('en');
+      expect(screen.getByTestId("language")).toHaveTextContent("en");
     });
 
-    it('should load saved language from localStorage', () => {
-      localStorage.setItem('glimpse-language', 'ja');
+    it("should load saved language from localStorage", () => {
+      localStorage.setItem("glimpse-language", "ja");
 
       render(
         <I18nProvider>
           <TestComponent />
-        </I18nProvider>
+        </I18nProvider>,
       );
 
-      expect(screen.getByTestId('language')).toHaveTextContent('ja');
+      expect(screen.getByTestId("language")).toHaveTextContent("ja");
     });
 
-    it('should provide English translations', () => {
+    it("should provide English translations", () => {
       render(
         <I18nProvider>
           <TestComponent />
-        </I18nProvider>
+        </I18nProvider>,
       );
 
-      expect(screen.getByTestId('app-name')).toHaveTextContent('Glimpse');
-      expect(screen.getByTestId('open-folder')).toHaveTextContent('Open Folder');
+      expect(screen.getByTestId("app-name")).toHaveTextContent("Glimpse");
+      expect(screen.getByTestId("open-folder")).toHaveTextContent(
+        "Open Folder",
+      );
     });
 
-    it('should provide Japanese translations when language is ja', () => {
-      localStorage.setItem('glimpse-language', 'ja');
+    it("should provide Japanese translations when language is ja", () => {
+      localStorage.setItem("glimpse-language", "ja");
 
       render(
         <I18nProvider>
           <TestComponent />
-        </I18nProvider>
+        </I18nProvider>,
       );
 
-      expect(screen.getByTestId('app-name')).toHaveTextContent('Glimpse');
-      expect(screen.getByTestId('open-folder')).toHaveTextContent('フォルダを開く');
+      expect(screen.getByTestId("app-name")).toHaveTextContent("Glimpse");
+      expect(screen.getByTestId("open-folder")).toHaveTextContent(
+        "フォルダを開く",
+      );
     });
 
-    it('should switch language and save to localStorage', () => {
+    it("should switch language and save to localStorage", () => {
       render(
         <I18nProvider>
           <TestComponent />
-        </I18nProvider>
+        </I18nProvider>,
       );
 
       // Initially English
-      expect(screen.getByTestId('open-folder')).toHaveTextContent('Open Folder');
+      expect(screen.getByTestId("open-folder")).toHaveTextContent(
+        "Open Folder",
+      );
 
       // Switch to Japanese
       act(() => {
-        fireEvent.click(screen.getByText('Switch to Japanese'));
+        fireEvent.click(screen.getByText("Switch to Japanese"));
       });
 
-      expect(screen.getByTestId('language')).toHaveTextContent('ja');
-      expect(screen.getByTestId('open-folder')).toHaveTextContent('フォルダを開く');
-      expect(localStorage.setItem).toHaveBeenCalledWith('glimpse-language', 'ja');
+      expect(screen.getByTestId("language")).toHaveTextContent("ja");
+      expect(screen.getByTestId("open-folder")).toHaveTextContent(
+        "フォルダを開く",
+      );
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        "glimpse-language",
+        "ja",
+      );
     });
 
-    it('should switch back to English', () => {
-      localStorage.setItem('glimpse-language', 'ja');
+    it("should switch back to English", () => {
+      localStorage.setItem("glimpse-language", "ja");
 
       render(
         <I18nProvider>
           <TestComponent />
-        </I18nProvider>
+        </I18nProvider>,
       );
 
       // Initially Japanese
-      expect(screen.getByTestId('open-folder')).toHaveTextContent('フォルダを開く');
+      expect(screen.getByTestId("open-folder")).toHaveTextContent(
+        "フォルダを開く",
+      );
 
       // Switch to English
       act(() => {
-        fireEvent.click(screen.getByText('Switch to English'));
+        fireEvent.click(screen.getByText("Switch to English"));
       });
 
-      expect(screen.getByTestId('language')).toHaveTextContent('en');
-      expect(screen.getByTestId('open-folder')).toHaveTextContent('Open Folder');
+      expect(screen.getByTestId("language")).toHaveTextContent("en");
+      expect(screen.getByTestId("open-folder")).toHaveTextContent(
+        "Open Folder",
+      );
     });
   });
 
-  describe('useI18n', () => {
-    it('should throw error when used outside provider', () => {
+  describe("useI18n", () => {
+    it("should throw error when used outside provider", () => {
       // Suppress console.error for this test
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       expect(() => {
         render(<TestComponent />);
-      }).toThrow('useI18n must be used within an I18nProvider');
+      }).toThrow("useI18n must be used within an I18nProvider");
 
       consoleSpy.mockRestore();
     });
   });
 
-  describe('useTranslation', () => {
-    it('should return translations object', () => {
+  describe("useTranslation", () => {
+    it("should return translations object", () => {
       render(
         <I18nProvider>
           <TranslationTestComponent />
-        </I18nProvider>
+        </I18nProvider>,
       );
 
-      expect(screen.getByTestId('app-name')).toHaveTextContent('Glimpse');
-      expect(screen.getByTestId('tagline')).toHaveTextContent('High-speed photo checker for stage photography');
+      expect(screen.getByTestId("app-name")).toHaveTextContent("Glimpse");
+      expect(screen.getByTestId("tagline")).toHaveTextContent(
+        "High-speed photo checker for stage photography",
+      );
     });
 
-    it('should return Japanese translations when language is ja', () => {
-      localStorage.setItem('glimpse-language', 'ja');
+    it("should return Japanese translations when language is ja", () => {
+      localStorage.setItem("glimpse-language", "ja");
 
       render(
         <I18nProvider>
           <TranslationTestComponent />
-        </I18nProvider>
+        </I18nProvider>,
       );
 
-      expect(screen.getByTestId('tagline')).toHaveTextContent('舞台写真用高速写真チェッカー');
+      expect(screen.getByTestId("tagline")).toHaveTextContent(
+        "舞台写真用高速写真チェッカー",
+      );
     });
   });
 });

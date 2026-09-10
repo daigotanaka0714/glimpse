@@ -10,7 +10,7 @@ export interface ImageFile {
 }
 
 // Label status
-export type LabelStatus = 'rejected' | null;
+export type LabelStatus = "rejected" | null;
 
 // Complete information including image and label
 export interface ImageItem extends ImageFile {
@@ -28,7 +28,7 @@ export interface Session {
 }
 
 // View mode
-export type ViewMode = 'grid' | 'detail' | 'compare' | 'gallery';
+export type ViewMode = "grid" | "detail" | "compare" | "gallery";
 
 // Application state
 export interface AppState {
@@ -70,10 +70,10 @@ export interface GridConfig {
 }
 
 // Filter settings
-export type FilterMode = 'all' | 'adopted' | 'rejected';
+export type FilterMode = "all" | "adopted" | "rejected";
 
 // Theme settings
-export type ThemeMode = 'dark' | 'light';
+export type ThemeMode = "dark" | "light";
 
 // Selection state
 export interface SelectionState {

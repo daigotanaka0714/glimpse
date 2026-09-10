@@ -2,7 +2,7 @@
  * Platform detection and keyboard modifier utilities
  */
 
-export type Platform = 'mac' | 'windows' | 'linux';
+export type Platform = "mac" | "windows" | "linux";
 
 /**
  * Detect the current operating system
@@ -10,20 +10,20 @@ export type Platform = 'mac' | 'windows' | 'linux';
 export function detectPlatform(): Platform {
   const userAgent = navigator.userAgent.toLowerCase();
 
-  if (userAgent.includes('mac')) {
-    return 'mac';
+  if (userAgent.includes("mac")) {
+    return "mac";
   }
-  if (userAgent.includes('win')) {
-    return 'windows';
+  if (userAgent.includes("win")) {
+    return "windows";
   }
-  return 'linux';
+  return "linux";
 }
 
 /**
  * Check if the current platform is macOS
  */
 export function isMac(): boolean {
-  return detectPlatform() === 'mac';
+  return detectPlatform() === "mac";
 }
 
 /**
@@ -31,7 +31,7 @@ export function isMac(): boolean {
  * @returns '⌘' on macOS, 'Ctrl' on Windows/Linux
  */
 export function getModifierKey(): string {
-  return isMac() ? '⌘' : 'Ctrl';
+  return isMac() ? "⌘" : "Ctrl";
 }
 
 /**
@@ -39,7 +39,7 @@ export function getModifierKey(): string {
  * @returns 'Cmd' on macOS, 'Ctrl' on Windows/Linux
  */
 export function getModifierKeyText(): string {
-  return isMac() ? 'Cmd' : 'Ctrl';
+  return isMac() ? "Cmd" : "Ctrl";
 }
 
 /**

@@ -1,6 +1,14 @@
-import { Filter, Sun, Moon, ZoomIn, ZoomOut, LayoutGrid, GalleryHorizontalEnd } from 'lucide-react';
-import type { FilterMode, ThemeMode, ViewMode } from '@/types';
-import { useTranslation } from '@/i18n';
+import {
+  Filter,
+  GalleryHorizontalEnd,
+  LayoutGrid,
+  Moon,
+  Sun,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
+import { useTranslation } from "@/i18n";
+import type { FilterMode, ThemeMode, ViewMode } from "@/types";
 
 interface ToolbarProps {
   thumbnailSize: number;
@@ -38,9 +46,9 @@ export function Toolbar({
   const t = useTranslation();
 
   const filterOptions: { mode: FilterMode; label: string; count: number }[] = [
-    { mode: 'all', label: t.toolbar.all, count: counts.all },
-    { mode: 'adopted', label: t.toolbar.adopted, count: counts.adopted },
-    { mode: 'rejected', label: t.toolbar.rejected, count: counts.rejected },
+    { mode: "all", label: t.toolbar.all, count: counts.all },
+    { mode: "adopted", label: t.toolbar.adopted, count: counts.adopted },
+    { mode: "rejected", label: t.toolbar.rejected, count: counts.rejected },
   ];
 
   return (
@@ -57,8 +65,8 @@ export function Toolbar({
                 px-3 py-1 text-xs font-medium rounded-md transition-colors
                 ${
                   filterMode === mode
-                    ? 'bg-accent text-white'
-                    : 'text-text-secondary hover:bg-theme-hover'
+                    ? "bg-accent text-white"
+                    : "text-text-secondary hover:bg-theme-hover"
                 }
               `}
             >
@@ -89,7 +97,9 @@ export function Toolbar({
             [&::-webkit-slider-thumb]:hover:scale-125"
         />
         <ZoomIn size={14} className="text-text-muted" />
-        <span className="text-xs text-text-muted w-12 text-right">{thumbnailSize}px</span>
+        <span className="text-xs text-text-muted w-12 text-right">
+          {thumbnailSize}px
+        </span>
       </div>
 
       {/* Right side: View mode & Theme toggle */}
@@ -98,12 +108,13 @@ export function Toolbar({
         <div className="flex items-center gap-1 mr-2">
           <button
             onClick={() => {}}
-            disabled={viewMode === 'grid'}
+            disabled={viewMode === "grid"}
             className={`
               p-1.5 rounded-md transition-colors
-              ${viewMode === 'grid'
-                ? 'bg-accent text-white'
-                : 'text-text-secondary hover:bg-theme-hover'
+              ${
+                viewMode === "grid"
+                  ? "bg-accent text-white"
+                  : "text-text-secondary hover:bg-theme-hover"
               }
             `}
             title={t.toolbar.gridView}
@@ -115,14 +126,17 @@ export function Toolbar({
             disabled={!hasSelection}
             className={`
               p-1.5 rounded-md transition-colors
-              ${viewMode === 'gallery'
-                ? 'bg-accent text-white'
-                : hasSelection
-                  ? 'text-text-secondary hover:bg-theme-hover'
-                  : 'text-text-subtle cursor-not-allowed'
+              ${
+                viewMode === "gallery"
+                  ? "bg-accent text-white"
+                  : hasSelection
+                    ? "text-text-secondary hover:bg-theme-hover"
+                    : "text-text-subtle cursor-not-allowed"
               }
             `}
-            title={hasSelection ? t.toolbar.galleryView : t.toolbar.galleryViewHint}
+            title={
+              hasSelection ? t.toolbar.galleryView : t.toolbar.galleryViewHint
+            }
           >
             <GalleryHorizontalEnd size={16} />
           </button>
@@ -133,12 +147,12 @@ export function Toolbar({
 
         {/* Theme toggle */}
         <button
-          onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
+          onClick={() => onThemeChange(theme === "dark" ? "light" : "dark")}
           className="flex items-center gap-2 px-3 py-1.5 text-xs text-text-secondary hover:bg-theme-hover rounded-md transition-colors"
-          title={theme === 'dark' ? t.toolbar.light : t.toolbar.dark}
+          title={theme === "dark" ? t.toolbar.light : t.toolbar.dark}
           aria-label="Toggle theme"
         >
-          {theme === 'dark' ? (
+          {theme === "dark" ? (
             <>
               <Sun size={14} />
               <span>{t.toolbar.light}</span>

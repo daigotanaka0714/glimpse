@@ -1,5 +1,15 @@
-import { FolderOpen, Download, Loader2, RefreshCw, Settings, HelpCircle, ImageIcon, Check, X } from 'lucide-react';
-import { useTranslation } from '@/i18n';
+import {
+  Check,
+  Download,
+  FolderOpen,
+  HelpCircle,
+  ImageIcon,
+  Loader2,
+  RefreshCw,
+  Settings,
+  X,
+} from "lucide-react";
+import { useTranslation } from "@/i18n";
 
 interface HeaderProps {
   folderPath: string | null;
@@ -54,7 +64,10 @@ export function Header({
             className="p-2 bg-bg-tertiary hover:bg-theme-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
             title={t.header.reload}
           >
-            <RefreshCw size={16} className={isGeneratingThumbnails ? 'animate-spin' : ''} />
+            <RefreshCw
+              size={16}
+              className={isGeneratingThumbnails ? "animate-spin" : ""}
+            />
           </button>
         )}
       </div>

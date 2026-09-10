@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { listen } from '@tauri-apps/api/event';
+import { listen } from "@tauri-apps/api/event";
+import { useEffect, useState } from "react";
 
 interface UseDragAndDropProps {
   onDrop: (folderPath: string) => void;
@@ -15,7 +15,10 @@ interface TauriDragDropPayload {
   position: { x: number; y: number };
 }
 
-export function useDragAndDrop({ onDrop, enabled = true }: UseDragAndDropProps): UseDragAndDropReturn {
+export function useDragAndDrop({
+  onDrop,
+  enabled = true,
+}: UseDragAndDropProps): UseDragAndDropReturn {
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
@@ -29,31 +32,43 @@ export function useDragAndDrop({ onDrop, enabled = true }: UseDragAndDropProps):
     let unlistenDrop: (() => void) | undefined;
 
     const setupListeners = async () => {
-      const enterFn = await listen('tauri://drag-enter', () => {
+      const enterFn = await listen("tauri://drag-enter", () => {
         setIsDragging(true);
       });
-      if (cancelled) { enterFn(); return; }
+      if (cancelled) {
+        enterFn();
+        return;
+      }
       unlistenDragEnter = enterFn;
 
-      const leaveFn = await listen('tauri://drag-leave', () => {
+      const leaveFn = await listen("tauri://drag-leave", () => {
         setIsDragging(false);
       });
-      if (cancelled) { leaveFn(); return; }
+      if (cancelled) {
+        leaveFn();
+        return;
+      }
       unlistenDragLeave = leaveFn;
 
-      const dropFn = await listen<TauriDragDropPayload>('tauri://drag-drop', (event) => {
-        setIsDragging(false);
-        const paths = event.payload.paths;
-        if (paths && paths.length > 0) {
-          onDrop(paths[0]);
-        }
-      });
-      if (cancelled) { dropFn(); return; }
+      const dropFn = await listen<TauriDragDropPayload>(
+        "tauri://drag-drop",
+        (event) => {
+          setIsDragging(false);
+          const paths = event.payload.paths;
+          if (paths && paths.length > 0) {
+            onDrop(paths[0]);
+          }
+        },
+      );
+      if (cancelled) {
+        dropFn();
+        return;
+      }
       unlistenDrop = dropFn;
     };
 
     setupListeners().catch((err) => {
-      console.error('Failed to register drag-drop listeners:', err);
+      console.error("Failed to register drag-drop listeners:", err);
     });
 
     return () => {

@@ -1,7 +1,7 @@
-import { memo } from 'react';
-import { X } from 'lucide-react';
-import type { ImageItem } from '@/types';
-import { toAssetUrl } from '@/utils/tauri';
+import { X } from "lucide-react";
+import { memo } from "react";
+import type { ImageItem } from "@/types";
+import { toAssetUrl } from "@/utils/tauri";
 
 interface ThumbnailItemProps {
   item: ImageItem;
@@ -20,7 +20,7 @@ export const ThumbnailItem = memo(function ThumbnailItem({
   onClick,
   onDoubleClick,
 }: ThumbnailItemProps) {
-  const isRejected = item.label === 'rejected';
+  const isRejected = item.label === "rejected";
   const showSelectionRing = isSelected || isMultiSelected;
 
   return (
@@ -29,7 +29,7 @@ export const ThumbnailItem = memo(function ThumbnailItem({
       onDoubleClick={onDoubleClick}
       className={`
         relative cursor-pointer transition-all duration-150 group
-        ${showSelectionRing ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg-primary' : ''}
+        ${showSelectionRing ? "ring-2 ring-accent ring-offset-2 ring-offset-bg-primary" : ""}
       `}
       style={{ width: size, height: size }}
     >
@@ -40,13 +40,15 @@ export const ThumbnailItem = memo(function ThumbnailItem({
           alt={item.filename}
           className={`
             w-full h-full object-contain rounded-lg bg-bg-secondary
-            ${isRejected ? 'opacity-40' : ''}
+            ${isRejected ? "opacity-40" : ""}
           `}
           loading="lazy"
           onError={() => {
-            console.error('Thumbnail load error:', {
+            console.error("Thumbnail load error:", {
               originalPath: item.thumbnailPath,
-              assetUrl: item.thumbnailPath ? toAssetUrl(item.thumbnailPath) : 'undefined',
+              assetUrl: item.thumbnailPath
+                ? toAssetUrl(item.thumbnailPath)
+                : "undefined",
               filename: item.filename,
             });
           }}
@@ -76,12 +78,24 @@ export const ThumbnailItem = memo(function ThumbnailItem({
 
       {/* Selection indicator */}
       {showSelectionRing && (
-        <div className={`absolute top-2 left-2 w-5 h-5 rounded flex items-center justify-center shadow-lg ${
-          isMultiSelected ? 'bg-accent' : 'bg-accent/70'
-        }`}>
+        <div
+          className={`absolute top-2 left-2 w-5 h-5 rounded flex items-center justify-center shadow-lg ${
+            isMultiSelected ? "bg-accent" : "bg-accent/70"
+          }`}
+        >
           {isMultiSelected && (
-            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            <svg
+              className="w-3 h-3 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={3}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           )}
         </div>

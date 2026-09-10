@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { Language, Translations } from './types';
-import { en } from './translations/en';
-import { ja } from './translations/ja';
-import { I18nContext } from './i18nContext';
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { I18nContext } from "./i18nContext";
+import { en } from "./translations/en";
+import { ja } from "./translations/ja";
+import type { Language, Translations } from "./types";
 
-const STORAGE_KEY = 'glimpse-language';
+const STORAGE_KEY = "glimpse-language";
 
 const translations: Record<Language, Translations> = {
   en,
@@ -17,11 +17,11 @@ const translations: Record<Language, Translations> = {
 function detectBrowserLanguage(): Language {
   const browserLang = navigator.language.toLowerCase();
 
-  if (browserLang.startsWith('ja')) {
-    return 'ja';
+  if (browserLang.startsWith("ja")) {
+    return "ja";
   }
 
-  return 'en';
+  return "en";
 }
 
 /**
@@ -30,7 +30,7 @@ function detectBrowserLanguage(): Language {
 function getInitialLanguage(): Language {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'en' || stored === 'ja') {
+    if (stored === "en" || stored === "ja") {
       return stored;
     }
   } catch {
@@ -59,7 +59,7 @@ export function I18nProvider({ children }: I18nProviderProps) {
   // Sync with localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'en' || stored === 'ja') {
+    if (stored === "en" || stored === "ja") {
       setLanguageState(stored);
     }
   }, []);

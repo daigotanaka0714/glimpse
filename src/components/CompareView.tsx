@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { ImageItem } from '@/types';
-import { toAssetUrl } from '@/utils/tauri';
-import { useTranslation } from '@/i18n';
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "@/i18n";
+import type { ImageItem } from "@/types";
+import { toAssetUrl } from "@/utils/tauri";
 
 interface CompareViewProps {
   leftItem: ImageItem;
@@ -56,8 +56,16 @@ export function CompareView({
           side="left"
           isLoaded={leftLoaded}
           onLoad={() => setLeftLoaded(true)}
-          onPrevious={leftItem.index > 0 ? () => onSelectLeft(leftItem.index - 1) : undefined}
-          onNext={leftItem.index < totalItems - 1 ? () => onSelectLeft(leftItem.index + 1) : undefined}
+          onPrevious={
+            leftItem.index > 0
+              ? () => onSelectLeft(leftItem.index - 1)
+              : undefined
+          }
+          onNext={
+            leftItem.index < totalItems - 1
+              ? () => onSelectLeft(leftItem.index + 1)
+              : undefined
+          }
           onToggleLabel={onToggleLabelLeft}
         />
 
@@ -70,8 +78,16 @@ export function CompareView({
           side="right"
           isLoaded={rightLoaded}
           onLoad={() => setRightLoaded(true)}
-          onPrevious={rightItem.index > 0 ? () => onSelectRight(rightItem.index - 1) : undefined}
-          onNext={rightItem.index < totalItems - 1 ? () => onSelectRight(rightItem.index + 1) : undefined}
+          onPrevious={
+            rightItem.index > 0
+              ? () => onSelectRight(rightItem.index - 1)
+              : undefined
+          }
+          onNext={
+            rightItem.index < totalItems - 1
+              ? () => onSelectRight(rightItem.index + 1)
+              : undefined
+          }
           onToggleLabel={onToggleLabelRight}
         />
       </div>
@@ -79,7 +95,9 @@ export function CompareView({
       {/* Footer */}
       <div className="h-12 px-6 bg-bg-secondary border-t border-border-subtle flex items-center justify-center">
         <span className="text-sm text-text-muted">
-          ← → {t.compareView.navigateLeft} | Shift + ← → {t.compareView.navigateRight} | 1 {t.compareView.rejectLeft} | 2 {t.compareView.rejectRight} | ESC {t.compareView.close}
+          ← → {t.compareView.navigateLeft} | Shift + ← →{" "}
+          {t.compareView.navigateRight} | 1 {t.compareView.rejectLeft} | 2{" "}
+          {t.compareView.rejectRight} | ESC {t.compareView.close}
         </span>
       </div>
     </div>
@@ -88,7 +106,7 @@ export function CompareView({
 
 interface ComparePanelProps {
   item: ImageItem;
-  side: 'left' | 'right';
+  side: "left" | "right";
   isLoaded: boolean;
   onLoad: () => void;
   onPrevious?: () => void;
@@ -105,7 +123,7 @@ function ComparePanel({
   onNext,
   onToggleLabel,
 }: ComparePanelProps) {
-  const isRejected = item.label === 'rejected';
+  const isRejected = item.label === "rejected";
 
   return (
     <div className="flex-1 flex flex-col relative">
@@ -133,8 +151,8 @@ function ComparePanel({
             alt={item.filename}
             className={`
               max-w-full max-h-[calc(100vh-160px)] object-contain
-              ${isLoaded ? 'opacity-100' : 'opacity-0'}
-              ${isRejected ? 'opacity-50' : ''}
+              ${isLoaded ? "opacity-100" : "opacity-0"}
+              ${isRejected ? "opacity-50" : ""}
               transition-opacity duration-200
             `}
             onLoad={onLoad}
@@ -172,14 +190,15 @@ function ComparePanel({
           onClick={onToggleLabel}
           className={`
             px-3 py-1.5 rounded-lg font-medium text-xs transition-colors flex-shrink-0
-            ${isRejected
-              ? 'bg-rejected text-white'
-              : 'bg-bg-secondary hover:bg-theme-hover text-text-secondary'
+            ${
+              isRejected
+                ? "bg-rejected text-white"
+                : "bg-bg-secondary hover:bg-theme-hover text-text-secondary"
             }
           `}
         >
-          <span className="mr-1">{side === 'left' ? '1' : '2'}</span>
-          Reject{isRejected ? ' ✓' : ''}
+          <span className="mr-1">{side === "left" ? "1" : "2"}</span>
+          Reject{isRejected ? " ✓" : ""}
         </button>
       </div>
     </div>

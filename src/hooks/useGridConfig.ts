@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import type { GridConfig } from '@/types';
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { GridConfig } from "@/types";
 
 const MIN_THUMBNAIL_SIZE = 100;
 const MAX_THUMBNAIL_SIZE = 300;
@@ -20,7 +20,7 @@ interface UseGridConfigReturn {
  */
 function debounce<T extends (...args: Parameters<T>) => void>(
   fn: T,
-  delay: number
+  delay: number,
 ): (...args: Parameters<T>) => void {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   return (...args: Parameters<T>) => {
@@ -40,7 +40,9 @@ function debounce<T extends (...args: Parameters<T>) => void>(
  */
 export function useGridConfig(): UseGridConfigReturn {
   const containerRef = useRef<HTMLDivElement>(null!);
-  const [baseThumbnailSize, setBaseThumbnailSize] = useState(DEFAULT_THUMBNAIL_SIZE);
+  const [baseThumbnailSize, setBaseThumbnailSize] = useState(
+    DEFAULT_THUMBNAIL_SIZE,
+  );
   const [config, setConfig] = useState<GridConfig>({
     columns: 6,
     thumbnailSize: DEFAULT_THUMBNAIL_SIZE,
@@ -49,34 +51,37 @@ export function useGridConfig(): UseGridConfigReturn {
   });
 
   // Calculate grid configuration based on container width
-  const calculateGrid = useCallback((containerWidth: number) => {
-    if (containerWidth <= 0) return;
+  const calculateGrid = useCallback(
+    (containerWidth: number) => {
+      if (containerWidth <= 0) return;
 
-    // Calculate how many columns fit
-    const columns = Math.max(
-      1,
-      Math.floor((containerWidth + GAP) / (baseThumbnailSize + GAP))
-    );
+      // Calculate how many columns fit
+      const columns = Math.max(
+        1,
+        Math.floor((containerWidth + GAP) / (baseThumbnailSize + GAP)),
+      );
 
-    // Calculate actual thumbnail size to fill width evenly
-    // This is used for virtualizer row height calculation
-    const thumbnailSize = Math.floor(
-      (containerWidth - GAP * (columns - 1)) / columns
-    );
+      // Calculate actual thumbnail size to fill width evenly
+      // This is used for virtualizer row height calculation
+      const thumbnailSize = Math.floor(
+        (containerWidth - GAP * (columns - 1)) / columns,
+      );
 
-    setConfig((prev) => {
-      // Only update if values actually changed
-      if (prev.columns === columns && prev.thumbnailSize === thumbnailSize) {
-        return prev;
-      }
-      return {
-        columns,
-        thumbnailSize,
-        gap: GAP,
-        rowGap: ROW_GAP,
-      };
-    });
-  }, [baseThumbnailSize]);
+      setConfig((prev) => {
+        // Only update if values actually changed
+        if (prev.columns === columns && prev.thumbnailSize === thumbnailSize) {
+          return prev;
+        }
+        return {
+          columns,
+          thumbnailSize,
+          gap: GAP,
+          rowGap: ROW_GAP,
+        };
+      });
+    },
+    [baseThumbnailSize],
+  );
 
   // Set up ResizeObserver with debounce
   useEffect(() => {
