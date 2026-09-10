@@ -342,6 +342,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center">
                         <svg
+                          aria-hidden="true"
                           viewBox="0 0 24 24"
                           className="w-6 h-6 text-white"
                           fill="currentColor"
@@ -528,7 +529,10 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
               {/* Thread count slider */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium">
+                  <label
+                    htmlFor="processing-threads"
+                    className="text-sm font-medium"
+                  >
                     {t.settings.performance.processingThreads}
                   </label>
                   <button
@@ -550,6 +554,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
 
                 <div className="relative">
                   <input
+                    id="processing-threads"
                     type="range"
                     min={2}
                     max={systemInfo.cpu_count}

@@ -24,11 +24,15 @@ export const ThumbnailItem = memo(function ThumbnailItem({
   const showSelectionRing = isSelected || isMultiSelected;
 
   return (
-    <div
+    <button
+      type="button"
+      // グリッドの移動は useKeyboardNavigation が担うため、
+      // サムネイル自身はタブ順に入れない（仮想化で数千個が並ぶため）
+      tabIndex={-1}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       className={`
-        relative cursor-pointer transition-all duration-150 group
+        relative cursor-pointer transition-all duration-150 group text-left
         ${showSelectionRing ? "ring-2 ring-accent ring-offset-2 ring-offset-bg-primary" : ""}
       `}
       style={{ width: size, height: size }}
@@ -85,6 +89,7 @@ export const ThumbnailItem = memo(function ThumbnailItem({
         >
           {isMultiSelected && (
             <svg
+              aria-hidden="true"
               className="w-3 h-3 text-white"
               fill="none"
               viewBox="0 0 24 24"
@@ -100,6 +105,6 @@ export const ThumbnailItem = memo(function ThumbnailItem({
           )}
         </div>
       )}
-    </div>
+    </button>
   );
 });

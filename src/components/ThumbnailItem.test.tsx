@@ -160,6 +160,23 @@ describe("ThumbnailItem", () => {
     expect(container.querySelector("svg")).toBeInTheDocument();
   });
 
+  it("should render the wrapper as a non-tabbable button element", () => {
+    const { container } = render(
+      <ThumbnailItem
+        item={mockItem}
+        size={180}
+        isSelected={false}
+        onClick={vi.fn()}
+        onDoubleClick={vi.fn()}
+      />,
+    );
+
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper.tagName).toBe("BUTTON");
+    expect(wrapper).toHaveAttribute("type", "button");
+    expect(wrapper).toHaveAttribute("tabindex", "-1");
+  });
+
   it("should pass click event to onClick handler", () => {
     const handleClick = vi.fn();
     render(

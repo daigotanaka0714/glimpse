@@ -91,11 +91,15 @@ export function ExportDialog({
 
           {/* Destination selection */}
           <div>
-            <label className="block text-sm text-white/70 mb-2">
+            <label
+              htmlFor="export-destination"
+              className="block text-sm text-white/70 mb-2"
+            >
               Destination Folder
             </label>
             <div className="flex gap-2">
               <input
+                id="export-destination"
                 type="text"
                 value={destinationPath}
                 readOnly
@@ -114,10 +118,10 @@ export function ExportDialog({
           </div>
 
           {/* Export mode selection */}
-          <div>
-            <label className="block text-sm text-white/70 mb-2">
+          <fieldset>
+            <legend className="block text-sm text-white/70 mb-2">
               Export Method
-            </label>
+            </legend>
             <div className="flex gap-3">
               <button
                 type="button"
@@ -157,7 +161,7 @@ export function ExportDialog({
                 ? "Original files will not be modified"
                 : "Original files will be deleted (Warning: cannot be undone)"}
             </p>
-          </div>
+          </fieldset>
 
           {/* Error message */}
           {error && (
