@@ -176,6 +176,8 @@ Biome 移行で指摘がゼロになったため、ラチェットは廃止し�
 
 - PR 本文にもコミットメッセージにも Claude のセッション URL
   （`claude.ai/code/session_...`）や `Claude-Session:` 行を入れない
+- **PR に言及するときは必ずリポジトリ名と URL を添える。**
+  `#24` だけでは、複数リポジトリを扱う運用ではどれか分からない
 - 積み上げ（stacked）PR に `--delete-branch` を使わない
   （土台のブランチを消すと GitHub が上の PR を自動クローズする）
 
