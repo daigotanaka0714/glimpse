@@ -13,6 +13,20 @@ import { getModifierKey } from "@/utils/platform";
 
 type Section = "overview" | "keyboard" | "settings" | "raw";
 
+/**
+ * 内容そのものから React の key を作る。
+ * 同じ文字列が複数回現れても衝突しないよう出現回数を添える。
+ * 配列インデックスを key にすると並び替えで state がずれるため使わない。
+ */
+const createKeyFactory = () => {
+  const seen = new Map<string, number>();
+  return (value: string) => {
+    const count = (seen.get(value) ?? 0) + 1;
+    seen.set(value, count);
+    return `${value}#${count}`;
+  };
+};
+
 interface HelpDialogProps {
   onClose: () => void;
 }
@@ -397,9 +411,9 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10">
-                  {currentTableRows[0]?.map((cell, i) => (
+                  {currentTableRows[0]?.map((cell) => (
                     <th
-                      key={i}
+                      key={cell}
                       className="text-left py-2 px-3 text-text-secondary font-medium"
                     >
                       {cell}
@@ -408,10 +422,10 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
                 </tr>
               </thead>
               <tbody>
-                {currentTableRows.slice(1).map((row, rowIndex) => (
-                  <tr key={rowIndex} className="border-b border-white/5">
-                    {row.map((cell, cellIndex) => (
-                      <td key={cellIndex} className="py-2 px-3">
+                {currentTableRows.slice(1).map((row) => (
+                  <tr key={row.join("|")} className="border-b border-white/5">
+                    {row.map((cell) => (
+                      <td key={cell} className="py-2 px-3">
                         {cell.includes("`") ? (
                           <code className="px-1.5 py-0.5 bg-bg-tertiary rounded text-accent text-xs">
                             {cell.replace(/`/g, "")}
@@ -471,23 +485,24 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
     };
 
     const renderInlineMarkdown = (text: string) => {
+      const keyOf = createKeyFactory();
       // Bold
       const parts = text.split(/(\*\*[^*]+\*\*)/);
-      return parts.map((part, i) => {
+      return parts.map((part) => {
         if (part.startsWith("**") && part.endsWith("**")) {
           return (
-            <strong key={i} className="text-text-primary">
+            <strong key={keyOf(part)} className="text-text-primary">
               {part.slice(2, -2)}
             </strong>
           );
         }
         // Inline code
         const codeParts = part.split(/(`[^`]+`)/);
-        return codeParts.map((codePart, j) => {
+        return codeParts.map((codePart) => {
           if (codePart.startsWith("`") && codePart.endsWith("`")) {
             return (
               <code
-                key={`${i}-${j}`}
+                key={keyOf(codePart)}
                 className="px-1.5 py-0.5 bg-bg-tertiary rounded text-accent text-xs"
               >
                 {codePart.slice(1, -1)}
@@ -513,9 +528,9 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
-                {tableRows[0]?.map((cell, i) => (
+                {tableRows[0]?.map((cell) => (
                   <th
-                    key={i}
+                    key={cell}
                     className="text-left py-2 px-3 text-text-secondary font-medium"
                   >
                     {cell}
@@ -524,10 +539,10 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
               </tr>
             </thead>
             <tbody>
-              {tableRows.slice(1).map((row, rowIndex) => (
-                <tr key={rowIndex} className="border-b border-white/5">
-                  {row.map((cell, cellIndex) => (
-                    <td key={cellIndex} className="py-2 px-3">
+              {tableRows.slice(1).map((row) => (
+                <tr key={row.join("|")} className="border-b border-white/5">
+                  {row.map((cell) => (
+                    <td key={cell} className="py-2 px-3">
                       {cell.includes("`") ? (
                         <code className="px-1.5 py-0.5 bg-bg-tertiary rounded text-accent text-xs">
                           {cell.replace(/`/g, "")}
