@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { X, FolderOutput, Loader2, Check, Copy, Scissors } from 'lucide-react';
+import { Check, Copy, FolderOutput, Loader2, Scissors, X } from "lucide-react";
+import { useState } from "react";
 
-export type ExportMode = 'copy' | 'move';
+export type ExportMode = "copy" | "move";
 
 export interface ExportOptions {
   destinationPath: string;
@@ -23,8 +23,8 @@ export function ExportDialog({
   onClose,
   onSelectFolder,
 }: ExportDialogProps) {
-  const [destinationPath, setDestinationPath] = useState<string>('');
-  const [exportMode, setExportMode] = useState<ExportMode>('copy');
+  const [destinationPath, setDestinationPath] = useState<string>("");
+  const [exportMode, setExportMode] = useState<ExportMode>("copy");
   const [isExporting, setIsExporting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +39,7 @@ export function ExportDialog({
 
   const handleExport = async () => {
     if (!destinationPath) {
-      setError('Please select a destination folder');
+      setError("Please select a destination folder");
       return;
     }
 
@@ -50,7 +50,7 @@ export function ExportDialog({
       await onExport({ destinationPath, mode: exportMode });
       setIsComplete(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Export failed');
+      setError(e instanceof Error ? e.message : "Export failed");
     } finally {
       setIsExporting(false);
     }
@@ -63,6 +63,7 @@ export function ExportDialog({
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <h2 className="text-lg font-semibold">Export Adopted Photos</h2>
           <button
+            type="button"
             onClick={onClose}
             className="p-1 rounded-lg hover:bg-white/10 transition-colors"
           >
@@ -75,22 +76,30 @@ export function ExportDialog({
           {/* Statistics */}
           <div className="flex gap-4">
             <div className="flex-1 p-4 bg-green-500/10 rounded-xl text-center">
-              <p className="text-3xl font-bold text-green-400">{adoptedCount}</p>
+              <p className="text-3xl font-bold text-green-400">
+                {adoptedCount}
+              </p>
               <p className="text-sm text-white/50">Adopted</p>
             </div>
             <div className="flex-1 p-4 bg-rejected/10 rounded-xl text-center">
-              <p className="text-3xl font-bold text-rejected">{rejectedCount}</p>
+              <p className="text-3xl font-bold text-rejected">
+                {rejectedCount}
+              </p>
               <p className="text-sm text-white/50">Rejected</p>
             </div>
           </div>
 
           {/* Destination selection */}
           <div>
-            <label className="block text-sm text-white/70 mb-2">
+            <label
+              htmlFor="export-destination"
+              className="block text-sm text-white/70 mb-2"
+            >
               Destination Folder
             </label>
             <div className="flex gap-2">
               <input
+                id="export-destination"
                 type="text"
                 value={destinationPath}
                 readOnly
@@ -98,6 +107,7 @@ export function ExportDialog({
                 className="flex-1 px-4 py-2 bg-bg-tertiary border border-white/10 rounded-lg text-sm"
               />
               <button
+                type="button"
                 onClick={handleSelectFolder}
                 disabled={isExporting}
                 className="px-4 py-2 bg-bg-tertiary hover:bg-white/10 border border-white/10 rounded-lg transition-colors"
@@ -108,19 +118,21 @@ export function ExportDialog({
           </div>
 
           {/* Export mode selection */}
-          <div>
-            <label className="block text-sm text-white/70 mb-2">
+          <fieldset>
+            <legend className="block text-sm text-white/70 mb-2">
               Export Method
-            </label>
+            </legend>
             <div className="flex gap-3">
               <button
-                onClick={() => setExportMode('copy')}
+                type="button"
+                onClick={() => setExportMode("copy")}
                 disabled={isExporting}
                 className={`
                   flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-colors
-                  ${exportMode === 'copy'
-                    ? 'bg-accent/20 border-accent text-accent'
-                    : 'bg-bg-tertiary border-white/10 text-white/70 hover:bg-white/10'
+                  ${
+                    exportMode === "copy"
+                      ? "bg-accent/20 border-accent text-accent"
+                      : "bg-bg-tertiary border-white/10 text-white/70 hover:bg-white/10"
                   }
                 `}
               >
@@ -128,13 +140,15 @@ export function ExportDialog({
                 <span className="text-sm font-medium">Copy</span>
               </button>
               <button
-                onClick={() => setExportMode('move')}
+                type="button"
+                onClick={() => setExportMode("move")}
                 disabled={isExporting}
                 className={`
                   flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-colors
-                  ${exportMode === 'move'
-                    ? 'bg-accent/20 border-accent text-accent'
-                    : 'bg-bg-tertiary border-white/10 text-white/70 hover:bg-white/10'
+                  ${
+                    exportMode === "move"
+                      ? "bg-accent/20 border-accent text-accent"
+                      : "bg-bg-tertiary border-white/10 text-white/70 hover:bg-white/10"
                   }
                 `}
               >
@@ -143,12 +157,11 @@ export function ExportDialog({
               </button>
             </div>
             <p className="mt-2 text-xs text-white/50">
-              {exportMode === 'copy'
-                ? 'Original files will not be modified'
-                : 'Original files will be deleted (Warning: cannot be undone)'
-              }
+              {exportMode === "copy"
+                ? "Original files will not be modified"
+                : "Original files will be deleted (Warning: cannot be undone)"}
             </p>
-          </div>
+          </fieldset>
 
           {/* Error message */}
           {error && (
@@ -169,13 +182,15 @@ export function ExportDialog({
         {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-white/10">
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-2 bg-bg-tertiary hover:bg-white/10 rounded-lg transition-colors text-sm"
           >
-            {isComplete ? 'Close' : 'Cancel'}
+            {isComplete ? "Close" : "Cancel"}
           </button>
           {!isComplete && (
             <button
+              type="button"
               onClick={handleExport}
               disabled={isExporting || !destinationPath}
               className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-sm font-medium"

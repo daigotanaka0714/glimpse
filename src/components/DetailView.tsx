@@ -1,8 +1,15 @@
-import { useEffect, useState, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight, Info, RotateCcw, RotateCw } from 'lucide-react';
-import type { ImageItem } from '@/types';
-import { getExif, toAssetUrl, type ExifInfo } from '@/utils/tauri';
-import { useTranslation } from '@/i18n';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  RotateCcw,
+  RotateCw,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "@/i18n";
+import type { ImageItem } from "@/types";
+import { type ExifInfo, getExif, toAssetUrl } from "@/utils/tauri";
 
 interface DetailViewProps {
   item: ImageItem;
@@ -27,14 +34,19 @@ export function DetailView({
   const [exifInfo, setExifInfo] = useState<ExifInfo | null>(null);
   const [exifLoading, setExifLoading] = useState(false);
   const [rotation, setRotation] = useState(0);
-  const isRejected = item.label === 'rejected';
+  const isRejected = item.label === "rejected";
 
   // Reset when image changes
-  useEffect(() => {
+  // props が変わったときに state を調整する React 公式の書き方に合わせ、
+  // レンダー中に前回の path と比べる。リセット専用の useEffect を置くと
+  // 依存配列に「本文で読まない値」が並ぶことになる。
+  const [renderedPath, setRenderedPath] = useState(item.path);
+  if (renderedPath !== item.path) {
+    setRenderedPath(item.path);
     setImageLoaded(false);
     setExifInfo(null);
     setRotation(0);
-  }, [item.path]);
+  }
 
   // Rotation operations
   const rotateLeft = useCallback(() => {
@@ -63,6 +75,7 @@ export function DetailView({
         {/* Navigation button - left */}
         {item.index > 0 && (
           <button
+            type="button"
             onClick={onPrevious}
             className="absolute left-4 z-10 p-3 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
@@ -82,8 +95,8 @@ export function DetailView({
             alt={item.filename}
             className={`
               w-auto h-auto max-w-full max-h-full object-contain
-              ${imageLoaded ? 'opacity-100' : 'opacity-0'}
-              ${isRejected ? 'opacity-50' : ''}
+              ${imageLoaded ? "opacity-100" : "opacity-0"}
+              ${isRejected ? "opacity-50" : ""}
               transition-all duration-300
             `}
             style={{ transform: `rotate(${rotation}deg)` }}
@@ -102,6 +115,7 @@ export function DetailView({
         {/* Navigation button - right */}
         {item.index < totalItems - 1 && (
           <button
+            type="button"
             onClick={onNext}
             className="absolute right-4 z-10 p-3 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
@@ -111,6 +125,7 @@ export function DetailView({
 
         {/* Close button */}
         <button
+          type="button"
           onClick={onClose}
           className="absolute top-4 right-4 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
         >
@@ -120,6 +135,7 @@ export function DetailView({
         {/* Rotation buttons */}
         <div className="absolute top-4 left-4 flex gap-2">
           <button
+            type="button"
             onClick={rotateLeft}
             className="p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
             title={t.detailView.rotateLeft}
@@ -127,6 +143,7 @@ export function DetailView({
             <RotateCcw size={24} />
           </button>
           <button
+            type="button"
             onClick={rotateRight}
             className="p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
             title={t.detailView.rotateRight}
@@ -142,9 +159,12 @@ export function DetailView({
 
         {/* EXIF info button */}
         <button
+          type="button"
           onClick={() => setShowExif(!showExif)}
           className={`absolute top-4 right-16 p-2 rounded-full transition-colors ${
-            showExif ? 'bg-accent text-white' : 'bg-theme-hover hover:bg-theme-active'
+            showExif
+              ? "bg-accent text-white"
+              : "bg-theme-hover hover:bg-theme-active"
           }`}
           title={t.detailView.showExif}
         >
@@ -164,31 +184,55 @@ export function DetailView({
             ) : exifInfo ? (
               <div className="p-3 space-y-2 text-sm max-h-96 overflow-y-auto">
                 {exifInfo.camera_model && (
-                  <ExifRow label={t.detailView.camera} value={`${exifInfo.camera_make || ''} ${exifInfo.camera_model}`.trim()} />
+                  <ExifRow
+                    label={t.detailView.camera}
+                    value={`${exifInfo.camera_make || ""} ${exifInfo.camera_model}`.trim()}
+                  />
                 )}
                 {exifInfo.lens_model && (
-                  <ExifRow label={t.detailView.lens} value={exifInfo.lens_model} />
+                  <ExifRow
+                    label={t.detailView.lens}
+                    value={exifInfo.lens_model}
+                  />
                 )}
                 {exifInfo.focal_length && (
-                  <ExifRow label={t.detailView.focalLength} value={exifInfo.focal_length} />
+                  <ExifRow
+                    label={t.detailView.focalLength}
+                    value={exifInfo.focal_length}
+                  />
                 )}
                 {exifInfo.aperture && (
-                  <ExifRow label={t.detailView.aperture} value={exifInfo.aperture} />
+                  <ExifRow
+                    label={t.detailView.aperture}
+                    value={exifInfo.aperture}
+                  />
                 )}
                 {exifInfo.shutter_speed && (
-                  <ExifRow label={t.detailView.shutterSpeed} value={exifInfo.shutter_speed} />
+                  <ExifRow
+                    label={t.detailView.shutterSpeed}
+                    value={exifInfo.shutter_speed}
+                  />
                 )}
                 {exifInfo.iso && (
                   <ExifRow label={t.detailView.iso} value={exifInfo.iso} />
                 )}
                 {exifInfo.exposure_compensation && (
-                  <ExifRow label={t.detailView.exposureComp} value={exifInfo.exposure_compensation} />
+                  <ExifRow
+                    label={t.detailView.exposureComp}
+                    value={exifInfo.exposure_compensation}
+                  />
                 )}
                 {exifInfo.date_taken && (
-                  <ExifRow label={t.detailView.dateTaken} value={exifInfo.date_taken} />
+                  <ExifRow
+                    label={t.detailView.dateTaken}
+                    value={exifInfo.date_taken}
+                  />
                 )}
                 {exifInfo.width && exifInfo.height && (
-                  <ExifRow label={t.detailView.resolution} value={`${exifInfo.width} × ${exifInfo.height}`} />
+                  <ExifRow
+                    label={t.detailView.resolution}
+                    value={`${exifInfo.width} × ${exifInfo.height}`}
+                  />
                 )}
               </div>
             ) : (
@@ -215,17 +259,20 @@ export function DetailView({
           </span>
 
           <button
+            type="button"
             onClick={onToggleLabel}
             className={`
               px-4 py-2 rounded-lg font-medium text-sm transition-colors
-              ${isRejected
-                ? 'bg-rejected text-white'
-                : 'bg-bg-tertiary hover:bg-theme-hover text-text-secondary'
+              ${
+                isRejected
+                  ? "bg-rejected text-white"
+                  : "bg-bg-tertiary hover:bg-theme-hover text-text-secondary"
               }
             `}
           >
             <span className="mr-2">1</span>
-            {isRejected ? t.detailView.rejected : t.detailView.reject}{isRejected ? ' ✓' : ''}
+            {isRejected ? t.detailView.rejected : t.detailView.reject}
+            {isRejected ? " ✓" : ""}
           </button>
         </div>
       </div>

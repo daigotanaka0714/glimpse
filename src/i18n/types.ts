@@ -2,7 +2,7 @@
  * Type definitions for internationalization
  */
 
-export type Language = 'en' | 'ja';
+export type Language = "en" | "ja";
 
 export interface Translations {
   // App

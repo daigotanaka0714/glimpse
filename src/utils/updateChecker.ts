@@ -5,9 +5,9 @@
 
 export {
   checkForUpdates,
-  isVersionDismissed,
-  dismissVersion,
   clearDismissedVersion,
-  type UpdateInfo,
+  dismissVersion,
+  isVersionDismissed,
   type UpdateCheckerOptions,
-} from 'tauri-update-notifier';
+  type UpdateInfo,
+} from "tauri-update-notifier";

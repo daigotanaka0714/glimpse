@@ -21,7 +21,7 @@ export function playCompletionSound(): void {
     const ctx = getAudioContext();
 
     // Resume context if sound doesn't play
-    if (ctx.state === 'suspended') {
+    if (ctx.state === "suspended") {
       ctx.resume();
     }
 
@@ -33,7 +33,7 @@ export function playCompletionSound(): void {
     // Second tone (G) - slightly delayed
     playTone(ctx, 783.99, now + 0.15, 0.2, 0.25); // G5
   } catch (error) {
-    console.warn('Failed to play notification sound:', error);
+    console.warn("Failed to play notification sound:", error);
   }
 }
 
@@ -45,7 +45,7 @@ function playTone(
   frequency: number,
   startTime: number,
   duration: number,
-  volume: number
+  volume: number,
 ): void {
   const oscillator = ctx.createOscillator();
   const gainNode = ctx.createGain();
@@ -53,7 +53,7 @@ function playTone(
   oscillator.connect(gainNode);
   gainNode.connect(ctx.destination);
 
-  oscillator.type = 'sine';
+  oscillator.type = "sine";
   oscillator.frequency.setValueAtTime(frequency, startTime);
 
   // Smooth fade in/out
@@ -72,7 +72,7 @@ export function playErrorSound(): void {
   try {
     const ctx = getAudioContext();
 
-    if (ctx.state === 'suspended') {
+    if (ctx.state === "suspended") {
       ctx.resume();
     }
 
@@ -82,6 +82,6 @@ export function playErrorSound(): void {
     playTone(ctx, 220, now, 0.15, 0.2); // A3
     playTone(ctx, 196, now + 0.15, 0.2, 0.2); // G3
   } catch (error) {
-    console.warn('Failed to play error sound:', error);
+    console.warn("Failed to play error sound:", error);
   }
 }

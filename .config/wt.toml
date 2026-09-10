@@ -29,8 +29,9 @@ install = "pnpm install --frozen-lockfile"
 
 # --- マージ前の門番 -----------------------------------------------------------
 # rebase 後・マージ前に走る。ここが赤ならマージは進まない。
-# 警告のラチェットは .config/agent-check.env で設定している（AGENT_CHECK_MAX_WARNINGS=1）。
-# 並列エージェントは完了条件に無い品質基準を守らないため、警告の増加をここで止める。
+# lint は Biome で、警告が 1 件でも出れば失敗する（package.json の lint スクリプトが
+# --error-on-warnings を付けている）。並列エージェントは完了条件に無い品質基準を
+# 守らないため、警告の増加をここで止める。
 [pre-merge]
 check = "bin/agent-check"
 

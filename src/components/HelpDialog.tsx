@@ -1,9 +1,31 @@
-import { useState } from 'react';
-import { X, ChevronRight, Keyboard, Settings, FileImage, Zap, Info } from 'lucide-react';
-import { useI18n } from '@/i18n';
-import { getModifierKey } from '@/utils/platform';
+import {
+  ChevronRight,
+  FileImage,
+  Info,
+  Keyboard,
+  Settings,
+  X,
+  Zap,
+} from "lucide-react";
+import { useState } from "react";
+import { useI18n } from "@/i18n";
+import { getModifierKey } from "@/utils/platform";
 
-type Section = 'overview' | 'keyboard' | 'settings' | 'raw';
+type Section = "overview" | "keyboard" | "settings" | "raw";
+
+/**
+ * 内容そのものから React の key を作る。
+ * 同じ文字列が複数回現れても衝突しないよう出現回数を添える。
+ * 配列インデックスを key にすると並び替えで state がずれるため使わない。
+ */
+const createKeyFactory = () => {
+  const seen = new Map<string, number>();
+  return (value: string) => {
+    const count = (seen.get(value) ?? 0) + 1;
+    seen.set(value, count);
+    return `${value}#${count}`;
+  };
+};
 
 interface HelpDialogProps {
   onClose: () => void;
@@ -11,11 +33,11 @@ interface HelpDialogProps {
 
 const getContent = (modKey: string) => ({
   en: {
-    title: 'Help',
-    language: 'English',
+    title: "Help",
+    language: "English",
     sections: {
       overview: {
-        title: 'Overview',
+        title: "Overview",
         icon: Info,
         content: `
 Glimpse is a high-speed photo checker designed for selecting stage photography. It allows you to browse and select thousands of images without stress.
@@ -38,7 +60,7 @@ Glimpse is a high-speed photo checker designed for selecting stage photography. 
         `.trim(),
       },
       keyboard: {
-        title: 'Keyboard Shortcuts',
+        title: "Keyboard Shortcuts",
         icon: Keyboard,
         content: `
 ## Navigation
@@ -85,7 +107,7 @@ Glimpse is a high-speed photo checker designed for selecting stage photography. 
         `.trim(),
       },
       settings: {
-        title: 'Settings',
+        title: "Settings",
         icon: Settings,
         content: `
 Access Settings from the gear icon in the header.
@@ -126,7 +148,7 @@ Manage cached data:
         `.trim(),
       },
       raw: {
-        title: 'Supported RAW Formats',
+        title: "Supported RAW Formats",
         icon: FileImage,
         content: `
 Glimpse supports various RAW image formats from major camera manufacturers:
@@ -163,11 +185,11 @@ In addition to these RAW formats, Glimpse also supports standard image formats:
     },
   },
   ja: {
-    title: 'ヘルプ',
-    language: '日本語',
+    title: "ヘルプ",
+    language: "日本語",
     sections: {
       overview: {
-        title: '概要',
+        title: "概要",
         icon: Info,
         content: `
 Glimpseは舞台写真の選別作業に特化した高速写真チェッカーです。数千〜数万枚の画像をストレスなく閲覧・選別できます。
@@ -190,7 +212,7 @@ Glimpseは舞台写真の選別作業に特化した高速写真チェッカー�
         `.trim(),
       },
       keyboard: {
-        title: 'キーボードショートカット',
+        title: "キーボードショートカット",
         icon: Keyboard,
         content: `
 ## ナビゲーション
@@ -237,7 +259,7 @@ Glimpseは舞台写真の選別作業に特化した高速写真チェッカー�
         `.trim(),
       },
       settings: {
-        title: '設定',
+        title: "設定",
         icon: Settings,
         content: `
 ヘッダーの歯車アイコンから設定にアクセスできます。
@@ -278,7 +300,7 @@ Glimpseは舞台写真の選別作業に特化した高速写真チェッカー�
         `.trim(),
       },
       raw: {
-        title: '対応RAWフォーマット',
+        title: "対応RAWフォーマット",
         icon: FileImage,
         content: `
 Glimpseは主要カメラメーカーの様々なRAW画像フォーマットに対応しています：
@@ -318,16 +340,16 @@ Glimpseは主要カメラメーカーの様々なRAW画像フォーマットに�
 
 export function HelpDialog({ onClose }: HelpDialogProps) {
   const { language, setLanguage, t: translations } = useI18n();
-  const [activeSection, setActiveSection] = useState<Section>('overview');
+  const [activeSection, setActiveSection] = useState<Section>("overview");
 
   const modKey = getModifierKey();
   const content = getContent(modKey);
-  const langContent = language === 'ja' ? content.ja : content.en;
-  const sections: Section[] = ['overview', 'keyboard', 'settings', 'raw'];
+  const langContent = language === "ja" ? content.ja : content.en;
+  const sections: Section[] = ["overview", "keyboard", "settings", "raw"];
 
   const renderMarkdown = (text: string) => {
     // Simple markdown rendering
-    const lines = text.split('\n');
+    const lines = text.split("\n");
     const elements: JSX.Element[] = [];
     let inTable = false;
     let tableRows: string[][] = [];
@@ -335,9 +357,12 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
 
     const processLine = (line: string, index: number) => {
       // Headers
-      if (line.startsWith('## ')) {
+      if (line.startsWith("## ")) {
         return (
-          <h3 key={index} className="text-lg font-semibold mt-6 mb-3 text-text-primary">
+          <h3
+            key={index}
+            className="text-lg font-semibold mt-6 mb-3 text-text-primary"
+          >
             {line.slice(3)}
           </h3>
         );
@@ -347,26 +372,32 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
       const imgMatch = line.match(/!\[([^\]]*)\]\(([^)]+)\)/);
       if (imgMatch) {
         return (
-          <div key={index} className="my-4 p-4 bg-bg-tertiary rounded-lg border border-white/10 text-center">
+          <div
+            key={index}
+            className="my-4 p-4 bg-bg-tertiary rounded-lg border border-white/10 text-center"
+          >
             <div className="flex items-center justify-center gap-2 text-text-secondary">
               <FileImage size={20} />
-              <span className="text-sm">{imgMatch[1] || 'Screenshot'}</span>
+              <span className="text-sm">{imgMatch[1] || "Screenshot"}</span>
             </div>
             <p className="text-xs text-text-secondary mt-2">
-              {language === 'en' ? 'Image placeholder' : '画像プレースホルダー'}
+              {language === "en" ? "Image placeholder" : "画像プレースホルダー"}
             </p>
           </div>
         );
       }
 
       // Table
-      if (line.startsWith('|')) {
+      if (line.startsWith("|")) {
         if (!inTable) {
           inTable = true;
           tableRows = [];
         }
-        const cells = line.split('|').filter(c => c.trim()).map(c => c.trim());
-        if (!line.includes('---')) {
+        const cells = line
+          .split("|")
+          .filter((c) => c.trim())
+          .map((c) => c.trim());
+        if (!line.includes("---")) {
           tableRows.push(cells);
         }
         return null;
@@ -380,23 +411,26 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10">
-                  {currentTableRows[0]?.map((cell, i) => (
-                    <th key={i} className="text-left py-2 px-3 text-text-secondary font-medium">
+                  {currentTableRows[0]?.map((cell) => (
+                    <th
+                      key={cell}
+                      className="text-left py-2 px-3 text-text-secondary font-medium"
+                    >
                       {cell}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {currentTableRows.slice(1).map((row, rowIndex) => (
-                  <tr key={rowIndex} className="border-b border-white/5">
-                    {row.map((cell, cellIndex) => (
-                      <td key={cellIndex} className="py-2 px-3">
-                        {cell.includes('`') ? (
+                {currentTableRows.slice(1).map((row) => (
+                  <tr key={row.join("|")} className="border-b border-white/5">
+                    {row.map((cell) => (
+                      <td key={cell} className="py-2 px-3">
+                        {cell.includes("`") ? (
                           <code className="px-1.5 py-0.5 bg-bg-tertiary rounded text-accent text-xs">
-                            {cell.replace(/`/g, '')}
+                            {cell.replace(/`/g, "")}
                           </code>
-                        ) : cell.startsWith('**') && cell.endsWith('**') ? (
+                        ) : cell.startsWith("**") && cell.endsWith("**") ? (
                           <strong>{cell.slice(2, -2)}</strong>
                         ) : (
                           cell
@@ -412,10 +446,13 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
       }
 
       // List items
-      if (line.startsWith('- ')) {
+      if (line.startsWith("- ")) {
         const text = line.slice(2);
         return (
-          <li key={index} className="ml-4 mb-1 text-sm text-text-secondary list-disc">
+          <li
+            key={index}
+            className="ml-4 mb-1 text-sm text-text-secondary list-disc"
+          >
             {renderInlineMarkdown(text)}
           </li>
         );
@@ -425,14 +462,17 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
       const numberedMatch = line.match(/^(\d+)\.\s+(.+)$/);
       if (numberedMatch) {
         return (
-          <li key={index} className="ml-4 mb-2 text-sm text-text-secondary list-decimal">
+          <li
+            key={index}
+            className="ml-4 mb-2 text-sm text-text-secondary list-decimal"
+          >
             {renderInlineMarkdown(numberedMatch[2])}
           </li>
         );
       }
 
       // Empty line
-      if (line.trim() === '') {
+      if (line.trim() === "") {
         return <div key={index} className="h-2" />;
       }
 
@@ -445,18 +485,26 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
     };
 
     const renderInlineMarkdown = (text: string) => {
+      const keyOf = createKeyFactory();
       // Bold
       const parts = text.split(/(\*\*[^*]+\*\*)/);
-      return parts.map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={i} className="text-text-primary">{part.slice(2, -2)}</strong>;
+      return parts.map((part) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return (
+            <strong key={keyOf(part)} className="text-text-primary">
+              {part.slice(2, -2)}
+            </strong>
+          );
         }
         // Inline code
         const codeParts = part.split(/(`[^`]+`)/);
-        return codeParts.map((codePart, j) => {
-          if (codePart.startsWith('`') && codePart.endsWith('`')) {
+        return codeParts.map((codePart) => {
+          if (codePart.startsWith("`") && codePart.endsWith("`")) {
             return (
-              <code key={`${i}-${j}`} className="px-1.5 py-0.5 bg-bg-tertiary rounded text-accent text-xs">
+              <code
+                key={keyOf(codePart)}
+                className="px-1.5 py-0.5 bg-bg-tertiary rounded text-accent text-xs"
+              >
                 {codePart.slice(1, -1)}
               </code>
             );
@@ -480,23 +528,26 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
-                {tableRows[0]?.map((cell, i) => (
-                  <th key={i} className="text-left py-2 px-3 text-text-secondary font-medium">
+                {tableRows[0]?.map((cell) => (
+                  <th
+                    key={cell}
+                    className="text-left py-2 px-3 text-text-secondary font-medium"
+                  >
                     {cell}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {tableRows.slice(1).map((row, rowIndex) => (
-                <tr key={rowIndex} className="border-b border-white/5">
-                  {row.map((cell, cellIndex) => (
-                    <td key={cellIndex} className="py-2 px-3">
-                      {cell.includes('`') ? (
+              {tableRows.slice(1).map((row) => (
+                <tr key={row.join("|")} className="border-b border-white/5">
+                  {row.map((cell) => (
+                    <td key={cell} className="py-2 px-3">
+                      {cell.includes("`") ? (
                         <code className="px-1.5 py-0.5 bg-bg-tertiary rounded text-accent text-xs">
-                          {cell.replace(/`/g, '')}
+                          {cell.replace(/`/g, "")}
                         </code>
-                      ) : cell.startsWith('**') && cell.endsWith('**') ? (
+                      ) : cell.startsWith("**") && cell.endsWith("**") ? (
                         <strong>{cell.slice(2, -2)}</strong>
                       ) : (
                         cell
@@ -507,7 +558,7 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
               ))}
             </tbody>
           </table>
-        </div>
+        </div>,
       );
     }
 
@@ -526,35 +577,42 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
                 <Info size={20} className="text-accent" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">{translations.help.title}</h2>
-                <p className="text-xs text-text-secondary">{translations.help.subtitle}</p>
+                <h2 className="text-lg font-semibold">
+                  {translations.help.title}
+                </h2>
+                <p className="text-xs text-text-secondary">
+                  {translations.help.subtitle}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               {/* Language toggle */}
               <div className="flex bg-bg-tertiary rounded-lg p-1">
                 <button
-                  onClick={() => setLanguage('en')}
+                  type="button"
+                  onClick={() => setLanguage("en")}
                   className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                    language === 'en'
-                      ? 'bg-accent text-white'
-                      : 'text-text-secondary hover:text-text-primary'
+                    language === "en"
+                      ? "bg-accent text-white"
+                      : "text-text-secondary hover:text-text-primary"
                   }`}
                 >
                   EN
                 </button>
                 <button
-                  onClick={() => setLanguage('ja')}
+                  type="button"
+                  onClick={() => setLanguage("ja")}
                   className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                    language === 'ja'
-                      ? 'bg-accent text-white'
-                      : 'text-text-secondary hover:text-text-primary'
+                    language === "ja"
+                      ? "bg-accent text-white"
+                      : "text-text-secondary hover:text-text-primary"
                   }`}
                 >
                   日本語
                 </button>
               </div>
               <button
+                type="button"
                 onClick={onClose}
                 className="p-2 rounded-lg hover:bg-white/10 transition-colors"
               >
@@ -574,16 +632,19 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
                 const Icon = sectionContent.icon;
                 return (
                   <button
+                    type="button"
                     key={section}
                     onClick={() => setActiveSection(section)}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       activeSection === section
-                        ? 'bg-accent/20 text-accent'
-                        : 'text-text-secondary hover:bg-white/5 hover:text-text-primary'
+                        ? "bg-accent/20 text-accent"
+                        : "text-text-secondary hover:bg-white/5 hover:text-text-primary"
                     }`}
                   >
                     <Icon size={18} />
-                    <span className="flex-1 text-left">{sectionContent.title}</span>
+                    <span className="flex-1 text-left">
+                      {sectionContent.title}
+                    </span>
                     {activeSection === section && (
                       <ChevronRight size={16} className="text-accent" />
                     )}

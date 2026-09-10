@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useCallback } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { ThumbnailItem } from './ThumbnailItem';
-import type { ImageItem, GridConfig } from '@/types';
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { GridConfig, ImageItem } from "@/types";
+import { ThumbnailItem } from "./ThumbnailItem";
 
 interface ThumbnailGridProps {
   items: ImageItem[];
@@ -9,7 +9,10 @@ interface ThumbnailGridProps {
   selectedIndices: Set<number>;
   gridConfig: GridConfig;
   containerRef: React.RefObject<HTMLDivElement>;
-  onSelect: (index: number, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => void;
+  onSelect: (
+    index: number,
+    event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean },
+  ) => void;
   onEnterDetail: () => void;
 }
 
@@ -36,12 +39,12 @@ export function ThumbnailGrid({
   // Calculate row metrics
   const rowCount = useMemo(
     () => Math.ceil(items.length / columns),
-    [items.length, columns]
+    [items.length, columns],
   );
 
   const rowHeight = useMemo(
     () => thumbnailSize + rowGap,
-    [thumbnailSize, rowGap]
+    [thumbnailSize, rowGap],
   );
 
   // Stable row height getter for virtualizer
@@ -55,9 +58,18 @@ export function ThumbnailGrid({
   });
 
   // Update virtualizer when size changes (debounced by useGridConfig)
+  // 行の高さ・列数が実際に変わったときだけ実測キャッシュを捨てる。
+  // 依存配列に並べるだけだと本文で読んでいない値になるため、
+  // 前回値との比較をここで行う（virtualizer の再生成では測り直さない）。
+  const measuredLayoutRef = useRef({ rowHeight, columns });
   useEffect(() => {
+    const previous = measuredLayoutRef.current;
+    if (previous.rowHeight === rowHeight && previous.columns === columns) {
+      return;
+    }
+    measuredLayoutRef.current = { rowHeight, columns };
     virtualizer.measure();
-  }, [thumbnailSize, columns, virtualizer]);
+  }, [rowHeight, columns, virtualizer]);
 
   // Scroll to show selected item
   useEffect(() => {
@@ -65,8 +77,8 @@ export function ThumbnailGrid({
 
     const selectedRow = Math.floor(selectedIndex / columns);
     virtualizer.scrollToIndex(selectedRow, {
-      align: 'auto',
-      behavior: 'auto',
+      align: "auto",
+      behavior: "auto",
     });
   }, [selectedIndex, columns, virtualizer, items.length]);
 
@@ -78,7 +90,7 @@ export function ThumbnailGrid({
     <div
       ref={containerRef}
       className="flex-1 overflow-auto"
-      style={{ contain: 'strict' }} // CSS containment for performance
+      style={{ contain: "strict" }} // CSS containment for performance
     >
       <div
         className="relative w-full"

@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { useLayoutEffect } from 'react';
-import type { MutableRefObject } from 'react';
-import { useGridConfig } from './useGridConfig';
+import { act, renderHook } from "@testing-library/react";
+import type { MutableRefObject } from "react";
+import { useLayoutEffect } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useGridConfig } from "./useGridConfig";
 
 const GAP = 8;
 const ROW_GAP = 12;
@@ -11,15 +11,15 @@ const DEBOUNCE_MS = 200;
 
 /** Create a detached div with a fixed clientWidth (jsdom always reports 0) */
 function createContainer(width: number): HTMLDivElement {
-  const container = document.createElement('div');
-  Object.defineProperty(container, 'clientWidth', {
+  const container = document.createElement("div");
+  Object.defineProperty(container, "clientWidth", {
     configurable: true,
     value: width,
   });
   return container;
 }
 
-describe('useGridConfig', () => {
+describe("useGridConfig", () => {
   const observeSpy = vi.fn();
   const unobserveSpy = vi.fn();
   const disconnectSpy = vi.fn();
@@ -43,7 +43,8 @@ describe('useGridConfig', () => {
     vi.useFakeTimers();
     resizeCallback = null;
     originalResizeObserver = global.ResizeObserver;
-    global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+    global.ResizeObserver =
+      MockResizeObserver as unknown as typeof ResizeObserver;
   });
 
   afterEach(() => {
@@ -73,14 +74,14 @@ describe('useGridConfig', () => {
     act(() => {
       resizeCallback?.(
         [{ contentRect: { width } } as ResizeObserverEntry],
-        {} as ResizeObserver
+        {} as ResizeObserver,
       );
       vi.advanceTimersByTime(DEBOUNCE_MS);
     });
   };
 
-  describe('initial state', () => {
-    it('should return default config when no container is attached', () => {
+  describe("initial state", () => {
+    it("should return default config when no container is attached", () => {
       const { result } = renderUseGridConfig();
 
       expect(result.current.config).toEqual({
@@ -91,14 +92,14 @@ describe('useGridConfig', () => {
       });
     });
 
-    it('should expose thumbnail size bounds', () => {
+    it("should expose thumbnail size bounds", () => {
       const { result } = renderUseGridConfig();
 
       expect(result.current.minSize).toBe(100);
       expect(result.current.maxSize).toBe(300);
     });
 
-    it('should keep default config when container width is 0', () => {
+    it("should keep default config when container width is 0", () => {
       const { result } = renderUseGridConfig(createContainer(0));
 
       expect(result.current.config.columns).toBe(6);
@@ -106,8 +107,8 @@ describe('useGridConfig', () => {
     });
   });
 
-  describe('grid calculation', () => {
-    it('should calculate columns and thumbnail size from container width', () => {
+  describe("grid calculation", () => {
+    it("should calculate columns and thumbnail size from container width", () => {
       const { result } = renderUseGridConfig(createContainer(800));
 
       // floor((800 + 8) / (180 + 8)) = 4 columns
@@ -118,7 +119,7 @@ describe('useGridConfig', () => {
       expect(result.current.config.rowGap).toBe(ROW_GAP);
     });
 
-    it('should calculate more columns for a wider container', () => {
+    it("should calculate more columns for a wider container", () => {
       const { result } = renderUseGridConfig(createContainer(1200));
 
       // floor((1200 + 8) / 188) = 6 columns
@@ -127,7 +128,7 @@ describe('useGridConfig', () => {
       expect(result.current.config.thumbnailSize).toBe(193);
     });
 
-    it('should keep at least 1 column for a very narrow container', () => {
+    it("should keep at least 1 column for a very narrow container", () => {
       const { result } = renderUseGridConfig(createContainer(50));
 
       expect(result.current.config.columns).toBe(1);
@@ -135,8 +136,8 @@ describe('useGridConfig', () => {
     });
   });
 
-  describe('setBaseThumbnailSize', () => {
-    it('should recalculate with a smaller base size', () => {
+  describe("setBaseThumbnailSize", () => {
+    it("should recalculate with a smaller base size", () => {
       const { result } = renderUseGridConfig(createContainer(800));
 
       act(() => {
@@ -149,7 +150,7 @@ describe('useGridConfig', () => {
       expect(result.current.config.thumbnailSize).toBe(107);
     });
 
-    it('should recalculate with a larger base size', () => {
+    it("should recalculate with a larger base size", () => {
       const { result } = renderUseGridConfig(createContainer(800));
 
       act(() => {
@@ -163,8 +164,8 @@ describe('useGridConfig', () => {
     });
   });
 
-  describe('ResizeObserver', () => {
-    it('should observe the container and disconnect on unmount', () => {
+  describe("ResizeObserver", () => {
+    it("should observe the container and disconnect on unmount", () => {
       const container = createContainer(800);
       const { unmount } = renderUseGridConfig(container);
 
@@ -175,14 +176,14 @@ describe('useGridConfig', () => {
       expect(disconnectSpy).toHaveBeenCalled();
     });
 
-    it('should not create an observer when no container is attached', () => {
+    it("should not create an observer when no container is attached", () => {
       renderUseGridConfig();
 
       expect(constructSpy).not.toHaveBeenCalled();
       expect(observeSpy).not.toHaveBeenCalled();
     });
 
-    it('should recalculate on resize', () => {
+    it("should recalculate on resize", () => {
       const { result } = renderUseGridConfig(createContainer(800));
 
       triggerResize(1200);
@@ -191,13 +192,13 @@ describe('useGridConfig', () => {
       expect(result.current.config.thumbnailSize).toBe(193);
     });
 
-    it('should debounce resize callbacks', () => {
+    it("should debounce resize callbacks", () => {
       const { result } = renderUseGridConfig(createContainer(800));
 
       act(() => {
         resizeCallback?.(
           [{ contentRect: { width: 1200 } } as ResizeObserverEntry],
-          {} as ResizeObserver
+          {} as ResizeObserver,
         );
         vi.advanceTimersByTime(DEBOUNCE_MS - 1);
       });
@@ -212,14 +213,14 @@ describe('useGridConfig', () => {
       expect(result.current.config.columns).toBe(6);
     });
 
-    it('should only apply the last width when resized repeatedly', () => {
+    it("should only apply the last width when resized repeatedly", () => {
       const { result } = renderUseGridConfig(createContainer(800));
 
       act(() => {
         [1200, 50, 400].forEach((width) => {
           resizeCallback?.(
             [{ contentRect: { width } } as ResizeObserverEntry],
-            {} as ResizeObserver
+            {} as ResizeObserver,
           );
           vi.advanceTimersByTime(DEBOUNCE_MS - 1);
         });
@@ -231,7 +232,7 @@ describe('useGridConfig', () => {
       expect(result.current.config.thumbnailSize).toBe(196);
     });
 
-    it('should keep the same config object when the result is unchanged', () => {
+    it("should keep the same config object when the result is unchanged", () => {
       const { result } = renderUseGridConfig(createContainer(800));
       const previousConfig = result.current.config;
 
@@ -240,7 +241,7 @@ describe('useGridConfig', () => {
       expect(result.current.config).toBe(previousConfig);
     });
 
-    it('should ignore a resize to zero width', () => {
+    it("should ignore a resize to zero width", () => {
       const { result } = renderUseGridConfig(createContainer(800));
 
       triggerResize(0);

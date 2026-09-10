@@ -8,10 +8,9 @@
 # 使い方:
 #   bin/agent-check           # 通常（変更があれば Rust も検査）
 #   bin/agent-check --quick   # フロントエンドのみ（Rust をスキップ）
-#   bin/agent-check --fix     # eslint --fix を先に走らせてから検査
+#   bin/agent-check --fix     # biome check --write を先に走らせてから検査
 #
 # 環境変数:
-#   AGENT_CHECK_MAX_WARNINGS=n   # ESLint の警告数の上限（既定は .config/agent-check.env の値）
 #   AGENT_CHECK_BASE=main        # Rust 差分判定の基準ブランチ（既定: main）
 #
 # 終了コード: 0=green / 1=いずれかの検査が失敗
@@ -44,19 +43,10 @@ done
 BASE="${AGENT_CHECK_BASE:-main}"
 
 # 警告のラチェット。
-#   .config/agent-check.env に AGENT_CHECK_MAX_WARNINGS=<n> を書くと既定値になる。
-#   環境変数はそれを上書きする。
-#
-# 【重要】既定値をファイルに置いているのは、Claude Code の allow ルールが
-#   「既知の安全な環境変数以外の代入をまたいでマッチしない」ため。
-#   AGENT_CHECK_MAX_WARNINGS=1 ./bin/agent-check は事前許可できないので、
-#   エージェントは素の ./bin/agent-check を叩けば済むようにしてある。
-#   https://code.claude.com/docs/en/permissions
-_default_max_warnings=""
-if [ -f .config/agent-check.env ]; then
-  _default_max_warnings=$(sed -n 's/^AGENT_CHECK_MAX_WARNINGS=//p' .config/agent-check.env | tail -1)
-fi
-MAX_WARNINGS="${AGENT_CHECK_MAX_WARNINGS:-$_default_max_warnings}"
+#   Biome には ESLint の --max-warnings に当たる指定が無いので、上限を数える
+#   代わりに --error-on-warnings で「警告ゼロ」を天井にしている。
+#   その指定は package.json の lint スクリプト側に書いてあり、CI もここも
+#   同じ pnpm run lint を叩く。ずれると「CI は通るのに手元が赤い」が起きる。
 
 # ---- pnpm の解決 -------------------------------------------------------------
 if command -v pnpm >/dev/null 2>&1; then
@@ -114,19 +104,16 @@ echo "=== agent-check start ($(date '+%H:%M:%S')) ==="
 
 # ---- 0. 任意: 自動修正 -------------------------------------------------------
 if [ $FIX -eq 1 ]; then
-  echo "── autofix    eslint --fix"
-  $PNPM exec eslint . --fix >/dev/null 2>&1
+  echo "── autofix    biome check --write"
+  $PNPM run lint:fix >/dev/null 2>&1
 fi
 
 # ---- 1. 型チェック（最速・最も効く） -----------------------------------------
-run_stage typecheck "tsc --noEmit" $PNPM exec tsc --noEmit
+run_stage typecheck "tsc --noEmit (pnpm run typecheck)" $PNPM run typecheck
 
 # ---- 2. Lint -----------------------------------------------------------------
-if [ -n "$MAX_WARNINGS" ]; then
-  run_stage lint "eslint (max-warnings=$MAX_WARNINGS)" $PNPM exec eslint . --max-warnings "$MAX_WARNINGS"
-else
-  run_stage lint "eslint" $PNPM exec eslint .
-fi
+# CI の "Biome" ステップと同じコマンド。
+run_stage lint "biome check (pnpm run lint)" $PNPM run lint
 
 # ---- 3. テスト ---------------------------------------------------------------
 run_stage test "vitest run" $PNPM run test:run

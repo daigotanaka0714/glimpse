@@ -1,7 +1,7 @@
-import { invoke, convertFileSrc } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
-import { open as openDialog } from '@tauri-apps/plugin-dialog';
-import type { ImageItem, LabelStatus } from '@/types';
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import type { ImageItem, LabelStatus } from "@/types";
 
 // Convert file path to asset URL (cross-platform support)
 export function toAssetUrl(filePath: string): string {
@@ -75,39 +75,45 @@ export async function selectFolder(): Promise<string | null> {
   const selected = await openDialog({
     directory: true,
     multiple: false,
-    title: 'Select Photo Folder',
+    title: "Select Photo Folder",
   });
   return selected as string | null;
 }
 
 // Open folder and get image list
-export async function openFolder(folderPath: string): Promise<OpenFolderResult> {
-  return await invoke('open_folder', { folderPath });
+export async function openFolder(
+  folderPath: string,
+): Promise<OpenFolderResult> {
+  return await invoke("open_folder", { folderPath });
 }
 
 // Set label
 export async function setLabel(
   filename: string,
-  label: LabelStatus
+  label: LabelStatus,
 ): Promise<void> {
-  await invoke('set_label', {
+  await invoke("set_label", {
     filename,
-    label: label === 'rejected' ? 'rejected' : null,
+    label: label === "rejected" ? "rejected" : null,
   });
 }
 
 // Save selection position
 export async function saveSelection(index: number): Promise<void> {
-  await invoke('save_selection', { index });
+  await invoke("save_selection", { index });
 }
 
 // Export
 export async function exportAdopted(
   sourceFolder: string,
   destinationFolder: string,
-  mode: 'copy' | 'move' = 'copy'
+  mode: "copy" | "move" = "copy",
 ): Promise<ExportResult> {
-  return await invoke('export_adopted', { sourceFolder, destinationFolder, mode });
+  return await invoke("export_adopted", {
+    sourceFolder,
+    destinationFolder,
+    mode,
+  });
 }
 
 // Select export destination folder
@@ -115,38 +121,44 @@ export async function selectExportFolder(): Promise<string | null> {
   const selected = await openDialog({
     directory: true,
     multiple: false,
-    title: 'Select Export Destination Folder',
+    title: "Select Export Destination Folder",
   });
   return selected as string | null;
 }
 
 // Get EXIF info
 export async function getExif(imagePath: string): Promise<ExifInfo> {
-  return await invoke('get_exif', { imagePath });
+  return await invoke("get_exif", { imagePath });
 }
 
 // Clear thumbnail cache
 export async function clearCache(): Promise<void> {
-  await invoke('clear_cache');
+  await invoke("clear_cache");
 }
 
 // Listen for thumbnail progress events
 export async function onThumbnailProgress(
-  callback: (progress: ThumbnailProgress) => void
+  callback: (progress: ThumbnailProgress) => void,
 ): Promise<() => void> {
-  const unlisten = await listen<ThumbnailProgress>('thumbnail-progress', (event) => {
-    callback(event.payload);
-  });
+  const unlisten = await listen<ThumbnailProgress>(
+    "thumbnail-progress",
+    (event) => {
+      callback(event.payload);
+    },
+  );
   return unlisten;
 }
 
 // Listen for thumbnail generation complete events
 export async function onThumbnailsComplete(
-  callback: (results: ThumbnailResult[]) => void
+  callback: (results: ThumbnailResult[]) => void,
 ): Promise<() => void> {
-  const unlisten = await listen<ThumbnailResult[]>('thumbnails-complete', (event) => {
-    callback(event.payload);
-  });
+  const unlisten = await listen<ThumbnailResult[]>(
+    "thumbnails-complete",
+    (event) => {
+      callback(event.payload);
+    },
+  );
   return unlisten;
 }
 
@@ -155,9 +167,9 @@ export function toImageItem(
   info: ImageInfo,
   index: number,
   labels: Map<string, LabelStatus>,
-  cacheDir: string
+  cacheDir: string,
 ): ImageItem {
-  const thumbnailFilename = info.filename.replace(/\.[^.]+$/, '.jpg');
+  const thumbnailFilename = info.filename.replace(/\.[^.]+$/, ".jpg");
   const thumbnailPath = `${cacheDir}/${thumbnailFilename}`;
 
   return {

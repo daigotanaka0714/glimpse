@@ -1,10 +1,10 @@
-import { X, XCircle, CheckCircle, Layers } from 'lucide-react';
-import { useTranslation } from '@/i18n';
+import { CheckCircle, Layers, X, XCircle } from "lucide-react";
+import { useTranslation } from "@/i18n";
 
 interface BatchActionBarProps {
   selectedCount: number;
   filteredCount: number;
-  filterMode: 'all' | 'adopted' | 'rejected';
+  filterMode: "all" | "adopted" | "rejected";
   onMarkRejected: () => void;
   onRemoveRejected: () => void;
   onMarkAllRejected: () => void;
@@ -26,11 +26,12 @@ export function BatchActionBar({
 
   if (selectedCount <= 1) return null;
 
-  const filterModeLabel = filterMode === 'all'
-    ? t.batchActions.all
-    : filterMode === 'adopted'
-    ? t.batchActions.adopted
-    : t.batchActions.rejected;
+  const filterModeLabel =
+    filterMode === "all"
+      ? t.batchActions.all
+      : filterMode === "adopted"
+        ? t.batchActions.adopted
+        : t.batchActions.rejected;
 
   return (
     <div className="animate-slide-up">
@@ -46,6 +47,7 @@ export function BatchActionBar({
           </div>
 
           <button
+            type="button"
             onClick={onClearSelection}
             className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-text-muted hover:text-text-primary hover:bg-theme-hover rounded-md transition-all"
             title={t.batchActions.clearSelection}
@@ -59,22 +61,34 @@ export function BatchActionBar({
         <div className="flex items-center gap-2">
           {/* Mark selected images as rejected */}
           <button
+            type="button"
             onClick={onMarkRejected}
             className="group flex items-center gap-2 px-4 py-2 bg-rejected/10 hover:bg-rejected/20 border border-rejected/30 hover:border-rejected/50 text-rejected rounded-lg transition-all duration-200"
             title={t.batchActions.markRejected}
           >
-            <XCircle size={16} className="group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-medium">{t.batchActions.markRejected}</span>
+            <XCircle
+              size={16}
+              className="group-hover:scale-110 transition-transform"
+            />
+            <span className="text-sm font-medium">
+              {t.batchActions.markRejected}
+            </span>
           </button>
 
           {/* Remove rejected label from selected images */}
           <button
+            type="button"
             onClick={onRemoveRejected}
             className="group flex items-center gap-2 px-4 py-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 hover:border-green-500/50 text-green-600 rounded-lg transition-all duration-200"
             title={t.batchActions.markAdopted}
           >
-            <CheckCircle size={16} className="group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-medium">{t.batchActions.markAdopted}</span>
+            <CheckCircle
+              size={16}
+              className="group-hover:scale-110 transition-transform"
+            />
+            <span className="text-sm font-medium">
+              {t.batchActions.markAdopted}
+            </span>
           </button>
 
           {/* Separator */}
@@ -86,6 +100,7 @@ export function BatchActionBar({
               {filterModeLabel} {filteredCount}:
             </span>
             <button
+              type="button"
               onClick={onMarkAllRejected}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-text-muted hover:text-rejected hover:bg-rejected/10 border border-border-subtle hover:border-rejected/30 rounded-md transition-all"
               title={t.batchActions.batchReject}
@@ -94,6 +109,7 @@ export function BatchActionBar({
               <span>{t.batchActions.batchReject}</span>
             </button>
             <button
+              type="button"
               onClick={onRemoveAllRejected}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-text-muted hover:text-green-600 hover:bg-green-500/10 border border-border-subtle hover:border-green-500/30 rounded-md transition-all"
               title={t.batchActions.batchClear}

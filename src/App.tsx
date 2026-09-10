@@ -1,41 +1,52 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { getVersion } from "@tauri-apps/api/app";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Header,
-  Toolbar,
-  ThumbnailGrid,
-  DetailView,
-  CompareView,
-  GalleryView,
-  StatusBar,
-  EmptyState,
-  EmptyFolderState,
-  ExportDialog,
   BatchActionBar,
-  SettingsDialog,
-  UpdateNotification,
+  CompareView,
+  DetailView,
+  EmptyFolderState,
+  EmptyState,
+  ExportDialog,
+  GalleryView,
+  Header,
   HelpDialog,
-} from '@/components';
-import { useKeyboardNavigation, useGridConfig, useDragAndDrop, useImageLabels } from '@/hooks';
-import { useTranslation } from '@/i18n';
-import type { ImageItem, LabelStatus, FilterMode, ThemeMode, ViewMode } from '@/types';
+  SettingsDialog,
+  StatusBar,
+  ThumbnailGrid,
+  Toolbar,
+  UpdateNotification,
+} from "@/components";
 import {
-  selectFolder,
-  openFolder,
-  saveSelection,
+  useDragAndDrop,
+  useGridConfig,
+  useImageLabels,
+  useKeyboardNavigation,
+} from "@/hooks";
+import { useTranslation } from "@/i18n";
+import type {
+  FilterMode,
+  ImageItem,
+  LabelStatus,
+  ThemeMode,
+  ViewMode,
+} from "@/types";
+import { playCompletionSound } from "@/utils/notification";
+import {
+  clearCache,
   exportAdopted,
-  selectExportFolder,
   onThumbnailProgress,
   onThumbnailsComplete,
-  toImageItem,
-  clearCache,
-  type ThumbnailResult,
+  openFolder,
   type SubfolderInfo,
-} from '@/utils/tauri';
-import { playCompletionSound } from '@/utils/notification';
-import { getVersion } from '@tauri-apps/api/app';
+  saveSelection,
+  selectExportFolder,
+  selectFolder,
+  type ThumbnailResult,
+  toImageItem,
+} from "@/utils/tauri";
 
-const GITHUB_OWNER = 'daigotanaka0714';
-const GITHUB_REPO = 'glimpse';
+const GITHUB_OWNER = "daigotanaka0714";
+const GITHUB_REPO = "glimpse";
 
 export default function App() {
   const t = useTranslation();
@@ -43,11 +54,13 @@ export default function App() {
   // State management
   const [images, setImages] = useState<ImageItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
+    new Set(),
+  );
   // Anchor for range selection (Shift+click / Shift+arrow).
   // Stays fixed while extending range so repeated Shift+arrow keeps the same origin.
   const [anchorIndex, setAnchorIndex] = useState(0);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [compareIndex, setCompareIndex] = useState(1); // Second image index for compare mode
   const [folderPath, setFolderPath] = useState<string | null>(null);
   const [subfolders, setSubfolders] = useState<SubfolderInfo[]>([]);
@@ -61,34 +74,43 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Phase 2 new features
-  const [filterMode, setFilterMode] = useState<FilterMode>('all');
-  const [theme, setTheme] = useState<ThemeMode>('dark');
+  const [filterMode, setFilterMode] = useState<FilterMode>("all");
+  const [theme, setTheme] = useState<ThemeMode>("dark");
   const [baseThumbnailSize, setBaseThumbnailSize] = useState(180);
-  const [appVersion, setAppVersion] = useState('');
+  const [appVersion, setAppVersion] = useState("");
 
   useEffect(() => {
     getVersion().then(setAppVersion).catch(console.error);
   }, []);
 
-  const { config: gridConfig, containerRef: gridContainerRef, setBaseThumbnailSize: updateGridSize, minSize, maxSize } = useGridConfig();
+  const {
+    config: gridConfig,
+    containerRef: gridContainerRef,
+    setBaseThumbnailSize: updateGridSize,
+    minSize,
+    maxSize,
+  } = useGridConfig();
 
   // Store session info
   const sessionRef = useRef<{ id: string; cacheDir: string } | null>(null);
 
   // Apply theme
   useEffect(() => {
-    if (theme === 'light') {
-      document.documentElement.classList.add('light');
+    if (theme === "light") {
+      document.documentElement.classList.add("light");
     } else {
-      document.documentElement.classList.remove('light');
+      document.documentElement.classList.remove("light");
     }
   }, [theme]);
 
   // Update grid when thumbnail size changes
-  const handleThumbnailSizeChange = useCallback((size: number) => {
-    setBaseThumbnailSize(size);
-    updateGridSize(size);
-  }, [updateGridSize]);
+  const handleThumbnailSizeChange = useCallback(
+    (size: number) => {
+      setBaseThumbnailSize(size);
+      updateGridSize(size);
+    },
+    [updateGridSize],
+  );
 
   // Open folder handler (without dialog - for drag & drop)
   const handleOpenFolderByPath = useCallback(async (path: string) => {
@@ -109,14 +131,14 @@ export default function App() {
       // Convert label info to map
       const labelsMap = new Map<string, LabelStatus>();
       result.labels.forEach((l) => {
-        if (l.label === 'rejected') {
-          labelsMap.set(l.filename, 'rejected');
+        if (l.label === "rejected") {
+          labelsMap.set(l.filename, "rejected");
         }
       });
 
       // Convert image info to ImageItem
       const imageItems = result.images.map((info, index) =>
-        toImageItem(info, index, labelsMap, result.cache_dir)
+        toImageItem(info, index, labelsMap, result.cache_dir),
       );
 
       setImages(imageItems);
@@ -125,7 +147,7 @@ export default function App() {
       setAnchorIndex(result.last_selected_index);
       setThumbnailProgress({ completed: 0, total: result.images.length });
     } catch (error) {
-      console.error('Failed to open folder:', error);
+      console.error("Failed to open folder:", error);
     } finally {
       setIsLoading(false);
     }
@@ -147,25 +169,27 @@ export default function App() {
         setThumbnailProgress(progress);
       });
 
-      unlistenComplete = await onThumbnailsComplete((results: ThumbnailResult[]) => {
-        // Update thumbnailLoaded to true and previewPath after thumbnail generation completes
-        setImages((prev) =>
-          prev.map((img) => {
-            const result = results.find((r) => r.filename === img.filename);
-            if (result && result.success) {
-              return {
-                ...img,
-                thumbnailLoaded: true,
-                previewPath: result.preview_path || undefined,
-              };
-            }
-            return img;
-          })
-        );
+      unlistenComplete = await onThumbnailsComplete(
+        (results: ThumbnailResult[]) => {
+          // Update thumbnailLoaded to true and previewPath after thumbnail generation completes
+          setImages((prev) =>
+            prev.map((img) => {
+              const result = results.find((r) => r.filename === img.filename);
+              if (result?.success) {
+                return {
+                  ...img,
+                  thumbnailLoaded: true,
+                  previewPath: result.preview_path || undefined,
+                };
+              }
+              return img;
+            }),
+          );
 
-        // Play completion notification sound
-        playCompletionSound();
-      });
+          // Play completion notification sound
+          playCompletionSound();
+        },
+      );
     };
 
     setupListeners();
@@ -186,10 +210,10 @@ export default function App() {
   // Filtered image list
   const filteredImages = useMemo(() => {
     switch (filterMode) {
-      case 'adopted':
-        return images.filter((img) => img.label !== 'rejected');
-      case 'rejected':
-        return images.filter((img) => img.label === 'rejected');
+      case "adopted":
+        return images.filter((img) => img.label !== "rejected");
+      case "rejected":
+        return images.filter((img) => img.label === "rejected");
       default:
         return images;
     }
@@ -197,7 +221,7 @@ export default function App() {
 
   // Label counts
   const { rejectedCount, adoptedCount } = useMemo(() => {
-    const rejected = images.filter((img) => img.label === 'rejected').length;
+    const rejected = images.filter((img) => img.label === "rejected").length;
     return {
       rejectedCount: rejected,
       adoptedCount: images.length - rejected,
@@ -225,41 +249,47 @@ export default function App() {
   });
 
   // Actions
-  const handleSelect = useCallback((index: number, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
-    const isMultiSelect = event?.ctrlKey || event?.metaKey;
-    const isRangeSelect = event?.shiftKey;
+  const handleSelect = useCallback(
+    (
+      index: number,
+      event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean },
+    ) => {
+      const isMultiSelect = event?.ctrlKey || event?.metaKey;
+      const isRangeSelect = event?.shiftKey;
 
-    if (isMultiSelect) {
-      // Ctrl/Cmd + click: toggle selection
-      setSelectedIndices((prev) => {
-        const newSet = new Set(prev);
-        if (newSet.has(index)) {
-          newSet.delete(index);
-        } else {
-          newSet.add(index);
+      if (isMultiSelect) {
+        // Ctrl/Cmd + click: toggle selection
+        setSelectedIndices((prev) => {
+          const newSet = new Set(prev);
+          if (newSet.has(index)) {
+            newSet.delete(index);
+          } else {
+            newSet.add(index);
+          }
+          return newSet;
+        });
+        setSelectedIndex(index);
+        setAnchorIndex(index);
+      } else if (isRangeSelect) {
+        // Shift + click / Shift + arrow: range selection from anchor
+        const start = Math.min(anchorIndex, index);
+        const end = Math.max(anchorIndex, index);
+        const newSet = new Set<number>();
+        for (let i = start; i <= end; i++) {
+          newSet.add(i);
         }
-        return newSet;
-      });
-      setSelectedIndex(index);
-      setAnchorIndex(index);
-    } else if (isRangeSelect) {
-      // Shift + click / Shift + arrow: range selection from anchor
-      const start = Math.min(anchorIndex, index);
-      const end = Math.max(anchorIndex, index);
-      const newSet = new Set<number>();
-      for (let i = start; i <= end; i++) {
-        newSet.add(i);
+        setSelectedIndices(newSet);
+        setSelectedIndex(index);
+        // anchor stays fixed for continued range extension
+      } else {
+        // Normal click / plain arrow: single selection
+        setSelectedIndex(index);
+        setSelectedIndices(new Set([index]));
+        setAnchorIndex(index);
       }
-      setSelectedIndices(newSet);
-      setSelectedIndex(index);
-      // anchor stays fixed for continued range extension
-    } else {
-      // Normal click / plain arrow: single selection
-      setSelectedIndex(index);
-      setSelectedIndices(new Set([index]));
-      setAnchorIndex(index);
-    }
-  }, [anchorIndex]);
+    },
+    [anchorIndex],
+  );
 
   // Select all images (Cmd/Ctrl + A)
   const handleSelectAll = useCallback(() => {
@@ -312,12 +342,12 @@ export default function App() {
 
   const handleEnterDetail = useCallback(() => {
     if (filteredImages.length > 0) {
-      setViewMode('detail');
+      setViewMode("detail");
     }
   }, [filteredImages.length]);
 
   const handleExitDetail = useCallback(() => {
-    setViewMode('grid');
+    setViewMode("grid");
   }, []);
 
   // Compare mode
@@ -330,42 +360,46 @@ export default function App() {
         setCompareIndex(indices[1]);
       } else {
         // If single selection, compare with next image
-        const nextIndex = selectedIndex < filteredImages.length - 1 ? selectedIndex + 1 : 0;
+        const nextIndex =
+          selectedIndex < filteredImages.length - 1 ? selectedIndex + 1 : 0;
         setCompareIndex(nextIndex);
       }
-      setViewMode('compare');
+      setViewMode("compare");
     }
   }, [filteredImages.length, selectedIndex, selectedIndices]);
 
   const handleExitCompare = useCallback(() => {
-    setViewMode('grid');
+    setViewMode("grid");
   }, []);
 
   // Gallery mode
   const handleEnterGallery = useCallback(() => {
     if (filteredImages.length > 0) {
-      setViewMode('gallery');
+      setViewMode("gallery");
     }
   }, [filteredImages.length]);
 
   const handleExitGallery = useCallback(() => {
-    setViewMode('grid');
+    setViewMode("grid");
   }, []);
 
   // Batch toggle label for gallery view
-  const handleGalleryBatchToggleLabel = useCallback(async (indices: number[], label: 'rejected' | null) => {
-    const result = await batchToggleLabelByIndices(indices, label);
-    if (!result.success && result.failedCount > 0) {
-      console.warn(`Failed to update ${result.failedCount} label(s)`);
-    }
-  }, [batchToggleLabelByIndices]);
+  const handleGalleryBatchToggleLabel = useCallback(
+    async (indices: number[], label: "rejected" | null) => {
+      const result = await batchToggleLabelByIndices(indices, label);
+      if (!result.success && result.failedCount > 0) {
+        console.warn(`Failed to update ${result.failedCount} label(s)`);
+      }
+    },
+    [batchToggleLabelByIndices],
+  );
 
   const handleToggleLabelCompareLeft = useCallback(async () => {
     const img = filteredImages[selectedIndex];
     if (!img) return;
     const result = await toggleLabelByFilename(img.filename);
     if (!result.success) {
-      console.warn('Failed to toggle label');
+      console.warn("Failed to toggle label");
     }
   }, [filteredImages, selectedIndex, toggleLabelByFilename]);
 
@@ -374,7 +408,7 @@ export default function App() {
     if (!img) return;
     const result = await toggleLabelByFilename(img.filename);
     if (!result.success) {
-      console.warn('Failed to toggle label');
+      console.warn("Failed to toggle label");
     }
   }, [filteredImages, compareIndex, toggleLabelByFilename]);
 
@@ -386,7 +420,7 @@ export default function App() {
 
       await handleOpenFolderByPath(path);
     } catch (error) {
-      console.error('Failed to open folder:', error);
+      console.error("Failed to open folder:", error);
     }
   }, [handleOpenFolderByPath]);
 
@@ -400,23 +434,28 @@ export default function App() {
 
       // Reset thumbnail load state
       setImages((prev) =>
-        prev.map((img) => ({ ...img, thumbnailLoaded: false }))
+        prev.map((img) => ({ ...img, thumbnailLoaded: false })),
       );
 
       // Reload folder (triggers thumbnail regeneration)
       await handleOpenFolderByPath(folderPath);
     } catch (error) {
-      console.error('Failed to reload:', error);
+      console.error("Failed to reload:", error);
     }
   }, [folderPath, handleOpenFolderByPath]);
 
-  const handleExport = useCallback(async (options: { destinationPath: string; mode: 'copy' | 'move' }) => {
-    if (!folderPath) return;
+  const handleExport = useCallback(
+    async (options: { destinationPath: string; mode: "copy" | "move" }) => {
+      if (!folderPath) return;
 
-    await exportAdopted(folderPath, options.destinationPath, options.mode);
-  }, [folderPath]);
+      await exportAdopted(folderPath, options.destinationPath, options.mode);
+    },
+    [folderPath],
+  );
 
-  const handleSelectExportFolder = useCallback(async (): Promise<string | null> => {
+  const handleSelectExportFolder = useCallback(async (): Promise<
+    string | null
+  > => {
     return await selectExportFolder();
   }, []);
 
@@ -445,7 +484,9 @@ export default function App() {
   });
 
   return (
-    <div className={`h-screen flex flex-col bg-bg-primary text-text-primary transition-colors`}>
+    <div
+      className={`h-screen flex flex-col bg-bg-primary text-text-primary transition-colors`}
+    >
       <Header
         folderPath={folderPath}
         totalFiles={images.length}
@@ -535,7 +576,7 @@ export default function App() {
         selectedCount={selectedIndices.size}
       />
 
-      {viewMode === 'detail' && selectedItem && (
+      {viewMode === "detail" && selectedItem && (
         <DetailView
           item={selectedItem}
           totalItems={filteredImages.length}
@@ -544,26 +585,29 @@ export default function App() {
             selectedIndex > 0 && handleSelect(selectedIndex - 1)
           }
           onNext={() =>
-            selectedIndex < filteredImages.length - 1 && handleSelect(selectedIndex + 1)
+            selectedIndex < filteredImages.length - 1 &&
+            handleSelect(selectedIndex + 1)
           }
           onToggleLabel={handleToggleLabel}
         />
       )}
 
-      {viewMode === 'compare' && filteredImages[selectedIndex] && filteredImages[compareIndex] && (
-        <CompareView
-          leftItem={filteredImages[selectedIndex]}
-          rightItem={filteredImages[compareIndex]}
-          totalItems={filteredImages.length}
-          onClose={handleExitCompare}
-          onSelectLeft={(index) => setSelectedIndex(index)}
-          onSelectRight={(index) => setCompareIndex(index)}
-          onToggleLabelLeft={handleToggleLabelCompareLeft}
-          onToggleLabelRight={handleToggleLabelCompareRight}
-        />
-      )}
+      {viewMode === "compare" &&
+        filteredImages[selectedIndex] &&
+        filteredImages[compareIndex] && (
+          <CompareView
+            leftItem={filteredImages[selectedIndex]}
+            rightItem={filteredImages[compareIndex]}
+            totalItems={filteredImages.length}
+            onClose={handleExitCompare}
+            onSelectLeft={(index) => setSelectedIndex(index)}
+            onSelectRight={(index) => setCompareIndex(index)}
+            onToggleLabelLeft={handleToggleLabelCompareLeft}
+            onToggleLabelRight={handleToggleLabelCompareRight}
+          />
+        )}
 
-      {viewMode === 'gallery' && filteredImages.length > 0 && (
+      {viewMode === "gallery" && filteredImages.length > 0 && (
         <GalleryView
           items={filteredImages}
           selectedIndex={selectedIndex}
@@ -597,7 +641,9 @@ export default function App() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-accent/20 border-4 border-dashed border-accent pointer-events-none">
           <div className="text-center">
             <div className="text-6xl mb-4">📁</div>
-            <p className="text-xl font-medium text-text-primary">Drop folder to open</p>
+            <p className="text-xl font-medium text-text-primary">
+              Drop folder to open
+            </p>
           </div>
         </div>
       )}

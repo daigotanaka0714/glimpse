@@ -1,19 +1,19 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { Toolbar } from './Toolbar';
-import type { FilterMode, ThemeMode, ViewMode } from '@/types';
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import type { FilterMode, ThemeMode, ViewMode } from "@/types";
+import { Toolbar } from "./Toolbar";
 
-describe('Toolbar', () => {
+describe("Toolbar", () => {
   const defaultProps = {
     thumbnailSize: 180,
     minSize: 100,
     maxSize: 300,
     onThumbnailSizeChange: vi.fn(),
-    filterMode: 'all' as FilterMode,
+    filterMode: "all" as FilterMode,
     onFilterModeChange: vi.fn(),
-    theme: 'dark' as ThemeMode,
+    theme: "dark" as ThemeMode,
     onThemeChange: vi.fn(),
-    viewMode: 'grid' as ViewMode,
+    viewMode: "grid" as ViewMode,
     onEnterGallery: vi.fn(),
     hasSelection: false,
     counts: {
@@ -23,77 +23,79 @@ describe('Toolbar', () => {
     },
   };
 
-  it('should render thumbnail size slider', () => {
+  it("should render thumbnail size slider", () => {
     render(<Toolbar {...defaultProps} />);
 
-    const slider = screen.getByRole('slider');
+    const slider = screen.getByRole("slider");
     expect(slider).toBeInTheDocument();
-    expect(slider).toHaveValue('180');
+    expect(slider).toHaveValue("180");
   });
 
-  it('should call onThumbnailSizeChange when slider changes', () => {
+  it("should call onThumbnailSizeChange when slider changes", () => {
     const handleChange = vi.fn();
     render(<Toolbar {...defaultProps} onThumbnailSizeChange={handleChange} />);
 
-    const slider = screen.getByRole('slider');
-    fireEvent.change(slider, { target: { value: '200' } });
+    const slider = screen.getByRole("slider");
+    fireEvent.change(slider, { target: { value: "200" } });
 
     expect(handleChange).toHaveBeenCalledWith(200);
   });
 
-  it('should render filter buttons with counts', () => {
+  it("should render filter buttons with counts", () => {
     render(<Toolbar {...defaultProps} />);
 
-    expect(screen.getByText('All')).toBeInTheDocument();
-    expect(screen.getByText('(100)')).toBeInTheDocument();
-    expect(screen.getByText('Adopted')).toBeInTheDocument();
-    expect(screen.getByText('(80)')).toBeInTheDocument();
-    expect(screen.getByText('Rejected')).toBeInTheDocument();
-    expect(screen.getByText('(20)')).toBeInTheDocument();
+    expect(screen.getByText("All")).toBeInTheDocument();
+    expect(screen.getByText("(100)")).toBeInTheDocument();
+    expect(screen.getByText("Adopted")).toBeInTheDocument();
+    expect(screen.getByText("(80)")).toBeInTheDocument();
+    expect(screen.getByText("Rejected")).toBeInTheDocument();
+    expect(screen.getByText("(20)")).toBeInTheDocument();
   });
 
-  it('should highlight active filter button', () => {
+  it("should highlight active filter button", () => {
     render(<Toolbar {...defaultProps} filterMode="rejected" />);
 
-    const rejectedButton = screen.getByText('Rejected').closest('button');
-    expect(rejectedButton?.className).toContain('bg-accent');
+    const rejectedButton = screen.getByText("Rejected").closest("button");
+    expect(rejectedButton?.className).toContain("bg-accent");
   });
 
-  it('should call onFilterModeChange when filter button clicked', () => {
+  it("should call onFilterModeChange when filter button clicked", () => {
     const handleChange = vi.fn();
     render(<Toolbar {...defaultProps} onFilterModeChange={handleChange} />);
 
-    const adoptedButton = screen.getByText('Adopted').closest('button');
+    const adoptedButton = screen.getByText("Adopted").closest("button");
     if (adoptedButton) {
       fireEvent.click(adoptedButton);
-      expect(handleChange).toHaveBeenCalledWith('adopted');
+      expect(handleChange).toHaveBeenCalledWith("adopted");
     }
   });
 
-  it('should render theme toggle button', () => {
+  it("should render theme toggle button", () => {
     render(<Toolbar {...defaultProps} />);
 
     const themeButton = screen.getByLabelText(/Toggle theme/);
     expect(themeButton).toBeInTheDocument();
   });
 
-  it('should call onThemeChange when theme button clicked', () => {
+  it("should call onThemeChange when theme button clicked", () => {
     const handleChange = vi.fn();
     render(<Toolbar {...defaultProps} onThemeChange={handleChange} />);
 
     const themeButton = screen.getByLabelText(/Toggle theme/);
     fireEvent.click(themeButton);
 
-    expect(handleChange).toHaveBeenCalledWith('light');
+    expect(handleChange).toHaveBeenCalledWith("light");
   });
 
-  it('should toggle to dark when current theme is light', () => {
+  it("should toggle to dark when current theme is light", () => {
     const handleChange = vi.fn();
-    render(<Toolbar {...defaultProps} theme="light" onThemeChange={handleChange} />);
+    render(
+      <Toolbar {...defaultProps} theme="light" onThemeChange={handleChange} />,
+    );
 
     const themeButton = screen.getByLabelText(/Toggle theme/);
     fireEvent.click(themeButton);
 
-    expect(handleChange).toHaveBeenCalledWith('dark');
+    expect(handleChange).toHaveBeenCalledWith("dark");
   });
 });

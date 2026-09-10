@@ -1,6 +1,6 @@
-import { useCallback } from 'react';
-import type { ImageItem, LabelStatus } from '@/types';
-import { setLabel as setLabelApi } from '@/utils/tauri';
+import { useCallback } from "react";
+import type { ImageItem, LabelStatus } from "@/types";
+import { setLabel as setLabelApi } from "@/utils/tauri";
 
 interface BatchLabelResult {
   success: boolean;
@@ -31,31 +31,39 @@ export function useImageLabels({
   const applyLabelToImages = useCallback(
     async (
       filenames: string[],
-      label: LabelStatus
+      label: LabelStatus,
     ): Promise<BatchLabelResult> => {
       if (filenames.length === 0) {
-        return { success: true, successCount: 0, failedCount: 0, failedFilenames: [] };
+        return {
+          success: true,
+          successCount: 0,
+          failedCount: 0,
+          failedFilenames: [],
+        };
       }
 
       // Immediate UI update (optimistic)
       const filenameSet = new Set(filenames);
       setImages((prev) =>
         prev.map((img) =>
-          filenameSet.has(img.filename) ? { ...img, label } : img
-        )
+          filenameSet.has(img.filename) ? { ...img, label } : img,
+        ),
       );
 
       // Save to backend using Promise.allSettled
       const results = await Promise.allSettled(
-        filenames.map((filename) => setLabelApi(filename, label))
+        filenames.map((filename) => setLabelApi(filename, label)),
       );
 
       // Analyze results
       const failedFilenames: string[] = [];
       results.forEach((result, index) => {
-        if (result.status === 'rejected') {
+        if (result.status === "rejected") {
           failedFilenames.push(filenames[index]);
-          console.error(`Failed to set label for ${filenames[index]}:`, result.reason);
+          console.error(
+            `Failed to set label for ${filenames[index]}:`,
+            result.reason,
+          );
         }
       });
 
@@ -73,7 +81,7 @@ export function useImageLabels({
               return { ...img, label: original?.label ?? null };
             }
             return img;
-          })
+          }),
         );
       }
 
@@ -84,7 +92,7 @@ export function useImageLabels({
         failedFilenames,
       };
     },
-    [images, setImages]
+    [images, setImages],
   );
 
   /**
@@ -98,12 +106,18 @@ export function useImageLabels({
       indicesToToggle.length === 0 ||
       indicesToToggle.some((i) => i < 0 || i >= filteredImages.length)
     ) {
-      return { success: false, successCount: 0, failedCount: 0, failedFilenames: [] };
+      return {
+        success: false,
+        successCount: 0,
+        failedCount: 0,
+        failedFilenames: [],
+      };
     }
 
     // Use the first selected image's label state as reference
     const firstImage = filteredImages[indicesToToggle[0]];
-    const newLabel: LabelStatus = firstImage.label === 'rejected' ? null : 'rejected';
+    const newLabel: LabelStatus =
+      firstImage.label === "rejected" ? null : "rejected";
 
     const filenames = indicesToToggle
       .map((idx) => filteredImages[idx]?.filename)
@@ -115,43 +129,60 @@ export function useImageLabels({
   /**
    * Mark selected images as rejected
    */
-  const markSelectedRejected = useCallback(async (): Promise<BatchLabelResult> => {
-    if (selectedIndices.size === 0) {
-      return { success: false, successCount: 0, failedCount: 0, failedFilenames: [] };
-    }
+  const markSelectedRejected =
+    useCallback(async (): Promise<BatchLabelResult> => {
+      if (selectedIndices.size === 0) {
+        return {
+          success: false,
+          successCount: 0,
+          failedCount: 0,
+          failedFilenames: [],
+        };
+      }
 
-    const filenames = Array.from(selectedIndices)
-      .map((idx) => filteredImages[idx]?.filename)
-      .filter(Boolean) as string[];
+      const filenames = Array.from(selectedIndices)
+        .map((idx) => filteredImages[idx]?.filename)
+        .filter(Boolean) as string[];
 
-    return applyLabelToImages(filenames, 'rejected');
-  }, [selectedIndices, filteredImages, applyLabelToImages]);
+      return applyLabelToImages(filenames, "rejected");
+    }, [selectedIndices, filteredImages, applyLabelToImages]);
 
   /**
    * Remove rejected label from selected images
    */
-  const removeSelectedRejected = useCallback(async (): Promise<BatchLabelResult> => {
-    if (selectedIndices.size === 0) {
-      return { success: false, successCount: 0, failedCount: 0, failedFilenames: [] };
-    }
+  const removeSelectedRejected =
+    useCallback(async (): Promise<BatchLabelResult> => {
+      if (selectedIndices.size === 0) {
+        return {
+          success: false,
+          successCount: 0,
+          failedCount: 0,
+          failedFilenames: [],
+        };
+      }
 
-    const filenames = Array.from(selectedIndices)
-      .map((idx) => filteredImages[idx]?.filename)
-      .filter(Boolean) as string[];
+      const filenames = Array.from(selectedIndices)
+        .map((idx) => filteredImages[idx]?.filename)
+        .filter(Boolean) as string[];
 
-    return applyLabelToImages(filenames, null);
-  }, [selectedIndices, filteredImages, applyLabelToImages]);
+      return applyLabelToImages(filenames, null);
+    }, [selectedIndices, filteredImages, applyLabelToImages]);
 
   /**
    * Mark all filtered images as rejected
    */
   const markAllRejected = useCallback(async (): Promise<BatchLabelResult> => {
     if (filteredImages.length === 0) {
-      return { success: false, successCount: 0, failedCount: 0, failedFilenames: [] };
+      return {
+        success: false,
+        successCount: 0,
+        failedCount: 0,
+        failedFilenames: [],
+      };
     }
 
     const filenames = filteredImages.map((img) => img.filename);
-    return applyLabelToImages(filenames, 'rejected');
+    return applyLabelToImages(filenames, "rejected");
   }, [filteredImages, applyLabelToImages]);
 
   /**
@@ -159,7 +190,12 @@ export function useImageLabels({
    */
   const removeAllRejected = useCallback(async (): Promise<BatchLabelResult> => {
     if (filteredImages.length === 0) {
-      return { success: false, successCount: 0, failedCount: 0, failedFilenames: [] };
+      return {
+        success: false,
+        successCount: 0,
+        failedCount: 0,
+        failedFilenames: [],
+      };
     }
 
     const filenames = filteredImages.map((img) => img.filename);
@@ -173,22 +209,36 @@ export function useImageLabels({
     async (filename: string): Promise<BatchLabelResult> => {
       const img = images.find((i) => i.filename === filename);
       if (!img) {
-        return { success: false, successCount: 0, failedCount: 0, failedFilenames: [filename] };
+        return {
+          success: false,
+          successCount: 0,
+          failedCount: 0,
+          failedFilenames: [filename],
+        };
       }
 
-      const newLabel: LabelStatus = img.label === 'rejected' ? null : 'rejected';
+      const newLabel: LabelStatus =
+        img.label === "rejected" ? null : "rejected";
       return applyLabelToImages([filename], newLabel);
     },
-    [images, applyLabelToImages]
+    [images, applyLabelToImages],
   );
 
   /**
    * Batch toggle label for gallery view (by indices)
    */
   const batchToggleLabelByIndices = useCallback(
-    async (indices: number[], label: LabelStatus): Promise<BatchLabelResult> => {
+    async (
+      indices: number[],
+      label: LabelStatus,
+    ): Promise<BatchLabelResult> => {
       if (indices.length === 0) {
-        return { success: true, successCount: 0, failedCount: 0, failedFilenames: [] };
+        return {
+          success: true,
+          successCount: 0,
+          failedCount: 0,
+          failedFilenames: [],
+        };
       }
 
       const filenames = indices
@@ -197,7 +247,7 @@ export function useImageLabels({
 
       return applyLabelToImages(filenames, label);
     },
-    [filteredImages, applyLabelToImages]
+    [filteredImages, applyLabelToImages],
   );
 
   return {

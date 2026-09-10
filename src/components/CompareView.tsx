@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { ImageItem } from '@/types';
-import { toAssetUrl } from '@/utils/tauri';
-import { useTranslation } from '@/i18n';
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "@/i18n";
+import type { ImageItem } from "@/types";
+import { toAssetUrl } from "@/utils/tauri";
 
 interface CompareViewProps {
   leftItem: ImageItem;
@@ -26,22 +26,18 @@ export function CompareView({
   onToggleLabelRight,
 }: CompareViewProps) {
   const t = useTranslation();
-  const [leftLoaded, setLeftLoaded] = useState(false);
-  const [rightLoaded, setRightLoaded] = useState(false);
-
-  // Reset when image changes
-  useEffect(() => {
-    setLeftLoaded(false);
-  }, [leftItem.path]);
-
-  useEffect(() => {
-    setRightLoaded(false);
-  }, [rightItem.path]);
+  // 読み込み済みかどうかは「どの画像を読み終えたか」から導出する。
+  // 画像が変わった瞬間に false へ戻るので、リセット用の useEffect は要らない。
+  const [loadedLeftPath, setLoadedLeftPath] = useState<string | null>(null);
+  const [loadedRightPath, setLoadedRightPath] = useState<string | null>(null);
+  const leftLoaded = loadedLeftPath === leftItem.path;
+  const rightLoaded = loadedRightPath === rightItem.path;
 
   return (
     <div className="fixed inset-0 z-50 bg-bg-primary flex flex-col animate-fade-in">
       {/* Close button */}
       <button
+        type="button"
         onClick={onClose}
         className="absolute top-4 right-4 z-20 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
       >
@@ -55,9 +51,17 @@ export function CompareView({
           item={leftItem}
           side="left"
           isLoaded={leftLoaded}
-          onLoad={() => setLeftLoaded(true)}
-          onPrevious={leftItem.index > 0 ? () => onSelectLeft(leftItem.index - 1) : undefined}
-          onNext={leftItem.index < totalItems - 1 ? () => onSelectLeft(leftItem.index + 1) : undefined}
+          onLoad={() => setLoadedLeftPath(leftItem.path)}
+          onPrevious={
+            leftItem.index > 0
+              ? () => onSelectLeft(leftItem.index - 1)
+              : undefined
+          }
+          onNext={
+            leftItem.index < totalItems - 1
+              ? () => onSelectLeft(leftItem.index + 1)
+              : undefined
+          }
           onToggleLabel={onToggleLabelLeft}
         />
 
@@ -69,9 +73,17 @@ export function CompareView({
           item={rightItem}
           side="right"
           isLoaded={rightLoaded}
-          onLoad={() => setRightLoaded(true)}
-          onPrevious={rightItem.index > 0 ? () => onSelectRight(rightItem.index - 1) : undefined}
-          onNext={rightItem.index < totalItems - 1 ? () => onSelectRight(rightItem.index + 1) : undefined}
+          onLoad={() => setLoadedRightPath(rightItem.path)}
+          onPrevious={
+            rightItem.index > 0
+              ? () => onSelectRight(rightItem.index - 1)
+              : undefined
+          }
+          onNext={
+            rightItem.index < totalItems - 1
+              ? () => onSelectRight(rightItem.index + 1)
+              : undefined
+          }
           onToggleLabel={onToggleLabelRight}
         />
       </div>
@@ -79,7 +91,9 @@ export function CompareView({
       {/* Footer */}
       <div className="h-12 px-6 bg-bg-secondary border-t border-border-subtle flex items-center justify-center">
         <span className="text-sm text-text-muted">
-          ← → {t.compareView.navigateLeft} | Shift + ← → {t.compareView.navigateRight} | 1 {t.compareView.rejectLeft} | 2 {t.compareView.rejectRight} | ESC {t.compareView.close}
+          ← → {t.compareView.navigateLeft} | Shift + ← →{" "}
+          {t.compareView.navigateRight} | 1 {t.compareView.rejectLeft} | 2{" "}
+          {t.compareView.rejectRight} | ESC {t.compareView.close}
         </span>
       </div>
     </div>
@@ -88,7 +102,7 @@ export function CompareView({
 
 interface ComparePanelProps {
   item: ImageItem;
-  side: 'left' | 'right';
+  side: "left" | "right";
   isLoaded: boolean;
   onLoad: () => void;
   onPrevious?: () => void;
@@ -105,7 +119,7 @@ function ComparePanel({
   onNext,
   onToggleLabel,
 }: ComparePanelProps) {
-  const isRejected = item.label === 'rejected';
+  const isRejected = item.label === "rejected";
 
   return (
     <div className="flex-1 flex flex-col relative">
@@ -114,6 +128,7 @@ function ComparePanel({
         {/* Navigation button - left */}
         {onPrevious && (
           <button
+            type="button"
             onClick={onPrevious}
             className="absolute left-2 z-10 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
@@ -133,8 +148,8 @@ function ComparePanel({
             alt={item.filename}
             className={`
               max-w-full max-h-[calc(100vh-160px)] object-contain
-              ${isLoaded ? 'opacity-100' : 'opacity-0'}
-              ${isRejected ? 'opacity-50' : ''}
+              ${isLoaded ? "opacity-100" : "opacity-0"}
+              ${isRejected ? "opacity-50" : ""}
               transition-opacity duration-200
             `}
             onLoad={onLoad}
@@ -152,6 +167,7 @@ function ComparePanel({
         {/* Navigation button - right */}
         {onNext && (
           <button
+            type="button"
             onClick={onNext}
             className="absolute right-2 z-10 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
@@ -169,17 +185,19 @@ function ComparePanel({
           </span>
         </div>
         <button
+          type="button"
           onClick={onToggleLabel}
           className={`
             px-3 py-1.5 rounded-lg font-medium text-xs transition-colors flex-shrink-0
-            ${isRejected
-              ? 'bg-rejected text-white'
-              : 'bg-bg-secondary hover:bg-theme-hover text-text-secondary'
+            ${
+              isRejected
+                ? "bg-rejected text-white"
+                : "bg-bg-secondary hover:bg-theme-hover text-text-secondary"
             }
           `}
         >
-          <span className="mr-1">{side === 'left' ? '1' : '2'}</span>
-          Reject{isRejected ? ' ✓' : ''}
+          <span className="mr-1">{side === "left" ? "1" : "2"}</span>
+          Reject{isRejected ? " ✓" : ""}
         </button>
       </div>
     </div>

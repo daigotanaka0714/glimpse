@@ -1,5 +1,5 @@
-import { useEffect, useCallback } from 'react';
-import type { GridConfig } from '@/types';
+import { useCallback, useEffect } from "react";
+import type { GridConfig } from "@/types";
 
 export interface SelectEventModifiers {
   shiftKey?: boolean;
@@ -12,7 +12,7 @@ interface UseKeyboardNavigationProps {
   selectedIndex: number;
   compareIndex?: number;
   gridConfig: GridConfig;
-  viewMode: 'grid' | 'detail' | 'compare' | 'gallery';
+  viewMode: "grid" | "detail" | "compare" | "gallery";
   onSelect: (index: number, event?: SelectEventModifiers) => void;
   onSelectCompare?: (index: number) => void;
   onToggleLabel: () => void;
@@ -55,7 +55,7 @@ export function useKeyboardNavigation({
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       // Help shortcut (works globally)
-      if (e.key === '?' && onOpenHelp) {
+      if (e.key === "?" && onOpenHelp) {
         e.preventDefault();
         onOpenHelp();
         return;
@@ -64,16 +64,16 @@ export function useKeyboardNavigation({
       // Ctrl/Cmd + key combinations
       if (e.ctrlKey || e.metaKey) {
         switch (e.key.toLowerCase()) {
-          case 'o':
+          case "o":
             e.preventDefault();
             onOpenFolder();
             return;
-          case 'e':
+          case "e":
             e.preventDefault();
             onExport();
             return;
-          case 'a':
-            if (viewMode === 'grid' && onSelectAll) {
+          case "a":
+            if (viewMode === "grid" && onSelectAll) {
               e.preventDefault();
               onSelectAll();
               return;
@@ -83,25 +83,25 @@ export function useKeyboardNavigation({
       }
 
       // Detail view mode
-      if (viewMode === 'detail') {
+      if (viewMode === "detail") {
         switch (e.key) {
-          case 'Escape':
+          case "Escape":
             e.preventDefault();
             onExitDetail();
             return;
-          case 'ArrowLeft':
+          case "ArrowLeft":
             e.preventDefault();
             if (selectedIndex > 0) {
               onSelect(selectedIndex - 1);
             }
             return;
-          case 'ArrowRight':
+          case "ArrowRight":
             e.preventDefault();
             if (selectedIndex < totalItems - 1) {
               onSelect(selectedIndex + 1);
             }
             return;
-          case '1':
+          case "1":
             e.preventDefault();
             onToggleLabel();
             return;
@@ -110,25 +110,25 @@ export function useKeyboardNavigation({
       }
 
       // Gallery view mode
-      if (viewMode === 'gallery') {
+      if (viewMode === "gallery") {
         switch (e.key) {
-          case 'Escape':
+          case "Escape":
             e.preventDefault();
             onExitGallery?.();
             return;
-          case 'ArrowLeft':
+          case "ArrowLeft":
             e.preventDefault();
             if (selectedIndex > 0) {
               onSelect(selectedIndex - 1);
             }
             return;
-          case 'ArrowRight':
+          case "ArrowRight":
             e.preventDefault();
             if (selectedIndex < totalItems - 1) {
               onSelect(selectedIndex + 1);
             }
             return;
-          case '1':
+          case "1":
             e.preventDefault();
             onToggleLabel();
             return;
@@ -137,13 +137,13 @@ export function useKeyboardNavigation({
       }
 
       // Compare mode
-      if (viewMode === 'compare') {
+      if (viewMode === "compare") {
         switch (e.key) {
-          case 'Escape':
+          case "Escape":
             e.preventDefault();
             onExitCompare?.();
             return;
-          case 'ArrowLeft':
+          case "ArrowLeft":
             e.preventDefault();
             if (e.shiftKey) {
               // Shift + Left arrow: move right image to previous
@@ -157,7 +157,7 @@ export function useKeyboardNavigation({
               }
             }
             return;
-          case 'ArrowRight':
+          case "ArrowRight":
             e.preventDefault();
             if (e.shiftKey) {
               // Shift + Right arrow: move right image to next
@@ -171,11 +171,11 @@ export function useKeyboardNavigation({
               }
             }
             return;
-          case '1':
+          case "1":
             e.preventDefault();
             onToggleLabel();
             return;
-          case '2':
+          case "2":
             e.preventDefault();
             onToggleLabelCompare?.();
             return;
@@ -188,33 +188,33 @@ export function useKeyboardNavigation({
       const navModifiers: SelectEventModifiers = { shiftKey: e.shiftKey };
 
       switch (e.key) {
-        case 'Escape':
+        case "Escape":
           e.preventDefault();
           onClearSelection?.();
           break;
 
-        case 'ArrowLeft':
+        case "ArrowLeft":
           e.preventDefault();
           if (selectedIndex > 0) {
             onSelect(selectedIndex - 1, navModifiers);
           }
           break;
 
-        case 'ArrowRight':
+        case "ArrowRight":
           e.preventDefault();
           if (selectedIndex < totalItems - 1) {
             onSelect(selectedIndex + 1, navModifiers);
           }
           break;
 
-        case 'ArrowUp':
+        case "ArrowUp":
           e.preventDefault();
           if (selectedIndex >= columns) {
             onSelect(selectedIndex - columns, navModifiers);
           }
           break;
 
-        case 'ArrowDown':
+        case "ArrowDown":
           e.preventDefault();
           if (selectedIndex + columns < totalItems) {
             onSelect(selectedIndex + columns, navModifiers);
@@ -223,28 +223,28 @@ export function useKeyboardNavigation({
           }
           break;
 
-        case '1':
+        case "1":
           e.preventDefault();
           onToggleLabel();
           break;
 
-        case 'Enter':
-        case ' ':
+        case "Enter":
+        case " ":
           e.preventDefault();
           onEnterDetail();
           break;
 
-        case 'Home':
+        case "Home":
           e.preventDefault();
           onSelect(0, navModifiers);
           break;
 
-        case 'End':
+        case "End":
           e.preventDefault();
           onSelect(totalItems - 1, navModifiers);
           break;
 
-        case 'PageUp':
+        case "PageUp":
           e.preventDefault();
           {
             const pageSize = columns * 5;
@@ -252,22 +252,25 @@ export function useKeyboardNavigation({
           }
           break;
 
-        case 'PageDown':
+        case "PageDown":
           e.preventDefault();
           {
             const pageSize = columns * 5;
-            onSelect(Math.min(totalItems - 1, selectedIndex + pageSize), navModifiers);
+            onSelect(
+              Math.min(totalItems - 1, selectedIndex + pageSize),
+              navModifiers,
+            );
           }
           break;
 
-        case 'c':
-        case 'C':
+        case "c":
+        case "C":
           e.preventDefault();
           onEnterCompare?.();
           break;
 
-        case 'g':
-        case 'G':
+        case "g":
+        case "G":
           e.preventDefault();
           onEnterGallery?.();
           break;
@@ -294,11 +297,11 @@ export function useKeyboardNavigation({
       onOpenFolder,
       onExport,
       onOpenHelp,
-    ]
+    ],
   );
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 }

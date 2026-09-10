@@ -1,9 +1,16 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight, XCircle, CheckCircle, Layers } from 'lucide-react';
-import type { ImageItem } from '@/types';
-import { toAssetUrl } from '@/utils/tauri';
-import { useTranslation } from '@/i18n';
-import { isMac } from '@/utils/platform';
+import {
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Layers,
+  X,
+  XCircle,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "@/i18n";
+import type { ImageItem } from "@/types";
+import { isMac } from "@/utils/platform";
+import { toAssetUrl } from "@/utils/tauri";
 
 interface GalleryViewProps {
   items: ImageItem[];
@@ -11,7 +18,7 @@ interface GalleryViewProps {
   onClose: () => void;
   onSelect: (index: number) => void;
   onToggleLabel: () => void;
-  onBatchToggleLabel: (indices: number[], label: 'rejected' | null) => void;
+  onBatchToggleLabel: (indices: number[], label: "rejected" | null) => void;
 }
 
 export function GalleryView({
@@ -23,36 +30,40 @@ export function GalleryView({
   onBatchToggleLabel,
 }: GalleryViewProps) {
   const t = useTranslation();
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [selectedThumbnails, setSelectedThumbnails] = useState<Set<number>>(new Set());
+  // 読み込み済みかどうかは「どの画像を読み終えたか」から導出する。
+  // 表示中の画像が変わった瞬間に false に戻るので、リセット用の useEffect は要らない。
+  const [loadedPath, setLoadedPath] = useState<string | null>(null);
+  const [selectedThumbnails, setSelectedThumbnails] = useState<Set<number>>(
+    new Set(),
+  );
   const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null);
   const thumbnailStripRef = useRef<HTMLDivElement>(null);
-  const selectedThumbnailRef = useRef<HTMLButtonElement>(null);
 
   const currentItem = items[selectedIndex];
-  const isRejected = currentItem?.label === 'rejected';
+  const imageLoaded = loadedPath !== null && loadedPath === currentItem?.path;
+  const isRejected = currentItem?.label === "rejected";
   const hasMultiSelection = selectedThumbnails.size > 1;
-
-  // Reset when image changes
-  useEffect(() => {
-    setImageLoaded(false);
-  }, [currentItem?.path]);
 
   // Scroll selected thumbnail into view
   useEffect(() => {
-    if (selectedThumbnailRef.current && thumbnailStripRef.current) {
-      const container = thumbnailStripRef.current;
-      const thumbnail = selectedThumbnailRef.current;
-
+    const container = thumbnailStripRef.current;
+    // サムネイルはストリップ直下に items の順で並ぶため、
+    // 選択中の要素は selectedIndex で引ける（ref を選択中だけに付け替えると
+    // selectedIndex を本文で読まないことになり、依存配列と噛み合わない）
+    const thumbnail = container?.children[selectedIndex];
+    if (container && thumbnail) {
       const containerRect = container.getBoundingClientRect();
       const thumbnailRect = thumbnail.getBoundingClientRect();
 
       // Check if thumbnail is outside visible area
-      if (thumbnailRect.left < containerRect.left || thumbnailRect.right > containerRect.right) {
+      if (
+        thumbnailRect.left < containerRect.left ||
+        thumbnailRect.right > containerRect.right
+      ) {
         thumbnail.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest',
-          inline: 'center',
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center",
         });
       }
     }
@@ -72,42 +83,45 @@ export function GalleryView({
     }
   }, [selectedIndex, items.length, onSelect]);
 
-  const handleThumbnailClick = useCallback((index: number, e: React.MouseEvent) => {
-    const isModifierKey = isMac() ? e.metaKey : e.ctrlKey;
-    const isShiftKey = e.shiftKey;
+  const handleThumbnailClick = useCallback(
+    (index: number, e: React.MouseEvent) => {
+      const isModifierKey = isMac() ? e.metaKey : e.ctrlKey;
+      const isShiftKey = e.shiftKey;
 
-    if (isShiftKey && lastClickedIndex !== null) {
-      // Range selection
-      const start = Math.min(lastClickedIndex, index);
-      const end = Math.max(lastClickedIndex, index);
-      const newSelection = new Set<number>();
-      for (let i = start; i <= end; i++) {
-        newSelection.add(i);
-      }
-      setSelectedThumbnails(newSelection);
-    } else if (isModifierKey) {
-      // Toggle selection
-      setSelectedThumbnails(prev => {
-        const newSelection = new Set(prev);
-        if (newSelection.has(index)) {
-          newSelection.delete(index);
-        } else {
-          newSelection.add(index);
+      if (isShiftKey && lastClickedIndex !== null) {
+        // Range selection
+        const start = Math.min(lastClickedIndex, index);
+        const end = Math.max(lastClickedIndex, index);
+        const newSelection = new Set<number>();
+        for (let i = start; i <= end; i++) {
+          newSelection.add(i);
         }
-        return newSelection;
-      });
-      setLastClickedIndex(index);
-    } else {
-      // Single click - select and show in main view
-      onSelect(index);
-      setSelectedThumbnails(new Set());
-      setLastClickedIndex(index);
-    }
-  }, [lastClickedIndex, onSelect]);
+        setSelectedThumbnails(newSelection);
+      } else if (isModifierKey) {
+        // Toggle selection
+        setSelectedThumbnails((prev) => {
+          const newSelection = new Set(prev);
+          if (newSelection.has(index)) {
+            newSelection.delete(index);
+          } else {
+            newSelection.add(index);
+          }
+          return newSelection;
+        });
+        setLastClickedIndex(index);
+      } else {
+        // Single click - select and show in main view
+        onSelect(index);
+        setSelectedThumbnails(new Set());
+        setLastClickedIndex(index);
+      }
+    },
+    [lastClickedIndex, onSelect],
+  );
 
   const handleBatchMarkRejected = useCallback(() => {
     const indices = Array.from(selectedThumbnails);
-    onBatchToggleLabel(indices, 'rejected');
+    onBatchToggleLabel(indices, "rejected");
     setSelectedThumbnails(new Set());
   }, [selectedThumbnails, onBatchToggleLabel]);
 
@@ -124,21 +138,21 @@ export function GalleryView({
   // Keyboard handler for batch operations in gallery
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && hasMultiSelection) {
+      if (e.key === "Escape" && hasMultiSelection) {
         e.preventDefault();
         setSelectedThumbnails(new Set());
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [hasMultiSelection]);
 
   if (!currentItem) {
     return null;
   }
 
-  const modKey = isMac() ? '⌘' : 'Ctrl';
+  const modKey = isMac() ? "⌘" : "Ctrl";
 
   return (
     <div className="fixed inset-0 z-50 bg-bg-primary flex flex-col animate-fade-in">
@@ -147,6 +161,7 @@ export function GalleryView({
         {/* Navigation button - left */}
         {selectedIndex > 0 && (
           <button
+            type="button"
             onClick={handlePrevious}
             className="absolute left-4 z-10 p-3 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
@@ -166,11 +181,11 @@ export function GalleryView({
             alt={currentItem.filename}
             className={`
               w-auto h-auto max-w-full max-h-full object-contain
-              ${imageLoaded ? 'opacity-100' : 'opacity-0'}
-              ${isRejected ? 'opacity-50' : ''}
+              ${imageLoaded ? "opacity-100" : "opacity-0"}
+              ${isRejected ? "opacity-50" : ""}
               transition-opacity duration-200
             `}
-            onLoad={() => setImageLoaded(true)}
+            onLoad={() => setLoadedPath(currentItem?.path ?? null)}
           />
           {/* Rejected mark */}
           {isRejected && (
@@ -185,6 +200,7 @@ export function GalleryView({
         {/* Navigation button - right */}
         {selectedIndex < items.length - 1 && (
           <button
+            type="button"
             onClick={handleNext}
             className="absolute right-4 z-10 p-3 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
           >
@@ -194,6 +210,7 @@ export function GalleryView({
 
         {/* Close button */}
         <button
+          type="button"
           onClick={onClose}
           className="absolute top-4 right-4 p-2 rounded-full bg-theme-hover hover:bg-theme-active transition-colors"
         >
@@ -212,6 +229,7 @@ export function GalleryView({
               </span>
             </div>
             <button
+              type="button"
               onClick={handleClearSelection}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-text-muted hover:text-text-primary hover:bg-theme-hover rounded-md transition-all"
             >
@@ -222,18 +240,30 @@ export function GalleryView({
 
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handleBatchMarkRejected}
               className="group flex items-center gap-2 px-4 py-2 bg-rejected/10 hover:bg-rejected/20 border border-rejected/30 hover:border-rejected/50 text-rejected rounded-lg transition-all"
             >
-              <XCircle size={16} className="group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-medium">{t.galleryView.markRejected}</span>
+              <XCircle
+                size={16}
+                className="group-hover:scale-110 transition-transform"
+              />
+              <span className="text-sm font-medium">
+                {t.galleryView.markRejected}
+              </span>
             </button>
             <button
+              type="button"
               onClick={handleBatchMarkAdopted}
               className="group flex items-center gap-2 px-4 py-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 hover:border-green-500/50 text-green-600 rounded-lg transition-all"
             >
-              <CheckCircle size={16} className="group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-medium">{t.galleryView.markAdopted}</span>
+              <CheckCircle
+                size={16}
+                className="group-hover:scale-110 transition-transform"
+              />
+              <span className="text-sm font-medium">
+                {t.galleryView.markAdopted}
+              </span>
             </button>
           </div>
         </div>
@@ -248,24 +278,25 @@ export function GalleryView({
           {items.map((item, index) => {
             const isCurrentImage = index === selectedIndex;
             const isInMultiSelection = selectedThumbnails.has(index);
-            const isThumbnailRejected = item.label === 'rejected';
+            const isThumbnailRejected = item.label === "rejected";
 
             return (
               <button
+                type="button"
                 key={item.filename}
-                ref={isCurrentImage ? selectedThumbnailRef : null}
                 onClick={(e) => handleThumbnailClick(index, e)}
                 className={`
                   relative flex-shrink-0 w-18 h-18 rounded-lg overflow-hidden transition-all
-                  ${isCurrentImage
-                    ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg-tertiary scale-110'
-                    : isInMultiSelection
-                      ? 'ring-2 ring-accent/70 ring-offset-1 ring-offset-bg-tertiary'
-                      : 'hover:ring-1 hover:ring-border-color'
+                  ${
+                    isCurrentImage
+                      ? "ring-2 ring-accent ring-offset-2 ring-offset-bg-tertiary scale-110"
+                      : isInMultiSelection
+                        ? "ring-2 ring-accent/70 ring-offset-1 ring-offset-bg-tertiary"
+                        : "hover:ring-1 hover:ring-border-color"
                   }
-                  ${isThumbnailRejected && !isInMultiSelection ? 'opacity-50' : ''}
+                  ${isThumbnailRejected && !isInMultiSelection ? "opacity-50" : ""}
                 `}
-                style={{ width: '72px', height: '72px' }}
+                style={{ width: "72px", height: "72px" }}
               >
                 {item.thumbnailLoaded && item.thumbnailPath ? (
                   <img
@@ -314,18 +345,20 @@ export function GalleryView({
           </span>
 
           <button
+            type="button"
             onClick={onToggleLabel}
             className={`
               px-4 py-2 rounded-lg font-medium text-sm transition-colors
-              ${isRejected
-                ? 'bg-rejected text-white'
-                : 'bg-bg-tertiary hover:bg-theme-hover text-text-secondary'
+              ${
+                isRejected
+                  ? "bg-rejected text-white"
+                  : "bg-bg-tertiary hover:bg-theme-hover text-text-secondary"
               }
             `}
           >
             <span className="mr-2">1</span>
             {isRejected ? t.galleryView.rejected : t.galleryView.reject}
-            {isRejected && ' ✓'}
+            {isRejected && " ✓"}
           </button>
         </div>
       </div>
@@ -333,7 +366,9 @@ export function GalleryView({
       {/* Keyboard hints */}
       <div className="h-10 px-6 bg-bg-tertiary border-t border-border-subtle flex items-center justify-center">
         <span className="text-sm text-text-muted">
-          ← → {t.galleryView.navigate} | 1 {t.galleryView.reject} | {modKey}+{t.galleryView.clickMultiSelect} | Shift+{t.galleryView.clickRangeSelect} | ESC {t.galleryView.close}
+          ← → {t.galleryView.navigate} | 1 {t.galleryView.reject} | {modKey}+
+          {t.galleryView.clickMultiSelect} | Shift+
+          {t.galleryView.clickRangeSelect} | ESC {t.galleryView.close}
         </span>
       </div>
     </div>
