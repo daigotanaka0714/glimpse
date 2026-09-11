@@ -158,27 +158,27 @@ Biome 移行で指摘がゼロになったため、ラチェットは廃止し�
 
 ## エージェントの完了条件
 
-### 「終わった」と言える条件
+### Definition of done
 
-1. そのリポジトリの `bin/agent-check` が `STATUS: PASS` を返している
-2. 変更が依頼された範囲に収まっている
-3. main / master ではないブランチから PR を作成している
+1. This repository's `bin/agent-check` returns `STATUS: PASS`
+2. The change stays within what was asked for
+3. The PR is opened from a branch other than main / master
 
-### 禁止事項
+### Do not
 
-- **既定ブランチへの直接 push は禁止。** 必ずブランチを切って PR を作る。
-- **マージは行わない。** `git merge` / `gh pr merge` はすべて人間の仕事。
-- **ゲートを「通すために」書き換えない。** ゲートを緩める変更は、それ自体を
-  独立した PR として提案し、理由を説明すること。
-- **ルールを off にして lint を通さない。** 指摘は直す。
+- **Never push directly to the default branch.** Always branch and open a PR.
+- **Never merge.** `git merge` and `gh pr merge` are a human's job.
+- **Never edit the gate to make it pass.** If the gate needs to be relaxed,
+  propose that as its own PR and explain why.
+- **Never silence a lint rule to get green.** Fix what it reports.
 
-### PR を作るときの注意
+### When opening a PR
 
-- PR 本文にもコミットメッセージにも Claude のセッション URL
-  （`claude.ai/code/session_...`）や `Claude-Session:` 行を入れない
-- **PR に言及するときは必ずリポジトリ名と URL を添える。**
-  `#24` だけでは、複数リポジトリを扱う運用ではどれか分からない
-- 積み上げ（stacked）PR に `--delete-branch` を使わない
-  （土台のブランチを消すと GitHub が上の PR を自動クローズする）
+- Do not put a Claude session URL (`claude.ai/code/session_...`) or a
+  `Claude-Session:` line in the PR body or in any commit message
+- **Always name the repository and include the URL when referring to a PR.**
+  `#24` alone does not identify anything when several repositories are in play
+- Never use `--delete-branch` on a stacked PR: deleting the base branch makes
+  GitHub auto-close the PR stacked on top of it
 
 <!-- daigo-lab-ops:completion-criteria:end -->
