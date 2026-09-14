@@ -71,12 +71,52 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # secrets コンテキストはステップの if: からは参照できない。
+      # 後続ステップが分岐できるよう、ここで env に落としておく。
+      - name: Detect macOS signing mode
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          HAS_CERT: ${{ secrets.APPLE_CERTIFICATE != '' }}
+        run: |
+          if [ "$HAS_CERT" = "true" ]; then
+            echo "SIGN_MODE=developer-id" >> "$GITHUB_ENV"
+          else
+            echo "SIGN_MODE=adhoc" >> "$GITHUB_ENV"
+            echo "::warning::APPLE_CERTIFICATE is not set. Falling back to ad-hoc signing (not notarized)."
+          fi
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS ad-hoc signing (allows right-click -> Open without Apple Developer certificate)
-          APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && '-' || '' }}
+          # macOS signing / notarization.
+          #
+          # 二段構えにしてある。APPLE_CERTIFICATE が設定されていれば Developer ID で
+          # 署名し公証まで通す。無ければ従来どおりアドホック署名に落ちる。
+          #
+          # なぜ落とせるようにするか: fork からのビルドと、証明書の期限切れ・失効時に
+          # リリース全体が落ちるのを避けるため。署名が弱くなるだけで、成果物は出る。
+          # アドホックでも「右クリック → 開く」で起動はできる（警告は出る）。
+          #
+          # Tauri CLI v2 が中でやること:
+          #   1. .p12 を一時キーチェーンへ取り込む
+          #   2. hardened runtime 付きで codesign する（公証の必須要件）
+          #   3. notarytool へ投げて結果を待つ
+          #   4. stapler で公証チケットを .app と .dmg に貼る
+          # 手で codesign / notarytool を呼ぶ必要はない。
+          #
+          # APPLE_PASSWORD は Apple Account のパスワードではなく
+          # app-specific password。通常のパスワードでは notarytool が弾く。
+          APPLE_CERTIFICATE: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          # 証明書が無いときは '-'（アドホック）へ落とす
+          APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && (secrets.APPLE_SIGNING_IDENTITY || '-') || '' }}
+          # 公証の資格情報は、証明書があるときだけ渡す。
+          # アドホック署名のまま公証へ投げると必ず失敗するため。
+          APPLE_ID: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_TEAM_ID || '' }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Glimpse ${{ github.ref_name }}'
@@ -84,3 +124,43 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      # 公証が本当に通ったかを確かめる。
+      #
+      # codesign が成功しても公証が走っていないことがあり、その差は
+      # 「そのアプリを一度も見たことのない Mac」でしか現れない。手元では
+      # 気づけないので、CI で確定させる。ここを省くと、配布してから
+      # 「開けない」と言われて初めて分かる。
+      - name: Verify notarization
+        if: matrix.platform == 'macos-latest' && env.SIGN_MODE == 'developer-id'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          app=$(find src-tauri/target -type d -name '*.app' -print -quit)
+          if [ -z "$app" ]; then
+            echo "::error::No .app bundle found under src-tauri/target"
+            exit 1
+          fi
+          echo "Found: $app"
+
+          echo "--- codesign ---"
+          codesign -dv --verbose=4 "$app" 2>&1
+
+          # hardened runtime が付いていないと公証は通らない。
+          # 通ったように見えて実は未公証、という状態を弾く。
+          codesign -dv "$app" 2>&1 | grep -q 'flags=.*runtime' \
+            || { echo "::error::Hardened runtime is not enabled"; exit 1; }
+
+          echo "--- stapler ---"
+          xcrun stapler validate "$app"
+
+          # Gatekeeper の判定。公証済みなら source=Notarized Developer ID になる。
+          echo "--- spctl ---"
+          spctl -a -vvv -t install "$app"
+
+          dmg=$(find src-tauri/target -type f -name '*.dmg' -print -quit)
+          if [ -n "$dmg" ]; then
+            echo "--- stapler (dmg) ---"
+            xcrun stapler validate "$dmg"
+          fi
