@@ -3,6 +3,7 @@ pub mod config;
 pub mod database;
 pub mod error;
 pub mod image_processor;
+pub mod raw_preview;
 
 pub use commands::AppState;
 use commands::{

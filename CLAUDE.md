@@ -67,12 +67,26 @@ Other modules:
 
 ### RAW Image Processing
 
-RAW files (NEF, ARW, CR2, CR3, RAF, ORF, RW2, PEF, DNG, SRW) are processed using:
-- **`rawloader`** - Pure Rust RAW file decoder supporting major camera manufacturers (Nikon, Canon, Sony, Fujifilm, Olympus, Panasonic, Pentax, Samsung)
-- **`imagepipe`** - RAW data processing pipeline (demosaicing, color conversion to sRGB)
+RAW files (NEF, ARW, CR2, CR3, RAF, ORF, RW2, PEF, DNG, SRW) go through **two paths, in this order**:
 
-These are the best available pure-Rust libraries for RAW processing. Alternative options:
-- **`libraw-rs`** - Rust bindings for LibRAW (C++), supports more formats but adds native dependencies
+1. **`raw_preview.rs` (ours)** — pulls the JPEG the camera embedded in the RAW. Tens of
+   milliseconds, and it does not depend on a camera table, so new bodies work on day one.
+   This is the path almost every file takes.
+2. **`rawloader` + `imagepipe`** — full demosaic. 1–4 seconds per file, and it only handles
+   cameras in its table. Used only when path 1 fails or returns an image smaller than the
+   requested size.
+
+Why path 1 exists: `rawloader` 0.37 cannot decode CR3 at all, and does not know the
+Fujifilm X-T3, so Canon R5 and X-T3 files failed outright (measured on both Windows and
+macOS). Culling needs a picture good enough to judge keep/reject, which is exactly what
+the camera's own JPEG is.
+
+`rawler` and `quickraw` are both LGPL-2.1, which would bind this MIT project, so the
+extraction is written here instead of taking a dependency.
+
+**Formats are gated by real files**: `.github/workflows/raw-samples.yml` downloads one
+sample per container structure from raw.pixls.us (CC0) and fails if any of them stops
+producing a thumbnail and preview. Unit tests alone missed the CR3/RAF gap.
 
 **Important**: Web browsers cannot natively decode RAW files. The backend generates:
 - Thumbnails (300x300 JPEG) for grid view

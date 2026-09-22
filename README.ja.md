@@ -148,7 +148,7 @@ pnpm tauri build
 | フレームワーク | Tauri 2.0 | 軽量、Rustバックエンド、クロスプラットフォーム |
 | フロントエンド | React 18 + TypeScript | 仮想スクロール、状態管理が容易 |
 | スタイリング | Tailwind CSS | 高速な開発、一貫したデザイン |
-| 画像処理 | Rust (image, rawloader) | マルチスレッド、NEF対応 |
+| 画像処理 | Rust（自前の埋め込みJPEG取り出し + rawloader） | 機種表に依存せず高速。詳細は CLAUDE.md |
 | データ永続化 | SQLite (rusqlite) | セッション管理、キャッシュ管理 |
 | 仮想スクロール | @tanstack/react-virtual | 大量アイテムの効率的レンダリング |
 

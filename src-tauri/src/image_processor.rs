@@ -1,5 +1,6 @@
 use crate::config::get_thumbnail_thread_count;
 use crate::error::{GlimpseError, Result};
+use crate::raw_preview;
 use exif::{In, Reader, Tag};
 use image::{DynamicImage, ImageFormat};
 use rayon::prelude::*;
@@ -338,7 +339,7 @@ pub fn generate_thumbnail(image_path: &Path, output_path: &Path) -> Result<()> {
         .unwrap_or_default();
 
     let img = if is_raw_extension(&extension) {
-        load_raw_image(image_path)?
+        load_raw_at_least(image_path, THUMBNAIL_SIZE)?
     } else {
         image::open(image_path)?
     };
@@ -368,7 +369,7 @@ pub fn generate_preview(image_path: &Path, output_path: &Path) -> Result<()> {
         ));
     }
 
-    let img = load_raw_image(image_path)?;
+    let img = load_raw_at_least(image_path, PREVIEW_SIZE)?;
 
     // Resize to preview size (larger than thumbnail)
     let preview = img.thumbnail(PREVIEW_SIZE, PREVIEW_SIZE);
@@ -384,6 +385,87 @@ pub fn generate_preview(image_path: &Path, output_path: &Path) -> Result<()> {
 /// Check if an extension is a RAW format (public version)
 pub fn is_raw_format(extension: &str) -> bool {
     is_raw_extension(extension)
+}
+
+/// RAW を「長辺が target 以上」の絵として読む。
+///
+/// まず埋め込み JPEG を試し、足りないときだけ現像に落ちる。
+///
+/// なぜこの順番か:
+///   現像（rawloader + imagepipe）は1枚 1〜4秒かかり、機種表に無いカメラは
+///   そもそも読めない（CR3 と X-T3 の RAF は実測で失敗する）。一方、埋め込み
+///   JPEG は数十ミリ秒で取り出せて、構造だけ見るので機種に依存しない。
+///   選別に必要なのは採否を判断できる絵なので、カメラが書いた JPEG で足りる。
+///
+/// 現像に落ちるのは次の2つだけ:
+///   - 埋め込み JPEG が取り出せなかった
+///   - 取り出せたが target より小さかった（拡大表示でぼやける）
+///
+/// どちらの場合も現像が失敗したら、小さくても埋め込み JPEG を返す。
+/// 「小さい絵が出る」ほうが「何も出ない」より良い。
+fn load_raw_at_least(path: &Path, target: u32) -> Result<DynamicImage> {
+    let embedded = match raw_preview::extract_largest_jpeg(path) {
+        Ok(jpeg) => match image::load_from_memory_with_format(&jpeg.bytes, ImageFormat::Jpeg) {
+            Ok(img) => {
+                let oriented = apply_orientation(img, embedded_orientation(&jpeg.bytes, path));
+                if oriented.width().max(oriented.height()) >= target {
+                    return Ok(oriented);
+                }
+                Some(oriented)
+            }
+            Err(e) => {
+                eprintln!(
+                    "embedded JPEG in {} could not be decoded: {e}",
+                    path.display()
+                );
+                None
+            }
+        },
+        Err(_) => None,
+    };
+
+    match load_raw_image(path) {
+        Ok(img) => Ok(img),
+        Err(e) => match embedded {
+            Some(img) => Ok(img),
+            None => Err(e),
+        },
+    }
+}
+
+/// 埋め込み JPEG に付ける向き。
+/// JPEG 自身が EXIF を持っていればそれを使い、無ければ RAW 本体の向きを使う。
+fn embedded_orientation(jpeg: &[u8], raw_path: &Path) -> u16 {
+    if let Some(o) = orientation_from_jpeg(jpeg) {
+        return o;
+    }
+    extract_exif(raw_path)
+        .ok()
+        .and_then(|e| e.orientation)
+        .unwrap_or(1)
+}
+
+fn orientation_from_jpeg(bytes: &[u8]) -> Option<u16> {
+    let mut cursor = std::io::Cursor::new(bytes);
+    let exif = Reader::new().read_from_container(&mut cursor).ok()?;
+    let field = exif.get_field(Tag::Orientation, In::PRIMARY)?;
+    field.value.get_uint(0).map(|v| v as u16)
+}
+
+/// EXIF の向きに合わせて回す。
+/// 現像経路（imagepipe）は向きを自分で直すので、埋め込み経路だけここで揃える。
+/// 揃えないと、同じフォルダの中で縦横が混ざる。
+fn apply_orientation(img: DynamicImage, orientation: u16) -> DynamicImage {
+    match orientation {
+        2 => img.fliph(),
+        3 => img.rotate180(),
+        4 => img.flipv(),
+        5 => img.rotate90().fliph(),
+        6 => img.rotate90(),
+        7 => img.rotate270().fliph(),
+        8 => img.rotate270(),
+        _ => img,
+    }
 }
 
 /// Load RAW image

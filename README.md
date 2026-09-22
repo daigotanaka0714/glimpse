@@ -147,7 +147,7 @@ pnpm tauri build
 | Framework | Tauri 2.0 | Lightweight, Rust backend, cross-platform |
 | Frontend | React 18 + TypeScript | Virtual scrolling, easy state management |
 | Styling | Tailwind CSS | Fast development, consistent design |
-| Image Processing | Rust (image, rawloader) | Multi-threaded, NEF support |
+| Image Processing | Rust (own embedded-JPEG extraction + rawloader) | Fast and not tied to a camera table; see CLAUDE.md |
 | Data Persistence | SQLite (rusqlite) | Session management, cache management |
 | Virtual Scrolling | @tanstack/react-virtual | Efficient rendering of large lists |
 
