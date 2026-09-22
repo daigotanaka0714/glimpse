@@ -131,11 +131,18 @@ jobs:
       # 公証する。tauri-action に任せず自前で呼ぶのは、**打ち切れるようにする**ため。
       #
       # ここで何が起きるか:
-      #   1. できあがった .dmg を Apple へ投げる（中の .app も一緒に登録される）
-      #   2. 結果を待つ。15分で打ち切り、最大3回まで試す
+      #   1. できあがった .dmg を Apple へ1回だけ提出する（中の .app も一緒に登録される）
+      #   2. **同じ提出**の結果を待つ。15分ずつ最大3回、計45分で打ち切る
       #   3. 公証チケットを .dmg と .app に貼る（stapler）
       #
-      # .dmg を投げるのは、配布物がそれだからで、Apple の推奨経路でもある。
+      # 再試行で「提出し直す」のではなく「同じ提出を待ち直す」のは、Apple 側で
+      # 処理中のまま時間がかかっている場合、提出し直しても列に並び直すだけだから。
+      # 実際、15分の待ちを3回、毎回提出し直した回は、3件とも処理中のまま終わった。
+      #
+      # 45分で終わらなかったときは、ジョブは落とすが提出は Apple 側に残る。
+      # 受付番号をログに出すので、あとから notarytool info <id> で結果を確かめられる。
+      #
+      # .dmg を提出するのは、配布物がそれだからで、Apple の推奨経路でもある。
       # 同じ提出に .app の cdhash も含まれるので、.app にもチケットを貼れる。
       - name: Notarize
         if: matrix.platform == 'macos-latest' && env.SIGN_MODE == 'developer-id'
@@ -153,40 +160,38 @@ jobs:
             echo "::error::.dmg か .app が見つかりません"
             exit 1
           fi
+
+          auth=(--apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID")
+          field() { python3 -c "import sys,json;print(json.load(sys.stdin).get('$1',''))"; }
+
           echo "提出: $dmg"
+          id=$(xcrun notarytool submit "$dmg" "${auth[@]}" --output-format json | field id)
+          if [ -z "$id" ]; then
+            echo "::error::提出できませんでした（受付番号が返ってこない）"
+            exit 1
+          fi
+          echo "::notice::公証の受付番号: $id"
 
-          submit() {
-            xcrun notarytool submit "$dmg" \
-              --apple-id "$APPLE_ID" \
-              --password "$APPLE_PASSWORD" \
-              --team-id "$APPLE_TEAM_ID" \
-              --wait --timeout 15m \
-              --output-format json
-          }
-
-          ok=0
+          status=""
           for attempt in 1 2 3; do
-            echo "--- 公証 $attempt 回目 ---"
-            if out=$(submit); then
-              echo "$out"
-              id=$(echo "$out" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("id",""))')
-              status=$(echo "$out" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("status",""))')
-              if [ "$status" = "Accepted" ]; then
-                ok=1
-                break
-              fi
-              # 受け付けられたが弾かれた場合は、理由を出す。待っても直らないので即やめる。
-              echo "::error::公証が拒否されました（status=$status）"
-              [ -n "$id" ] && xcrun notarytool log "$id" \
-                --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" || true
-              exit 1
-            fi
-            echo "::warning::公証の待ちに失敗しました（$attempt 回目）。30秒後に再試行します"
-            sleep 30
+            echo "--- 結果待ち $attempt 回目（最大15分）---"
+            # wait は時間切れで非ゼロを返す。そのときは同じ提出を待ち直す。
+            xcrun notarytool wait "$id" "${auth[@]}" --timeout 15m || true
+            status=$(xcrun notarytool info "$id" "${auth[@]}" --output-format json | field status)
+            echo "status=$status"
+            case "$status" in
+              Accepted) break ;;
+              Invalid|Rejected)
+                # 弾かれた。待っても直らないので、理由を出して即やめる。
+                echo "::error::公証が拒否されました（status=$status）"
+                xcrun notarytool log "$id" "${auth[@]}" || true
+                exit 1
+                ;;
+            esac
           done
 
-          if [ "$ok" != "1" ]; then
-            echo "::error::3回試しても公証の結果を受け取れませんでした"
+          if [ "$status" != "Accepted" ]; then
+            echo "::error::45分待っても公証が終わりませんでした（status=$status, id=$id）。提出は Apple 側に残っています"
             exit 1
           fi
 
