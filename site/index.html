@@ -1,410 +1,56 @@
 <!doctype html>
-<html lang="ja" data-lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Glimpse — 舞台写真の高速セレクト</title>
-<meta name="description" content="数千〜数万枚の舞台写真（RAW / JPEG）を、キーボードだけで一気に選別するデスクトップアプリ。Mac / Windows 対応、無料。">
-<meta property="og:title" content="Glimpse — 舞台写真の高速セレクト">
-<meta property="og:description" content="数千〜数万枚の舞台写真を、キーボードだけで一気に選別するデスクトップアプリ。">
+<title>Glimpse — Fast, lightweight photo culling</title>
+<meta name="description" content="A lightweight photo checker for shoots that produce thousands of files — landscapes, stage, events. Mac and Windows, free.">
+<meta property="og:title" content="Glimpse — Fast, lightweight photo culling">
+<meta property="og:description" content="A lightweight photo checker for shoots that produce thousands of files — landscapes, stage, events. Mac and Windows, free.">
+<link rel="alternate" hreflang="en" href="https://daigotanaka0714.github.io/glimpse/">
+<link rel="alternate" hreflang="ja" href="https://daigotanaka0714.github.io/glimpse/ja/">
 <link rel="icon" href="glimpse.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
-<style>
-/*
- * アプリ本体（DESIGN.md のカラースキーム）と同じ色で組む。
- * 写真を見るためのアプリなので、ページもダーク一本にしている。
- */
-:root {
-  color-scheme: dark;
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #141414;
-  --bg-tertiary: #1e1e1e;
-  --text-primary: #ffffff;
-  --text-secondary: #a0a0a0;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --rejected: #ef4444;
-  --border: #2a2a2a;
-  --sans: "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic UI", system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-}
-
-* { box-sizing: border-box; }
-
-html { background: var(--bg-primary); }
-
-body {
-  margin: 0;
-  padding-inline: 20px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--sans);
-  font-size: 16px;
-  line-height: 1.75;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* 言語切替: 表示中でない言語の要素を隠す */
-[data-lang="ja"] [lang="en"],
-[data-lang="en"] [lang="ja"] { display: none !important; }
-
-.wrap {
-  max-width: 1040px;
-  margin-inline: auto;
-}
-
-header.bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding-block: 20px;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 0.01em;
-}
-
-.brand img { width: 28px; height: 28px; }
-
-.lang-switch {
-  display: flex;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.lang-switch button {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--text-secondary);
-  font: 500 13px/1 var(--mono);
-  padding: 8px 12px;
-  cursor: pointer;
-}
-
-.lang-switch button[aria-pressed="true"] {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-/* ── ヒーロー ─────────────────────────────── */
-
-/* 日本語の見出しを単語の途中で折らない */
-.nw { display: inline-block; }
-
-.hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 56px;
-  align-items: center;
-  padding-block: 48px 72px;
-}
-
-h1 {
-  margin: 0 0 20px;
-  font-size: clamp(32px, 5vw, 48px);
-  line-height: 1.25;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-}
-
-.lead {
-  margin: 0 0 32px;
-  color: var(--text-secondary);
-  font-size: 17px;
-  max-width: 34em;
-}
-
-.downloads {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 22px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 16px;
-  text-decoration: none;
-  transition: background-color 120ms ease, border-color 120ms ease;
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: #fff;
-}
-
-.btn-primary:hover { background: var(--accent-hover); }
-
-.btn-secondary {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-}
-
-.btn-secondary:hover { border-color: #3a3a3a; background: var(--bg-tertiary); }
-
-.btn small {
-  font: 400 12px/1 var(--mono);
-  opacity: 0.8;
-}
-
-.alt-link {
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.alt-link a { color: var(--text-primary); }
-
-a:focus-visible,
-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-}
-
-.meta {
-  margin-top: 20px;
-  font: 400 13px/1.6 var(--mono);
-  color: var(--text-secondary);
-}
-
-.meta a { color: var(--text-secondary); }
-
-/* コンタクトシート: 選別中の一覧画面を模したもの */
-.sheet {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px;
-}
-
-.sheet-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.frame {
-  position: relative;
-  aspect-ratio: 3 / 2;
-  border-radius: 4px;
-  background: var(--tone);
-  overflow: hidden;
-}
-
-/* 舞台照明のスポットを薄く重ねる */
-.frame::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at var(--x, 50%) 35%, rgba(255, 236, 200, 0.35), transparent 55%);
-}
-
-.frame.selected { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-.frame.rejected::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(10, 10, 10, 0.55);
-  box-shadow: inset 0 0 0 2px var(--rejected);
-  border-radius: 4px;
-}
-
-.sheet-status {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 12px;
-  font: 400 12px/1.4 var(--mono);
-  color: var(--text-secondary);
-}
-
-.sheet-status .x { color: var(--rejected); }
-
-.keys {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-kbd {
-  display: inline-block;
-  min-width: 22px;
-  padding: 1px 6px;
-  margin-right: 4px;
-  border: 1px solid var(--border);
-  border-bottom-width: 2px;
-  border-radius: 4px;
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  font: 500 11px/1.6 var(--mono);
-  text-align: center;
-}
-
-/* ── 特徴 ─────────────────────────────── */
-
-section { padding-block: 56px; border-top: 1px solid var(--border); }
-
-h2 {
-  margin: 0 0 28px;
-  font-size: 22px;
-  font-weight: 700;
-  text-wrap: balance;
-}
-
-.features {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 32px 40px;
-}
-
-.features h3 {
-  margin: 0 0 6px;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.features p {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 15px;
-}
-
-.formats {
-  margin-top: 8px;
-  font: 400 12px/1.8 var(--mono);
-  color: var(--text-secondary);
-}
-
-/* ── 初回起動の注意 ─────────────────────────────── */
-
-.install {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-}
-
-.install article {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 22px 24px;
-}
-
-.install h3 { margin: 0 0 10px; font-size: 16px; }
-
-.install ol {
-  margin: 0;
-  padding-left: 1.3em;
-  color: var(--text-secondary);
-  font-size: 15px;
-}
-
-.install li + li { margin-top: 4px; }
-
-.install strong { color: var(--text-primary); font-weight: 500; }
-
-footer {
-  padding-block: 32px 48px;
-  border-top: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 13px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-footer a { color: var(--text-secondary); }
-
-@media (max-width: 820px) {
-  .hero { grid-template-columns: minmax(0, 1fr); gap: 40px; padding-block: 24px 56px; }
-  .features { grid-template-columns: minmax(0, 1fr); gap: 24px; }
-  .install { grid-template-columns: minmax(0, 1fr); }
-}
-
-@media (max-width: 420px) {
-  .sheet-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .sheet-grid .frame:nth-child(n + 10) { display: none; }
-  .btn { width: 100%; justify-content: center; }
-  .downloads { align-items: stretch; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; }
-}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="wrap">
 
+<p class="lang-hint" id="lang-hint" hidden lang="ja"><a href="ja/">日本語のページはこちら →</a></p>
+
 <header class="bar">
   <div class="brand"><img src="glimpse.svg" alt="" width="28" height="28">Glimpse</div>
-  <div class="lang-switch" role="group" aria-label="Language">
-    <button type="button" id="lang-ja" data-set-lang="ja" aria-pressed="true">日本語</button>
-    <button type="button" id="lang-en" data-set-lang="en" aria-pressed="false">EN</button>
-  </div>
+  <nav class="lang-switch" aria-label="Language">
+    <a href="./" aria-current="page" hreflang="en">EN</a>
+    <a href="ja/" hreflang="ja">日本語</a>
+  </nav>
 </header>
 
 <main>
 
 <div class="hero">
   <div>
-    <h1>
-      <span lang="ja">数千枚の舞台写真を、<br><span class="nw">キーボードだけで</span><span class="nw">選び切る。</span></span>
-      <span lang="en">Cull thousands of stage photos with just your keyboard.</span>
-    </h1>
-    <p class="lead">
-      <span lang="ja">Glimpse は写真の選別に特化したデスクトップアプリです。RAW のままでも待たされずに次の1枚へ進めて、途中でやめても続きから再開できます。</span>
-      <span lang="en">Glimpse is a desktop app built for one job: culling. Move to the next frame instantly — even with RAW files — and pick up right where you left off.</span>
-    </p>
+    <h1>Thousands of shots.<br>Sorted at a glimpse.</h1>
+    <p class="lead">Glimpse is a lightweight photo checker for shoots that pile up files — landscapes, stage and live shows, events. Step through heavy, high-resolution images without waiting, and pick up right where you left off.</p>
 
-    <!--
-      ボタンの href は、JS が動かなくても最新リリースのページへ落ちるようにしてある。
-      JS が動けば GitHub の API から最新版の実ファイルを引いて差し替える。
-    -->
     <div class="downloads">
       <a class="btn btn-primary" id="dl-primary" href="https://github.com/daigotanaka0714/glimpse/releases/latest">
-        <span id="dl-primary-label">
-          <span lang="ja">Mac 版をダウンロード</span><span lang="en">Download for Mac</span>
-        </span>
+        <span>Download for Mac</span>
         <small id="dl-primary-note">Apple Silicon</small>
       </a>
-      <span class="alt-link" id="dl-alt-mac">
-        <span lang="ja">Intel 搭載の Mac は</span><span lang="en">Intel Mac?</span>
-        <a id="dl-mac-other" href="https://github.com/daigotanaka0714/glimpse/releases/latest"><span lang="ja">こちら</span><span lang="en">Download here</span></a>
+      <span class="alt-link">
+        <span id="dl-mac-other-label">Intel Mac?</span>
+        <a id="dl-mac-other" href="https://github.com/daigotanaka0714/glimpse/releases/latest">Download here</a>
       </span>
       <a class="btn btn-secondary" id="dl-secondary" href="https://github.com/daigotanaka0714/glimpse/releases/latest">
-        <span id="dl-secondary-label">
-          <span lang="ja">Windows 版をダウンロード</span><span lang="en">Download for Windows</span>
-        </span>
+        <span>Download for Windows</span>
         <small>64-bit</small>
       </a>
     </div>
 
-    <p class="meta" id="release-meta">
-      <span lang="ja">無料 ／ macOS 10.15 以降・Windows 10 以降</span>
-      <span lang="en">Free · macOS 10.15+ · Windows 10+</span>
-    </p>
+    <p class="meta" id="release-meta">Free · macOS 10.15+ · Windows 10+</p>
   </div>
 
   <div class="sheet" aria-hidden="true">
@@ -427,59 +73,72 @@ footer a { color: var(--text-secondary); }
       <span>1,284 / 3,000 · <span class="x">412 rejected</span></span>
     </div>
     <div class="keys">
-      <span><kbd>←</kbd><kbd>→</kbd><span lang="ja">移動</span><span lang="en">move</span></span>
-      <span><kbd>1</kbd><span lang="ja">不採用</span><span lang="en">reject</span></span>
-      <span><kbd>Enter</kbd><span lang="ja">拡大</span><span lang="en">zoom</span></span>
-      <span><kbd>C</kbd><span lang="ja">2枚比較</span><span lang="en">compare</span></span>
+      <span><kbd>←</kbd><kbd>→</kbd>move</span>
+      <span><kbd>1</kbd>reject</span>
+      <span><kbd>Enter</kbd>zoom</span>
+      <span><kbd>C</kbd>compare</span>
     </div>
   </div>
 </div>
 
 <section>
-  <h2><span lang="ja">選別のためだけに作っています</span><span lang="en">Made for culling, nothing else</span></h2>
-  <div class="features">
-    <div>
-      <h3><span lang="ja">待たされない</span><span lang="en">No waiting</span></h3>
-      <p>
-        <span lang="ja">サムネイルは裏で並列に作られるので、フォルダを開いたらすぐ見始められます。数万枚でも一覧がもたつきません。</span>
-        <span lang="en">Thumbnails are generated in parallel in the background, so you can start as soon as a folder opens — even with tens of thousands of files.</span>
-      </p>
+  <h2>Built for big shoots</h2>
+  <div class="usecases">
+    <div class="usecase">
+      <h3>Landscape</h3>
+      <p class="spec">45MP+ · 50MB+ / file</p>
+      <p>Even when every file is huge, the grid stays light. Open full size only for the frames you need to check.</p>
     </div>
-    <div>
-      <h3><span lang="ja">RAW をそのまま</span><span lang="en">RAW as-is</span></h3>
-      <p>
-        <span lang="ja">現像や書き出しをせずに、カメラから取り込んだファイルをそのまま開けます。</span>
-        <span lang="en">Open files straight from the card — no developing or converting first.</span>
-      </p>
-      <p class="formats">NEF · ARW · CR2 · CR3 · RAF · ORF · RW2 · PEF · DNG · SRW · JPEG</p>
+    <div class="usecase">
+      <h3>Stage &amp; live</h3>
+      <p class="spec">3,000–10,000 per show</p>
+      <p>Tear through burst-heavy sets with the keyboard alone. Put two similar frames side by side to pick the better one.</p>
     </div>
-    <div>
-      <h3><span lang="ja">途中でやめられる</span><span lang="en">Stop anytime</span></h3>
-      <p>
-        <span lang="ja">付けた印と位置は自動で残ります。次に同じフォルダを開けば、続きの1枚から始まります。残した写真は別フォルダへまとめて書き出せます。</span>
-        <span lang="en">Your marks and position are saved automatically. Reopen the folder to continue from the same frame, then export the keepers to another folder.</span>
-      </p>
+    <div class="usecase">
+      <h3>Events &amp; sports</h3>
+      <p class="spec">Days of shooting at once</p>
+      <p>Same-day turnaround: export just the keepers to a separate folder and move on to delivery.</p>
     </div>
   </div>
 </section>
 
 <section>
-  <h2><span lang="ja">はじめて開くとき</span><span lang="en">First launch</span></h2>
+  <h2>Made for culling, nothing else</h2>
+  <div class="features">
+    <div>
+      <h3>No waiting</h3>
+      <p>Thumbnails are generated in parallel in the background, so you can start the moment a folder opens — even with tens of thousands of files.</p>
+    </div>
+    <div>
+      <h3>RAW as-is</h3>
+      <p>Open files straight from the card — no developing or converting first.</p>
+      <p class="formats">NEF · ARW · CR2 · CR3 · RAF · ORF · RW2 · PEF · DNG · SRW · JPEG</p>
+      <p class="note">The Windows version can’t display RAW files yet. JPEG works on both.</p>
+    </div>
+    <div>
+      <h3>Stop anytime</h3>
+      <p>Marks and position are saved automatically. Reopen the folder and you continue from the same frame.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>First launch</h2>
   <div class="install">
     <article>
       <h3>Mac</h3>
       <ol>
-        <li><span lang="ja">ダウンロードした <strong>.dmg</strong> を開く</span><span lang="en">Open the downloaded <strong>.dmg</strong></span></li>
-        <li><span lang="ja"><strong>Glimpse</strong> を「アプリケーション」フォルダへドラッグする</span><span lang="en">Drag <strong>Glimpse</strong> into Applications</span></li>
-        <li><span lang="ja">アプリケーションから起動する。Apple の確認を受けたアプリなので、そのまま開けます</span><span lang="en">Launch it from Applications. It is notarized by Apple, so it opens normally</span></li>
+        <li>Open the downloaded <strong>.dmg</strong></li>
+        <li>Drag <strong>Glimpse</strong> into Applications</li>
+        <li>Launch it from Applications. It’s notarized by Apple, so it opens normally</li>
       </ol>
     </article>
     <article>
       <h3>Windows</h3>
       <ol>
-        <li><span lang="ja">ダウンロードした <strong>-setup.exe</strong> を開く</span><span lang="en">Run the downloaded <strong>-setup.exe</strong></span></li>
-        <li><span lang="ja">「Windows によって PC が保護されました」と出たら <strong>詳細情報</strong> を押す</span><span lang="en">If you see “Windows protected your PC”, click <strong>More info</strong></span></li>
-        <li><span lang="ja"><strong>実行</strong> を押してインストールを進める</span><span lang="en">Click <strong>Run anyway</strong> and follow the installer</span></li>
+        <li>Run the downloaded <strong>-setup.exe</strong></li>
+        <li>If you see “Windows protected your PC”, click <strong>More info</strong></li>
+        <li>Click <strong>Run anyway</strong> and follow the installer</li>
       </ol>
     </article>
   </div>
@@ -490,97 +149,13 @@ footer a { color: var(--text-secondary); }
 <footer>
   <span>© Daigo Lab</span>
   <span>
-    <a href="https://github.com/daigotanaka0714/glimpse/releases"><span lang="ja">過去のバージョン</span><span lang="en">All releases</span></a>
+    <a href="https://github.com/daigotanaka0714/glimpse/releases">All releases</a>
     ·
-    <a href="https://github.com/daigotanaka0714/glimpse"><span lang="ja">ソースコード</span><span lang="en">Source</span></a>
+    <a href="https://github.com/daigotanaka0714/glimpse">Source</a>
   </span>
 </footer>
 
 </div>
-
-<script>
-(() => {
-  const REPO = "daigotanaka0714/glimpse";
-
-  // ── 言語 ──────────────────────────────
-  const root = document.documentElement;
-  const setLang = (lang) => {
-    root.dataset.lang = lang;
-    root.lang = lang;
-    for (const b of document.querySelectorAll("[data-set-lang]")) {
-      b.setAttribute("aria-pressed", String(b.dataset.setLang === lang));
-    }
-    try { localStorage.setItem("glimpse-lang", lang); } catch {}
-  };
-  let saved = null;
-  try { saved = localStorage.getItem("glimpse-lang"); } catch {}
-  setLang(saved || ((navigator.language || "").toLowerCase().startsWith("ja") ? "ja" : "en"));
-  for (const b of document.querySelectorAll("[data-set-lang]")) {
-    b.addEventListener("click", () => setLang(b.dataset.setLang));
-  }
-
-  // ── OS に合わせてボタンを並べ替える ──────────────────────────────
-  // Windows から来た人には Windows 版を大きいボタンにする。
-  // Mac のチップ（Apple Silicon / Intel）はブラウザから確実には分からないので、
-  // 既定は利用者の多い Apple Silicon とし、判定できたときだけ Intel に切り替える。
-  const primary = document.getElementById("dl-primary");
-  const secondary = document.getElementById("dl-secondary");
-  const macOther = document.getElementById("dl-mac-other");
-  const isWindows = /Windows/i.test(navigator.userAgent);
-  let macArch = "aarch64";
-
-  if (isWindows) {
-    secondary.classList.replace("btn-secondary", "btn-primary");
-    primary.classList.replace("btn-primary", "btn-secondary");
-    primary.parentElement.prepend(secondary);
-  }
-
-  const applyAssets = (assets) => {
-    const find = (re) => assets.find((a) => re.test(a.name));
-    const mac = { aarch64: find(/_aarch64\.dmg$/), x64: find(/_x64\.dmg$/) };
-    const win = find(/_x64-setup\.exe$/);
-    const other = macArch === "aarch64" ? "x64" : "aarch64";
-    if (mac[macArch]) primary.href = mac[macArch].browser_download_url;
-    if (mac[other]) macOther.href = mac[other].browser_download_url;
-    if (win) secondary.href = win.browser_download_url;
-    document.getElementById("dl-primary-note").textContent =
-      macArch === "aarch64" ? "Apple Silicon" : "Intel";
-  };
-
-  const showRelease = (release) => {
-    const meta = document.getElementById("release-meta");
-    const date = new Date(release.published_at);
-    const d = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
-    const v = release.tag_name;
-    const link = `<a href="${release.html_url}">`;
-    meta.innerHTML =
-      `<span lang="ja">最新版 ${v}（${d}）／ ${link}変更内容</a> ／ 無料 ／ macOS 10.15 以降・Windows 10 以降</span>` +
-      `<span lang="en">Latest ${v} (${d}) · ${link}What’s new</a> · Free · macOS 10.15+ · Windows 10+</span>`;
-  };
-
-  const load = async () => {
-    // Chromium 系だけは CPU の種類を教えてくれる。
-    if (navigator.userAgentData?.getHighEntropyValues) {
-      try {
-        const { architecture } = await navigator.userAgentData.getHighEntropyValues(["architecture"]);
-        if (architecture === "x86" && !isWindows) macArch = "x64";
-      } catch {}
-    }
-    // 公開済みの最新リリース（下書きは含まれない）を引く。
-    // 失敗したときは href が最新リリースのページのままなので、ダウンロード自体はできる。
-    try {
-      const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
-        headers: { Accept: "application/vnd.github+json" },
-      });
-      if (!res.ok) return;
-      const release = await res.json();
-      applyAssets(release.assets || []);
-      showRelease(release);
-    } catch {}
-  };
-
-  load();
-})();
-</script>
+<script src="download.js"></script>
 </body>
 </html>
