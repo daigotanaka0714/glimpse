@@ -16,20 +16,14 @@ jobs:
       contents: write
     strategy:
       fail-fast: false
+      # 手動実行は公証の検証用なので、Mac を1つだけ作る。
+      # Windows は公証と関係がなく、Mac の2種類は同じ証明書を使うので、
+      # 片方通れば両方通る。Mac ランナーは Linux の10倍で課金されるため、
+      # ここを絞るとそのまま費用が減る。タグ push のときは従来どおり3つ作る。
       matrix:
-        include:
-          - platform: 'macos-latest'
-            args: '--target aarch64-apple-darwin'
-            rust_targets: 'aarch64-apple-darwin'
-            name: 'macOS-arm64'
-          - platform: 'macos-latest'
-            args: '--target x86_64-apple-darwin'
-            rust_targets: 'x86_64-apple-darwin'
-            name: 'macOS-x64'
-          - platform: 'windows-latest'
-            args: ''
-            rust_targets: ''
-            name: 'Windows-x64'
+        include: ${{ github.event_name == 'workflow_dispatch'
+          && fromJSON('[{"platform":"macos-latest","args":"--target aarch64-apple-darwin","rust_targets":"aarch64-apple-darwin","name":"macOS-arm64"}]')
+          || fromJSON('[{"platform":"macos-latest","args":"--target aarch64-apple-darwin","rust_targets":"aarch64-apple-darwin","name":"macOS-arm64"},{"platform":"macos-latest","args":"--target x86_64-apple-darwin","rust_targets":"x86_64-apple-darwin","name":"macOS-x64"},{"platform":"windows-latest","args":"","rust_targets":"","name":"Windows-x64"}]') }}
 
     runs-on: ${{ matrix.platform }}
     # 公証の結果待ちで止まったまま走り続けるのを防ぐ。
@@ -117,11 +111,11 @@ jobs:
           APPLE_CERTIFICATE_PASSWORD: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
           # 証明書が無いときは '-'（アドホック）へ落とす
           APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && (secrets.APPLE_SIGNING_IDENTITY || '-') || '' }}
-          # 公証の資格情報は、証明書があるときだけ渡す。
-          # アドホック署名のまま公証へ投げると必ず失敗するため。
-          APPLE_ID: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_ID || '' }}
-          APPLE_PASSWORD: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_TEAM_ID || '' }}
+          # 公証の資格情報はここでは渡さない。渡すと tauri-action が中で
+          # notarytool を呼び、結果待ちが止まったときに打ち切れない。
+          # 実際、応答待ちのまま 50分 と 5時間45分 走って落ちた回がある
+          # （NSURLErrorDomain -1009 "No network route"、2回とも再現）。
+          # 待ち時間と再試行を自分で持つため、公証は次のステップで行う。
         with:
           # タグ push のときだけリリースを作る。
           # 手動実行（workflow_dispatch）は公証の検証用で、tagName を空にすると
@@ -133,6 +127,71 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      # 公証する。tauri-action に任せず自前で呼ぶのは、**打ち切れるようにする**ため。
+      #
+      # ここで何が起きるか:
+      #   1. できあがった .dmg を Apple へ投げる（中の .app も一緒に登録される）
+      #   2. 結果を待つ。15分で打ち切り、最大3回まで試す
+      #   3. 公証チケットを .dmg と .app に貼る（stapler）
+      #
+      # .dmg を投げるのは、配布物がそれだからで、Apple の推奨経路でもある。
+      # 同じ提出に .app の cdhash も含まれるので、.app にもチケットを貼れる。
+      - name: Notarize
+        if: matrix.platform == 'macos-latest' && env.SIGN_MODE == 'developer-id'
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+
+          dmg=$(find src-tauri/target -type f -name '*.dmg' -print -quit)
+          app=$(find src-tauri/target -type d -name '*.app' -print -quit)
+          if [ -z "$dmg" ] || [ -z "$app" ]; then
+            echo "::error::.dmg か .app が見つかりません"
+            exit 1
+          fi
+          echo "提出: $dmg"
+
+          submit() {
+            xcrun notarytool submit "$dmg" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" \
+              --wait --timeout 15m \
+              --output-format json
+          }
+
+          ok=0
+          for attempt in 1 2 3; do
+            echo "--- 公証 $attempt 回目 ---"
+            if out=$(submit); then
+              echo "$out"
+              id=$(echo "$out" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("id",""))')
+              status=$(echo "$out" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("status",""))')
+              if [ "$status" = "Accepted" ]; then
+                ok=1
+                break
+              fi
+              # 受け付けられたが弾かれた場合は、理由を出す。待っても直らないので即やめる。
+              echo "::error::公証が拒否されました（status=$status）"
+              [ -n "$id" ] && xcrun notarytool log "$id" \
+                --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" || true
+              exit 1
+            fi
+            echo "::warning::公証の待ちに失敗しました（$attempt 回目）。30秒後に再試行します"
+            sleep 30
+          done
+
+          if [ "$ok" != "1" ]; then
+            echo "::error::3回試しても公証の結果を受け取れませんでした"
+            exit 1
+          fi
+
+          xcrun stapler staple "$dmg"
+          xcrun stapler staple "$app"
 
       # 公証が本当に通ったかを確かめる。
       #
