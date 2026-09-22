@@ -118,7 +118,11 @@ jobs:
           APPLE_PASSWORD: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_PASSWORD || '' }}
           APPLE_TEAM_ID: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_TEAM_ID || '' }}
         with:
-          tagName: ${{ github.ref_name }}
+          # タグ push のときだけリリースを作る。
+          # 手動実行（workflow_dispatch）は公証の検証用で、tagName を空にすると
+          # tauri-action はビルドだけしてリリースに触らない。ここにブランチ名が
+          # 入ると "Glimpse main" のような下書きリリースができてしまう。
+          tagName: ${{ github.event_name == 'push' && github.ref_name || '' }}
           releaseName: 'Glimpse ${{ github.ref_name }}'
           releaseBody: 'See the assets below to download the installer for your platform.'
           releaseDraft: true
@@ -164,3 +168,14 @@ jobs:
             echo "--- stapler (dmg) ---"
             xcrun stapler validate "$dmg"
           fi
+
+      # 手動実行ではリリースが無いので、公証済みの .dmg を成果物として残す。
+      # 一度も Glimpse を開いたことのない Mac で開けるかを人が確かめるため。
+      - name: Upload notarized dmg
+        if: github.event_name == 'workflow_dispatch' && matrix.platform == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: glimpse-${{ matrix.name }}-dmg
+          path: src-tauri/target/**/*.dmg
+          if-no-files-found: error
+          retention-days: 7
