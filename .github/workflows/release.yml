@@ -32,6 +32,11 @@ jobs:
             name: 'Windows-x64'
 
     runs-on: ${{ matrix.platform }}
+    # 公証の結果待ちで止まったまま走り続けるのを防ぐ。
+    # 実際、応答待ちのまま5時間45分走った回があり、Mac ランナーは
+    # Linux の10倍で課金されるので、上限が無いのは危ない。
+    # ビルド〜公証は通常 20〜40分で終わる。
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
 
