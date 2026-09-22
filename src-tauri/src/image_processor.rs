@@ -8,6 +8,7 @@ use rayon::ThreadPoolBuilder;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc;
 
 const THUMBNAIL_SIZE: u32 = 300;
@@ -374,12 +375,70 @@ pub fn generate_preview(image_path: &Path, output_path: &Path) -> Result<()> {
     // Resize to preview size (larger than thumbnail)
     let preview = img.thumbnail(PREVIEW_SIZE, PREVIEW_SIZE);
 
-    // Save as high-quality JPEG
-    let mut output_file = std::fs::File::create(output_path)?;
-    let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut output_file, 90);
-    preview.write_with_encoder(encoder)?;
+    // 一時ファイルに書いてから rename する。
+    // 一括生成と ensure_preview が同じファイルを同時に作ることがあり、直接書くと
+    // 書きかけのファイルを <img> が読んだり、exists() が真になって未完成のまま
+    // キャッシュ扱いされたりする。rename は同じディレクトリ内なら一度に置き換わる。
+    let tmp_path = temp_path_for(output_path);
+    let written = (|| -> Result<()> {
+        let mut tmp_file = std::fs::File::create(&tmp_path)?;
+        let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut tmp_file, 90);
+        preview.write_with_encoder(encoder)?;
+        Ok(())
+    })();
+    if let Err(e) = written {
+        let _ = std::fs::remove_file(&tmp_path);
+        return Err(e);
+    }
+
+    if let Err(e) = std::fs::rename(&tmp_path, output_path) {
+        let _ = std::fs::remove_file(&tmp_path);
+        // Windows では、相手が先に置いたファイルを <img> が開いていると置き換えに
+        // 失敗する。中身は同じ RAW から作った完成品なので、それを使えばよい。
+        if output_path.exists() {
+            return Ok(());
+        }
+        return Err(e.into());
+    }
 
     Ok(())
+}
+
+/// 同じ出力先に同時に書く者どうしがぶつからない一時ファイル名（出力先と同じディレクトリ）
+fn temp_path_for(output_path: &Path) -> PathBuf {
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let name = output_path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    output_path.with_file_name(format!("{}.{}-{}.tmp", name, std::process::id(), n))
+}
+
+/// RAW のプレビューのキャッシュ上の置き場所。一括生成と ensure_preview で必ず同じ名前にする
+pub fn preview_path_for(preview_dir: &Path, filename: &str) -> PathBuf {
+    let file_stem = Path::new(filename)
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    preview_dir.join(format!("{}_preview.jpg", file_stem))
+}
+
+/// 1枚だけプレビューを用意する。キャッシュ済みなら生成せずにそのパスを返す。
+///
+/// 表示中の1枚を一括生成の順番待ちから外すために使う。RAW の現像は既定の
+/// 2MB スタックでは足りないので、呼び出し側は大きいスタックのスレッドで呼ぶこと。
+pub fn ensure_preview(image_path: &Path, preview_dir: &Path) -> Result<PathBuf> {
+    let filename = image_path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .ok_or_else(|| GlimpseError::InvalidPath("No file name".into()))?;
+    let output_path = preview_path_for(preview_dir, &filename);
+    if output_path.exists() {
+        return Ok(output_path);
+    }
+    generate_preview(image_path, &output_path)?;
+    Ok(output_path)
 }
 
 /// Check if an extension is a RAW format (public version)
@@ -495,6 +554,10 @@ fn load_raw_image(path: &Path) -> Result<DynamicImage> {
 /// Generate multiple thumbnails and previews in parallel
 /// Limit thread count to control CPU usage
 /// For RAW files, also generates a larger preview image for detail view
+///
+/// `progress_callback(completed, total, result)` は1枚終わるごとに呼ばれる。
+/// 全部終わるのを待たずに、できた1枚からフロントへ届けるため。
+/// この関数が戻る時点で、全件のコールバックは呼び終わっている。
 pub fn generate_thumbnails_parallel<F>(
     images: &[ImageInfo],
     cache_dir: &Path,
@@ -502,17 +565,17 @@ pub fn generate_thumbnails_parallel<F>(
     progress_callback: F,
 ) -> Vec<ThumbnailResult>
 where
-    F: Fn(usize, usize) + Sync + Send + 'static,
+    F: Fn(usize, usize, &ThumbnailResult) + Send + 'static,
 {
     let total = images.len();
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = mpsc::channel::<ThumbnailResult>();
 
     // Thread for progress reporting
-    std::thread::spawn(move || {
+    let reporter = std::thread::spawn(move || {
         let mut completed = 0;
-        while rx.recv().is_ok() {
+        while let Ok(result) = rx.recv() {
             completed += 1;
-            progress_callback(completed, total);
+            progress_callback(completed, total, &result);
         }
     });
 
@@ -548,8 +611,7 @@ where
                 let is_raw = is_raw_extension(&extension);
 
                 // Preview path for RAW files
-                let preview_filename = format!("{}_preview.jpg", file_stem);
-                let preview_path_buf = preview_dir.join(&preview_filename);
+                let preview_path_buf = preview_path_for(&preview_dir, &image.filename);
 
                 // Generate thumbnail
                 let thumbnail_result = if thumbnail_path.exists() {
@@ -596,12 +658,17 @@ where
                 };
 
                 // Progress notification
-                let _ = tx.send(());
+                let _ = tx.send(result.clone());
 
                 result
             })
             .collect()
     });
+
+    // 送り手を閉じて、報告スレッドが残りを流し終えるのを待つ。
+    // 待たないと、完了通知が最後の数枚の1枚ごとの通知より先に出ることがある。
+    drop(tx);
+    let _ = reporter.join();
 
     results
 }
@@ -700,6 +767,137 @@ mod tests {
         // Verify path contains session ID
         assert!(cache_dir.to_string_lossy().contains(session_id));
         assert!(cache_dir.to_string_lossy().contains("thumbnails"));
+    }
+
+    fn write_jpeg(path: &Path) {
+        image::RgbImage::from_pixel(64, 48, image::Rgb([200, 100, 50]))
+            .save_with_format(path, ImageFormat::Jpeg)
+            .unwrap();
+    }
+
+    #[test]
+    fn test_generate_thumbnails_parallel_reports_each_result() {
+        use std::sync::{Arc, Mutex};
+
+        let src = tempdir().unwrap();
+        let cache = tempdir().unwrap();
+        let previews = tempdir().unwrap();
+        for name in ["a.jpg", "b.jpg", "c.jpg"] {
+            write_jpeg(&src.path().join(name));
+        }
+        // 読めないファイルも1枚ごとに（失敗として）届くこと
+        fs::write(src.path().join("broken.jpg"), b"not a jpeg").unwrap();
+        let images = scan_folder(src.path()).unwrap();
+
+        let reported = Arc::new(Mutex::new(Vec::new()));
+        let sink = Arc::clone(&reported);
+        let results = generate_thumbnails_parallel(
+            &images,
+            cache.path(),
+            previews.path(),
+            move |completed, total, result| {
+                sink.lock().unwrap().push((
+                    completed,
+                    total,
+                    result.filename.clone(),
+                    result.success,
+                ));
+            },
+        );
+
+        // 戻った時点で全件が報告済みであること（完了通知が1枚ごとの通知を追い越さない）
+        let mut reported = reported.lock().unwrap().clone();
+        assert_eq!(reported.len(), images.len());
+        assert_eq!(
+            reported.iter().map(|r| r.0).collect::<Vec<_>>(),
+            (1..=images.len()).collect::<Vec<_>>()
+        );
+        assert!(reported.iter().all(|r| r.1 == images.len()));
+
+        reported.sort_by(|a, b| a.2.cmp(&b.2));
+        let by_name: Vec<_> = reported.iter().map(|r| (r.2.as_str(), r.3)).collect();
+        assert_eq!(
+            by_name,
+            vec![
+                ("a.jpg", true),
+                ("b.jpg", true),
+                ("broken.jpg", false),
+                ("c.jpg", true)
+            ]
+        );
+        assert_eq!(results.len(), images.len());
+    }
+
+    #[test]
+    fn test_ensure_preview_returns_cached_without_generating() {
+        let src = tempdir().unwrap();
+        let previews = tempdir().unwrap();
+        // 中身は RAW ではないので、生成しようとすれば必ず失敗する
+        let raw = src.path().join("DSC_0001.NEF");
+        fs::write(&raw, b"not really a raw file").unwrap();
+
+        let cached = preview_path_for(previews.path(), "DSC_0001.NEF");
+        fs::write(&cached, b"cached preview").unwrap();
+
+        let path = ensure_preview(&raw, previews.path()).unwrap();
+
+        assert_eq!(path, cached);
+        assert_eq!(fs::read(&cached).unwrap(), b"cached preview");
+    }
+
+    #[test]
+    fn test_ensure_preview_uses_same_path_as_bulk_generation() {
+        let previews = tempdir().unwrap();
+        // 一括生成と名前がずれると、同じ RAW を二度現像し、キャッシュも効かない
+        assert_eq!(
+            preview_path_for(previews.path(), "DSC_0001.NEF"),
+            previews.path().join("DSC_0001_preview.jpg")
+        );
+    }
+
+    #[test]
+    fn test_generate_preview_failure_leaves_no_files() {
+        let src = tempdir().unwrap();
+        let previews = tempdir().unwrap();
+        let raw = src.path().join("DSC_0001.NEF");
+        fs::write(&raw, b"not really a raw file").unwrap();
+
+        assert!(ensure_preview(&raw, previews.path()).is_err());
+        // 失敗したとき、書きかけのプレビューも一時ファイルも残さない
+        assert_eq!(fs::read_dir(previews.path()).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn test_temp_path_is_unique_and_beside_output() {
+        let out = Path::new("/cache/previews/a_preview.jpg");
+        let a = temp_path_for(out);
+        let b = temp_path_for(out);
+        assert_ne!(a, b);
+        assert_eq!(a.parent(), out.parent());
+    }
+
+    #[test]
+    fn test_frontend_raw_extensions_match_backend() {
+        // フロントは拡張子で RAW を見分け、RAW 本体を <img> に渡さない。
+        // 一覧がずれると、その形式だけ Windows で表示されなくなる。
+        let ts = include_str!("../../src/utils/imageSource.ts");
+        let start = ts
+            .find("RAW_EXTENSIONS = [")
+            .expect("RAW_EXTENSIONS in imageSource.ts");
+        let end = start + ts[start..].find("] as const").unwrap();
+        let mut frontend: Vec<String> = ts[start..end]
+            .split('"')
+            .skip(1)
+            .step_by(2)
+            .map(str::to_string)
+            .collect();
+        frontend.sort();
+
+        let mut backend: Vec<String> = RAW_EXTENSIONS.iter().map(|e| e.to_lowercase()).collect();
+        backend.sort();
+        backend.dedup();
+
+        assert_eq!(frontend, backend);
     }
 
     #[test]

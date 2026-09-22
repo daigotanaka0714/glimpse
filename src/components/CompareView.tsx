@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "@/i18n";
 import type { ImageItem } from "@/types";
+import { getDisplayImagePath } from "@/utils/imageSource";
 import { toAssetUrl } from "@/utils/tauri";
 
 interface CompareViewProps {
@@ -120,6 +121,7 @@ function ComparePanel({
   onToggleLabel,
 }: ComparePanelProps) {
   const isRejected = item.label === "rejected";
+  const displayPath = getDisplayImagePath(item);
 
   return (
     <div className="flex-1 flex flex-col relative">
@@ -143,17 +145,19 @@ function ComparePanel({
               <div className="w-12 h-12 border-4 border-border-color border-t-accent rounded-full animate-spin" />
             </div>
           )}
-          <img
-            src={toAssetUrl(item.previewPath || item.path)}
-            alt={item.filename}
-            className={`
-              max-w-full max-h-[calc(100vh-160px)] object-contain
-              ${isLoaded ? "opacity-100" : "opacity-0"}
-              ${isRejected ? "opacity-50" : ""}
-              transition-opacity duration-200
-            `}
-            onLoad={onLoad}
-          />
+          {displayPath && (
+            <img
+              src={toAssetUrl(displayPath)}
+              alt={item.filename}
+              className={`
+                max-w-full max-h-[calc(100vh-160px)] object-contain
+                ${isLoaded ? "opacity-100" : "opacity-0"}
+                ${isRejected ? "opacity-50" : ""}
+                transition-opacity duration-200
+              `}
+              onLoad={onLoad}
+            />
+          )}
           {/* Rejected mark */}
           {isRejected && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

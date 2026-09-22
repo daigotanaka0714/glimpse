@@ -9,6 +9,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "@/i18n";
 import type { ImageItem } from "@/types";
+import { getDisplayImagePath } from "@/utils/imageSource";
 import { isMac } from "@/utils/platform";
 import { toAssetUrl } from "@/utils/tauri";
 
@@ -42,6 +43,7 @@ export function GalleryView({
   const currentItem = items[selectedIndex];
   const imageLoaded = loadedPath !== null && loadedPath === currentItem?.path;
   const isRejected = currentItem?.label === "rejected";
+  const displayPath = currentItem ? getDisplayImagePath(currentItem) : null;
   const hasMultiSelection = selectedThumbnails.size > 1;
 
   // Scroll selected thumbnail into view
@@ -176,17 +178,19 @@ export function GalleryView({
               <div className="w-16 h-16 border-4 border-border-color border-t-accent rounded-full animate-spin" />
             </div>
           )}
-          <img
-            src={toAssetUrl(currentItem.previewPath || currentItem.path)}
-            alt={currentItem.filename}
-            className={`
-              w-auto h-auto max-w-full max-h-full object-contain
-              ${imageLoaded ? "opacity-100" : "opacity-0"}
-              ${isRejected ? "opacity-50" : ""}
-              transition-opacity duration-200
-            `}
-            onLoad={() => setLoadedPath(currentItem?.path ?? null)}
-          />
+          {displayPath && (
+            <img
+              src={toAssetUrl(displayPath)}
+              alt={currentItem.filename}
+              className={`
+                w-auto h-auto max-w-full max-h-full object-contain
+                ${imageLoaded ? "opacity-100" : "opacity-0"}
+                ${isRejected ? "opacity-50" : ""}
+                transition-opacity duration-200
+              `}
+              onLoad={() => setLoadedPath(currentItem?.path ?? null)}
+            />
+          )}
           {/* Rejected mark */}
           {isRejected && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

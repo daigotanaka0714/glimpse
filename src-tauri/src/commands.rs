@@ -2,7 +2,7 @@ use crate::config::{self, AppConfig};
 use crate::database::{Database, Label, Session};
 use crate::error::Result;
 use crate::image_processor::{
-    extract_exif, generate_session_id, generate_thumbnails_parallel, get_cache_dir,
+    self, extract_exif, generate_session_id, generate_thumbnails_parallel, get_cache_dir,
     get_preview_dir, normalize_path, scan_folder, scan_subfolders, ExifInfo, ImageInfo,
     SubfolderInfo,
 };
@@ -105,7 +105,10 @@ pub async fn open_folder(
             &images_clone,
             &cache_dir_clone,
             &preview_dir_clone,
-            move |completed, total| {
+            move |completed, total, result| {
+                // 1枚できるごとに届ける。完了通知だけだと、数千枚のフォルダでは
+                // 全部終わるまで RAW のプレビューがフロントに渡らない。
+                let _ = app_for_progress.emit("thumbnail-ready", result);
                 let _ = app_for_progress
                     .emit("thumbnail-progress", ProgressPayload { completed, total });
             },
@@ -123,6 +126,47 @@ pub async fn open_folder(
         cache_dir: normalize_path(&cache_dir),
         subfolders,
     })
+}
+
+/// 表示中の1枚のプレビューを、一括生成の順番を待たずに用意する。
+/// キャッシュ済みならそのパスをすぐ返す。
+#[tauri::command]
+pub async fn ensure_preview(
+    state: State<'_, AppState>,
+    image_path: String,
+) -> std::result::Result<String, String> {
+    let session_id = state
+        .current_session_id
+        .lock()
+        .unwrap()
+        .clone()
+        .ok_or("No folder is open")?;
+    let preview_dir = get_preview_dir(&session_id).map_err(|e| e.to_string())?;
+
+    let path = run_with_large_stack(move || {
+        image_processor::ensure_preview(Path::new(&image_path), &preview_dir)
+    })
+    .await?
+    .map_err(|e| e.to_string())?;
+
+    Ok(normalize_path(&path))
+}
+
+/// RAW の現像は既定の 2MB スタックでは足りない（一括生成の rayon プールを 8MB に
+/// しているのと同じ理由）。専用のスレッドで走らせ、終わるのを非同期に待つ。
+async fn run_with_large_stack<T, F>(f: F) -> std::result::Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> T + Send + 'static,
+{
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(move || {
+            let _ = tx.send(f());
+        })
+        .map_err(|e| e.to_string())?;
+    rx.await.map_err(|e| e.to_string())
 }
 
 #[derive(serde::Serialize)]

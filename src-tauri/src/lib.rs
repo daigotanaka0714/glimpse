@@ -7,8 +7,8 @@ pub mod raw_preview;
 
 pub use commands::AppState;
 use commands::{
-    clear_all_cache, clear_all_labels, clear_cache, export_adopted, get_exif, get_storage_info,
-    get_system_info, open_folder, save_selection, set_label, set_thread_count,
+    clear_all_cache, clear_all_labels, clear_cache, ensure_preview, export_adopted, get_exif,
+    get_storage_info, get_system_info, open_folder, save_selection, set_label, set_thread_count,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -20,6 +20,7 @@ pub fn run() {
         .manage(AppState::new().expect("Failed to initialize app state"))
         .invoke_handler(tauri::generate_handler![
             open_folder,
+            ensure_preview,
             set_label,
             save_selection,
             export_adopted,
