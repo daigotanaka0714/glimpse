@@ -9,6 +9,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "@/i18n";
 import type { ImageItem } from "@/types";
+import { getDisplayImagePath } from "@/utils/imageSource";
 import { type ExifInfo, getExif, toAssetUrl } from "@/utils/tauri";
 
 interface DetailViewProps {
@@ -35,6 +36,7 @@ export function DetailView({
   const [exifLoading, setExifLoading] = useState(false);
   const [rotation, setRotation] = useState(0);
   const isRejected = item.label === "rejected";
+  const displayPath = getDisplayImagePath(item);
 
   // Reset when image changes
   // props が変わったときに state を調整する React 公式の書き方に合わせ、
@@ -90,18 +92,20 @@ export function DetailView({
               <div className="w-16 h-16 border-4 border-border-color border-t-accent rounded-full animate-spin" />
             </div>
           )}
-          <img
-            src={toAssetUrl(item.previewPath || item.path)}
-            alt={item.filename}
-            className={`
-              w-auto h-auto max-w-full max-h-full object-contain
-              ${imageLoaded ? "opacity-100" : "opacity-0"}
-              ${isRejected ? "opacity-50" : ""}
-              transition-all duration-300
-            `}
-            style={{ transform: `rotate(${rotation}deg)` }}
-            onLoad={() => setImageLoaded(true)}
-          />
+          {displayPath && (
+            <img
+              src={toAssetUrl(displayPath)}
+              alt={item.filename}
+              className={`
+                w-auto h-auto max-w-full max-h-full object-contain
+                ${imageLoaded ? "opacity-100" : "opacity-0"}
+                ${isRejected ? "opacity-50" : ""}
+                transition-all duration-300
+              `}
+              style={{ transform: `rotate(${rotation}deg)` }}
+              onLoad={() => setImageLoaded(true)}
+            />
+          )}
           {/* Rejected mark */}
           {isRejected && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

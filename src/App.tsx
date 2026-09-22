@@ -21,6 +21,8 @@ import {
   useGridConfig,
   useImageLabels,
   useKeyboardNavigation,
+  usePriorityPreview,
+  useThumbnailResults,
 } from "@/hooks";
 import { useTranslation } from "@/i18n";
 import type {
@@ -35,13 +37,11 @@ import {
   clearCache,
   exportAdopted,
   onThumbnailProgress,
-  onThumbnailsComplete,
   openFolder,
   type SubfolderInfo,
   saveSelection,
   selectExportFolder,
   selectFolder,
-  type ThumbnailResult,
   toImageItem,
 } from "@/utils/tauri";
 
@@ -162,43 +162,22 @@ export default function App() {
   // Set up thumbnail progress event listeners
   useEffect(() => {
     let unlistenProgress: (() => void) | null = null;
-    let unlistenComplete: (() => void) | null = null;
 
     const setupListeners = async () => {
       unlistenProgress = await onThumbnailProgress((progress) => {
         setThumbnailProgress(progress);
       });
-
-      unlistenComplete = await onThumbnailsComplete(
-        (results: ThumbnailResult[]) => {
-          // Update thumbnailLoaded to true and previewPath after thumbnail generation completes
-          setImages((prev) =>
-            prev.map((img) => {
-              const result = results.find((r) => r.filename === img.filename);
-              if (result?.success) {
-                return {
-                  ...img,
-                  thumbnailLoaded: true,
-                  previewPath: result.preview_path || undefined,
-                };
-              }
-              return img;
-            }),
-          );
-
-          // Play completion notification sound
-          playCompletionSound();
-        },
-      );
     };
 
     setupListeners();
 
     return () => {
       unlistenProgress?.();
-      unlistenComplete?.();
     };
   }, []);
+
+  // Apply each thumbnail/preview as soon as it is generated; play a sound when all are done
+  useThumbnailResults(setImages, playCompletionSound);
 
   // Save to backend when selection changes
   useEffect(() => {
@@ -230,6 +209,32 @@ export default function App() {
 
   // Selected item (from filtered index)
   const selectedItem = filteredImages[selectedIndex] || null;
+
+  // 詳細・比較・ギャラリーで表示中の RAW は、プレビューを先に作らせる
+  const displayedItems = useMemo(() => {
+    switch (viewMode) {
+      case "detail":
+      case "gallery":
+        return [selectedItem];
+      case "compare":
+        return [selectedItem, filteredImages[compareIndex]];
+      default:
+        return [];
+    }
+  }, [viewMode, selectedItem, filteredImages, compareIndex]);
+
+  const handlePreviewReady = useCallback(
+    (imagePath: string, previewPath: string) => {
+      setImages((prev) =>
+        prev.map((img) =>
+          img.path === imagePath ? { ...img, previewPath } : img,
+        ),
+      );
+    },
+    [],
+  );
+
+  usePriorityPreview(displayedItems, handlePreviewReady);
 
   // Image label operations (with proper error handling)
   const {

@@ -149,6 +149,21 @@ export async function onThumbnailProgress(
   return unlisten;
 }
 
+// Listen for per-image results (emitted as soon as each image is done)
+export async function onThumbnailReady(
+  callback: (result: ThumbnailResult) => void,
+): Promise<() => void> {
+  const unlisten = await listen<ThumbnailResult>("thumbnail-ready", (event) => {
+    callback(event.payload);
+  });
+  return unlisten;
+}
+
+// Create the preview for one RAW image now (returns the cached one if it exists)
+export async function ensurePreview(imagePath: string): Promise<string> {
+  return await invoke("ensure_preview", { imagePath });
+}
+
 // Listen for thumbnail generation complete events
 export async function onThumbnailsComplete(
   callback: (results: ThumbnailResult[]) => void,
