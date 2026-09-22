@@ -1,0 +1,73 @@
+name: RAW samples
+
+# 対応表に書いてある形式が、実物で本当に読めるかを確かめる。
+#
+# なぜ要るか:
+#   README とダウンロードページには CR3 と RAF も「対応」と書いてあったが、
+#   実際は Canon R5（CR3）と Fujifilm X-T3（RAF）が読めなかった。
+#   ユニットテストは通っていた。実ファイルを見ていなかったからで、
+#   ここを機械が見ていないと、また同じずれ方をする。
+#
+# サンプルは raw.pixls.us の CC0 素材。リポジトリには置かない（1ファイル数十MB）。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src-tauri/src/raw_preview.rs'
+      - 'src-tauri/src/image_processor.rs'
+      - 'src-tauri/tests/raw_samples.rs'
+      - '.github/workflows/raw-samples.yml'
+  pull_request:
+    paths:
+      - 'src-tauri/src/raw_preview.rs'
+      - 'src-tauri/src/image_processor.rs'
+      - 'src-tauri/tests/raw_samples.rs'
+      - '.github/workflows/raw-samples.yml'
+  workflow_dispatch:
+
+jobs:
+  samples:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows でだけ壊れる不具合を実際に出したので、両方で回す
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          shared-key: raw-samples-${{ matrix.os }}
+
+      # tauri-build がフロントエンドの出力を要求するため、空のものを置く。
+      # ここでは Rust の関数だけを試すので中身は要らない。
+      - name: Stub frontend output
+        shell: bash
+        run: mkdir -p dist && echo '<html></html>' > dist/index.html
+
+      - name: Download samples (CC0, raw.pixls.us)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p samples && cd samples
+          base=https://raw.pixls.us/data
+          # 形式ごとに1枚ずつ。構造が違うものを選んである:
+          #   NEF/CR2/ARW = TIFF 系 / RAF = 固定ヘッダ / CR3 = ISOBMFF
+          curl -sfL --retry 3 -o D750.NEF "$base/Nikon/D750/lossless_compressed_14_bit.NEF"
+          curl -sfL --retry 3 -o 5D3.CR2  "$base/Canon/EOS%205D%20Mark%20III/5G4A9394.CR2"
+          curl -sfL --retry 3 -o R5.CR3   "$base/Canon/EOS%20R5/Canon_EOS_R5_CRAW_ISO_100_crop_nodual.CR3"
+          curl -sfL --retry 3 -o A7M3.ARW "$base/Sony/ILCE-7M3/_DSC0009.ARW"
+          curl -sfL --retry 3 -o XT3.RAF  "$base/Fujifilm/X-T3/AFXT2720.RAF"
+          ls -la
+
+      - name: Thumbnails and previews for every sample
+        shell: bash
+        working-directory: src-tauri
+        env:
+          GLIMPSE_RAW_DIR: ${{ github.workspace }}/samples
+        run: cargo test --release --test raw_samples -- --nocapture
