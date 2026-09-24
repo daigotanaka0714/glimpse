@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc;
 
-const THUMBNAIL_SIZE: u32 = 300;
-const PREVIEW_SIZE: u32 = 2000;
+pub const THUMBNAIL_SIZE: u32 = 300;
+pub const PREVIEW_SIZE: u32 = 2000;
 
 /// Normalize path (convert backslashes to forward slashes)
 /// Convert Windows paths to a format usable with the asset:// protocol
@@ -375,6 +375,13 @@ pub fn generate_preview(image_path: &Path, output_path: &Path) -> Result<()> {
     // Resize to preview size (larger than thumbnail)
     let preview = img.thumbnail(PREVIEW_SIZE, PREVIEW_SIZE);
 
+    write_preview_jpeg(&preview, output_path)
+}
+
+/// プレビューを JPEG（品質 90）で書き出す。
+///
+/// 計測（`tests/thumbnail_breakdown.rs`）が工程ごとに呼び直すために分けてある。
+pub fn write_preview_jpeg(preview: &DynamicImage, output_path: &Path) -> Result<()> {
     // 一時ファイルに書いてから rename する。
     // 一括生成と ensure_preview が同じファイルを同時に作ることがあり、直接書くと
     // 書きかけのファイルを <img> が読んだり、exists() が真になって未完成のまま
@@ -462,6 +469,9 @@ pub fn is_raw_format(extension: &str) -> bool {
 ///
 /// どちらの場合も現像が失敗したら、小さくても埋め込み JPEG を返す。
 /// 「小さい絵が出る」ほうが「何も出ない」より良い。
+///
+/// 計測（`tests/thumbnail_breakdown.rs`）はこの関数を工程に割って呼び直している。
+/// 順番や分岐を変えたら、そちらも合わせること（食い違うと出力の一致テストが落ちる）。
 fn load_raw_at_least(path: &Path, target: u32) -> Result<DynamicImage> {
     let embedded = match raw_preview::extract_largest_jpeg(path) {
         Ok(jpeg) => match image::load_from_memory_with_format(&jpeg.bytes, ImageFormat::Jpeg) {
@@ -494,7 +504,8 @@ fn load_raw_at_least(path: &Path, target: u32) -> Result<DynamicImage> {
 
 /// 埋め込み JPEG に付ける向き。
 /// JPEG 自身が EXIF を持っていればそれを使い、無ければ RAW 本体の向きを使う。
-fn embedded_orientation(jpeg: &[u8], raw_path: &Path) -> u16 {
+/// 計測から工程ごとに呼ぶため公開している。
+pub fn embedded_orientation(jpeg: &[u8], raw_path: &Path) -> u16 {
     if let Some(o) = orientation_from_jpeg(jpeg) {
         return o;
     }
@@ -514,7 +525,8 @@ fn orientation_from_jpeg(bytes: &[u8]) -> Option<u16> {
 /// EXIF の向きに合わせて回す。
 /// 現像経路（imagepipe）は向きを自分で直すので、埋め込み経路だけここで揃える。
 /// 揃えないと、同じフォルダの中で縦横が混ざる。
-fn apply_orientation(img: DynamicImage, orientation: u16) -> DynamicImage {
+/// 計測から工程ごとに呼ぶため公開している。
+pub fn apply_orientation(img: DynamicImage, orientation: u16) -> DynamicImage {
     match orientation {
         2 => img.fliph(),
         3 => img.rotate180(),
@@ -528,7 +540,8 @@ fn apply_orientation(img: DynamicImage, orientation: u16) -> DynamicImage {
 }
 
 /// Load RAW image
-fn load_raw_image(path: &Path) -> Result<DynamicImage> {
+/// 計測から工程ごとに呼ぶため公開している。
+pub fn load_raw_image(path: &Path) -> Result<DynamicImage> {
     let raw_image =
         rawloader::decode_file(path).map_err(|e| GlimpseError::RawProcessing(e.to_string()))?;
 

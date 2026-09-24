@@ -49,6 +49,8 @@ const MAX_CANDIDATES: usize = 64;
 #[derive(Debug)]
 pub struct EmbeddedJpeg {
     pub bytes: Vec<u8>,
+    /// ファイル先頭からの位置。どの候補を選んだかを計測側で見分けるため
+    pub offset: u64,
     /// 画素数が分かった場合のみ（TIFF のタグから読めるとき）
     pub width: Option<u32>,
     pub height: Option<u32>,
@@ -59,6 +61,76 @@ pub struct EmbeddedJpeg {
 /// 見つからない場合も含めてエラーを返す。呼び出し側は現像に落ちること。
 pub fn extract_largest_jpeg(path: &Path) -> Result<EmbeddedJpeg> {
     let mut file = File::open(path)?;
+    match detect_container(&mut file)? {
+        Container::Raf => extract_from_raf(&mut file),
+        Container::Isobmff => extract_from_isobmff(&mut file),
+        Container::Tiff { little } => extract_from_tiff(&mut file, little),
+    }
+}
+
+/// 埋め込み JPEG の候補1つ。選ぶ前の形。
+#[derive(Debug, Clone, Copy)]
+pub struct CandidateInfo {
+    pub offset: u64,
+    pub length: u64,
+    /// TIFF のタグに書いてある画素数（strip 形式のときだけ分かる）
+    pub tag_width: Option<u32>,
+    pub tag_height: Option<u32>,
+}
+
+/// `extract_largest_jpeg` が選ぶ前に集めている候補を、全部そのまま返す。
+///
+/// 計測（`tests/thumbnail_breakdown.rs`）で「どれを選んだか・他に何があったか」を
+/// 出すためのもの。選び方には関与しない。
+///
+/// - TIFF 系: `walk_ifd` が集めた候補すべて（`pick_largest` が落とす前）
+/// - RAF: ヘッダが指す1つ
+/// - CR3: PRVW ボックスの JPEG 1つ（PRVW 以外のボックスはそもそも見ていない）
+pub fn list_candidates(path: &Path) -> Result<Vec<CandidateInfo>> {
+    let mut file = File::open(path)?;
+    let candidates = match detect_container(&mut file)? {
+        Container::Raf => {
+            let (offset, length) = raf_location(&mut file)?;
+            vec![Candidate {
+                offset,
+                length,
+                width: None,
+                height: None,
+            }]
+        }
+        Container::Isobmff => {
+            let file_len = file.metadata()?.len();
+            let mut best = None;
+            walk_boxes(&mut file, 0, file_len, 0, &mut best)?;
+            best.map(|(offset, bytes): (u64, Vec<u8>)| Candidate {
+                offset,
+                length: bytes.len() as u64,
+                width: None,
+                height: None,
+            })
+            .into_iter()
+            .collect()
+        }
+        Container::Tiff { little } => tiff_candidates(&mut file, little)?,
+    };
+    Ok(candidates
+        .into_iter()
+        .map(|c| CandidateInfo {
+            offset: c.offset,
+            length: c.length,
+            tag_width: c.width,
+            tag_height: c.height,
+        })
+        .collect())
+}
+
+enum Container {
+    Raf,
+    Isobmff,
+    Tiff { little: bool },
+}
+
+fn detect_container(file: &mut File) -> Result<Container> {
     let mut magic = [0u8; 16];
     let read = file.read(&mut magic)?;
     if read < 12 {
@@ -67,18 +139,18 @@ pub fn extract_largest_jpeg(path: &Path) -> Result<EmbeddedJpeg> {
 
     // RAF は先頭が "FUJIFILMCCD-RAW"
     if magic.starts_with(b"FUJIFILM") {
-        return extract_from_raf(&mut file);
+        return Ok(Container::Raf);
     }
 
     // ISOBMFF（CR3）は 4..8 が "ftyp"
     if &magic[4..8] == b"ftyp" {
-        return extract_from_isobmff(&mut file);
+        return Ok(Container::Isobmff);
     }
 
     // TIFF は "II*\0"（リトルエンディアン）または "MM\0*"（ビッグエンディアン）
     if &magic[0..4] == b"II\x2a\x00" || &magic[0..4] == b"MM\x00\x2a" {
         let little = magic[0] == b'I';
-        return extract_from_tiff(&mut file, little);
+        return Ok(Container::Tiff { little });
     }
 
     Err(GlimpseError::RawProcessing(format!(
@@ -146,6 +218,11 @@ fn is_jpeg_compression(v: u32) -> bool {
 }
 
 fn extract_from_tiff(file: &mut File, little: bool) -> Result<EmbeddedJpeg> {
+    let candidates = tiff_candidates(file, little)?;
+    pick_largest(file, candidates)
+}
+
+fn tiff_candidates(file: &mut File, little: bool) -> Result<Vec<Candidate>> {
     let header = read_exact_at(file, 0, 8)?;
     let first_ifd = u32_at(&header, 4, little) as u64;
 
@@ -160,7 +237,7 @@ fn extract_from_tiff(file: &mut File, little: bool) -> Result<EmbeddedJpeg> {
         seen += 1;
     }
 
-    pick_largest(file, candidates)
+    Ok(candidates)
 }
 
 /// 1つの IFD を読み、候補を集めて、次の IFD のオフセットを返す。
@@ -286,6 +363,7 @@ fn pick_largest(file: &mut File, mut candidates: Vec<Candidate>) -> Result<Embed
         if looks_like_jpeg(&bytes) {
             return Ok(EmbeddedJpeg {
                 bytes,
+                offset: c.offset,
                 width: c.width,
                 height: c.height,
             });
@@ -302,9 +380,7 @@ fn pick_largest(file: &mut File, mut candidates: Vec<Candidate>) -> Result<Embed
 /// RAF のヘッダは固定長で、JPEG の位置と長さがビッグエンディアンで入っている。
 /// 0x54 = offset, 0x58 = length。
 fn extract_from_raf(file: &mut File) -> Result<EmbeddedJpeg> {
-    let header = read_exact_at(file, 0, 0x60)?;
-    let offset = u32_at(&header, 0x54, false) as u64;
-    let length = u32_at(&header, 0x58, false) as u64;
+    let (offset, length) = raf_location(file)?;
 
     let file_len = file.metadata()?.len();
     if length < MIN_JPEG_BYTES || offset + length > file_len {
@@ -322,9 +398,18 @@ fn extract_from_raf(file: &mut File) -> Result<EmbeddedJpeg> {
 
     Ok(EmbeddedJpeg {
         bytes,
+        offset,
         width: None,
         height: None,
     })
+}
+
+/// RAF ヘッダに書いてある JPEG の位置と長さ
+fn raf_location(file: &mut File) -> Result<(u64, u64)> {
+    let header = read_exact_at(file, 0, 0x60)?;
+    let offset = u32_at(&header, 0x54, false) as u64;
+    let length = u32_at(&header, 0x58, false) as u64;
+    Ok((offset, length))
 }
 
 // ── ISOBMFF（CR3）─────────────────────────────
@@ -334,12 +419,13 @@ fn extract_from_raf(file: &mut File) -> Result<EmbeddedJpeg> {
 /// その中の JPEG を返す。
 fn extract_from_isobmff(file: &mut File) -> Result<EmbeddedJpeg> {
     let file_len = file.metadata()?.len();
-    let mut best: Option<Vec<u8>> = None;
+    let mut best: Option<(u64, Vec<u8>)> = None;
     walk_boxes(file, 0, file_len, 0, &mut best)?;
 
     match best {
-        Some(bytes) => Ok(EmbeddedJpeg {
+        Some((offset, bytes)) => Ok(EmbeddedJpeg {
             bytes,
+            offset,
             width: None,
             height: None,
         }),
@@ -354,7 +440,7 @@ fn walk_boxes(
     start: u64,
     end: u64,
     depth: u8,
-    best: &mut Option<Vec<u8>>,
+    best: &mut Option<(u64, Vec<u8>)>,
 ) -> Result<()> {
     if depth > 6 {
         return Ok(());
@@ -394,9 +480,12 @@ fn walk_boxes(
                 if let Some(at) = find_soi(&buf) {
                     let jpeg = buf[at..].to_vec();
                     if jpeg.len() >= MIN_JPEG_BYTES as usize
-                        && best.as_ref().map(|b| b.len() < jpeg.len()).unwrap_or(true)
+                        && best
+                            .as_ref()
+                            .map(|(_, b)| b.len() < jpeg.len())
+                            .unwrap_or(true)
                     {
-                        *best = Some(jpeg);
+                        *best = Some((body + at as u64, jpeg));
                     }
                 }
             }
@@ -506,6 +595,17 @@ mod tests {
         let got = extract_largest_jpeg(&path).unwrap();
         assert_eq!(got.bytes.len(), jpeg.len());
         assert!(looks_like_jpeg(&got.bytes));
+    }
+
+    #[test]
+    fn lists_the_candidate_that_extract_picks() {
+        let jpeg = fake_jpeg(20 * 1024);
+        let path = write_temp("glimpse-test-list.nef", &minimal_tiff(&jpeg));
+        let listed = list_candidates(&path).unwrap();
+        let got = extract_largest_jpeg(&path).unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].offset, got.offset);
+        assert_eq!(listed[0].length, jpeg.len() as u64);
     }
 
     #[test]
