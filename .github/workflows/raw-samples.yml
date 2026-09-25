@@ -57,12 +57,15 @@ jobs:
           mkdir -p samples && cd samples
           base=https://raw.pixls.us/data
           # 形式ごとに1枚ずつ。構造が違うものを選んである:
-          #   NEF/CR2/ARW = TIFF 系 / RAF = 固定ヘッダ / CR3 = ISOBMFF
+          #   NEF/CR2/ARW/DNG = TIFF 系 / RAF = 固定ヘッダ / CR3 = ISOBMFF
+          # DNG は CR2 と同じく RAW 本体がロスレス JPEG で入っていて、埋め込み JPEG の
+          # 選び間違いが出る形なので入れてある（カメラが書いた DNG。変換ソフトの DNG ではない）
           curl -sfL --retry 3 -o D750.NEF "$base/Nikon/D750/lossless_compressed_14_bit.NEF"
           curl -sfL --retry 3 -o 5D3.CR2  "$base/Canon/EOS%205D%20Mark%20III/5G4A9394.CR2"
           curl -sfL --retry 3 -o R5.CR3   "$base/Canon/EOS%20R5/Canon_EOS_R5_CRAW_ISO_100_crop_nodual.CR3"
           curl -sfL --retry 3 -o A7M3.ARW "$base/Sony/ILCE-7M3/_DSC0009.ARW"
           curl -sfL --retry 3 -o XT3.RAF  "$base/Fujifilm/X-T3/AFXT2720.RAF"
+          curl -sfL --retry 3 -o K1.DNG   "$base/Pentax/K-1/IMGP8551.DNG"
           ls -la
 
       - name: Thumbnails and previews for every sample
