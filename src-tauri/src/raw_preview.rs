@@ -23,7 +23,7 @@
 //!
 //! | 構造 | 拡張子 | どこに入っているか |
 //! |---|---|---|
-//! | TIFF/IFD | NEF, CR2, ARW, DNG, ORF, RW2, PEF, SRW | IFD を全部たどって JPEG を集め、一番大きいものを選ぶ |
+//! | TIFF/IFD | NEF, CR2, ARW, DNG, ORF, RW2, PEF, SRW | IFD を全部たどって JPEG を集め、目的の大きさに合うものを選ぶ |
 //! | RAF | RAF | ヘッダ 0x54 に位置、0x58 に長さ（ビッグエンディアン） |
 //! | ISOBMFF | CR3 | ボックスをたどって PRVW ボックスの中の JPEG |
 //!
@@ -51,20 +51,23 @@ pub struct EmbeddedJpeg {
     pub bytes: Vec<u8>,
     /// ファイル先頭からの位置。どの候補を選んだかを計測側で見分けるため
     pub offset: u64,
-    /// 画素数が分かった場合のみ（TIFF のタグから読めるとき）
+    /// 画素数が分かった場合のみ（TIFF 系では JPEG の SOF から読む）
     pub width: Option<u32>,
     pub height: Option<u32>,
 }
 
-/// RAW ファイルから、いちばん大きい埋め込み JPEG を取り出す。
+/// RAW ファイルから、長辺が `target` 以上ある埋め込み JPEG のうち、いちばん小さいものを取り出す。
+/// `target` に届くものが無ければ、いちばん大きいものを返す（呼び出し側が現像するか決める）。
+///
+/// 候補を選ぶのは TIFF 系だけ。RAF と CR3 は候補が1つしか無いので、`target` は見ない。
 ///
 /// 見つからない場合も含めてエラーを返す。呼び出し側は現像に落ちること。
-pub fn extract_largest_jpeg(path: &Path) -> Result<EmbeddedJpeg> {
+pub fn extract_embedded_jpeg(path: &Path, target: u32) -> Result<EmbeddedJpeg> {
     let mut file = File::open(path)?;
     match detect_container(&mut file)? {
         Container::Raf => extract_from_raf(&mut file),
         Container::Isobmff => extract_from_isobmff(&mut file),
-        Container::Tiff { little } => extract_from_tiff(&mut file, little),
+        Container::Tiff { little } => extract_from_tiff(&mut file, little, target),
     }
 }
 
@@ -78,12 +81,12 @@ pub struct CandidateInfo {
     pub tag_height: Option<u32>,
 }
 
-/// `extract_largest_jpeg` が選ぶ前に集めている候補を、全部そのまま返す。
+/// `extract_embedded_jpeg` が選ぶ前に集めている候補を、全部そのまま返す。
 ///
 /// 計測（`tests/thumbnail_breakdown.rs`）で「どれを選んだか・他に何があったか」を
 /// 出すためのもの。選び方には関与しない。
 ///
-/// - TIFF 系: `walk_ifd` が集めた候補すべて（`pick_largest` が落とす前）
+/// - TIFF 系: `walk_ifd` が集めた候補すべて（`pick_for_target` が落とす前）
 /// - RAF: ヘッダが指す1つ
 /// - CR3: PRVW ボックスの JPEG 1つ（PRVW 以外のボックスはそもそも見ていない）
 pub fn list_candidates(path: &Path) -> Result<Vec<CandidateInfo>> {
@@ -217,9 +220,9 @@ fn is_jpeg_compression(v: u32) -> bool {
     v == 6 || v == 7
 }
 
-fn extract_from_tiff(file: &mut File, little: bool) -> Result<EmbeddedJpeg> {
+fn extract_from_tiff(file: &mut File, little: bool, target: u32) -> Result<EmbeddedJpeg> {
     let candidates = tiff_candidates(file, little)?;
-    pick_largest(file, candidates)
+    pick_for_target(file, candidates, target)
 }
 
 fn tiff_candidates(file: &mut File, little: bool) -> Result<Vec<Candidate>> {
@@ -348,31 +351,152 @@ fn walk_ifd(
     Ok(u32_at(&entries, next_pos, little) as u64)
 }
 
-/// 候補のうち、実際に JPEG として読めるいちばん大きいものを返す。
-fn pick_largest(file: &mut File, mut candidates: Vec<Candidate>) -> Result<EmbeddedJpeg> {
+/// JPEG の最初のフレームヘッダ（SOF）から読んだこと
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Frame {
+    /// SOF マーカーの2バイト目（0xC0 = ベースライン、0xC3 = ロスレス など）
+    marker: u8,
+    precision: u8,
+    width: u32,
+    height: u32,
+}
+
+impl Frame {
+    /// `image` クレートで絵としてデコードできる形か。
+    ///
+    /// SOF0（ベースライン）・SOF1（拡張）・SOF2（プログレッシブ）の 8bit だけ。
+    /// SOF3（ロスレス）は RAW 本体のデータの圧縮に使われる形式で（CR2・DNG）、
+    /// SOI で始まるので見た目は JPEG だが、絵としては読めない。
+    fn is_decodable(&self) -> bool {
+        matches!(self.marker, 0xC0..=0xC2)
+            && self.precision == 8
+            && self.width > 0
+            && self.height > 0
+    }
+
+    fn long_side(&self) -> u32 {
+        self.width.max(self.height)
+    }
+
+    fn pixels(&self) -> u64 {
+        self.width as u64 * self.height as u64
+    }
+}
+
+/// SOF を探すときにたどるセグメント数の上限。壊れたファイルで延々と走らないため。
+const MAX_JPEG_SEGMENTS: usize = 64;
+
+/// 候補の JPEG のセグメントを先頭からたどり、最初の SOF を読む。
+///
+/// セグメントのヘッダだけをシークして読むので、本体（数十 MB のロスレス RAW でも）は読まない。
+/// SOF の前にスキャン（SOS）や終わり（EOI）が来たら、SOF は無いとみなす。
+fn read_frame(file: &mut File, offset: u64, length: u64) -> Option<Frame> {
+    let end = offset + length;
+    let soi = read_exact_at(file, offset, 2).ok()?;
+    if soi != [0xFF, 0xD8] {
+        return None;
+    }
+
+    let mut pos = offset + 2;
+    for _ in 0..MAX_JPEG_SEGMENTS {
+        if pos + 4 > end {
+            return None;
+        }
+        let head = read_exact_at(file, pos, 4).ok()?;
+        if head[0] != 0xFF {
+            return None;
+        }
+        match head[1] {
+            // 詰め物の 0xFF。1バイト進めて読み直す
+            0xFF => pos += 1,
+            // SOF。0xC4（DHT）・0xC8（予約）・0xCC（DAC）は SOF ではない
+            0xC0..=0xCF if !matches!(head[1], 0xC4 | 0xC8 | 0xCC) => {
+                if pos + 9 > end {
+                    return None;
+                }
+                let sof = read_exact_at(file, pos, 9).ok()?;
+                return Some(Frame {
+                    marker: sof[1],
+                    precision: sof[4],
+                    height: u16::from_be_bytes([sof[5], sof[6]]) as u32,
+                    width: u16::from_be_bytes([sof[7], sof[8]]) as u32,
+                });
+            }
+            // SOS・EOI
+            0xDA | 0xD9 => return None,
+            // 長さを持たないマーカー（RST0-7, TEM）
+            0xD0..=0xD7 | 0x01 => pos += 2,
+            _ => {
+                let len = u16::from_be_bytes([head[2], head[3]]) as u64;
+                if len < 2 {
+                    return None;
+                }
+                pos += 2 + len;
+            }
+        }
+    }
+    None
+}
+
+/// 候補のうち、絵としてデコードできて長辺が `target` 以上あるものの中で、いちばん小さいものを返す。
+/// `target` に届くものが無ければ、デコードできるものの中でいちばん大きいものを返す。
+///
+/// なぜバイト長で選ばないか:
+///   - CR2・DNG ではバイト長の最大は RAW 本体（ロスレス JPEG）で、絵としてデコードできない。
+///     選ぶと毎回現像に落ちる（実測: サムネイル1枚 360〜570ms）
+///   - NEF では 300px のサムネイルのために 24MP のプレビューを選んでしまう。
+///     同じファイルに 1.7MP の候補があり、デコードと縮小が数倍速い
+///
+/// なぜ SOF を見るか（TIFF の Compression タグや NewSubfileType ではなく）:
+///   - SOF 1つで「デコードできる形か」と「画素数」の両方が分かる。どちらも選ぶのに要る
+///   - Compression は CR2・DNG ではロスレス本体とプレビューのどちらも JPEG（6/7）を示すので、
+///     区別に使えない（実測: どちらも `is_jpeg_compression` を通って候補に入っている）
+///   - NewSubfileType は CR2・NEF では当てにならず、ARW の JPEGInterchangeFormat 形式には
+///     画素数のタグも無い。SOF は JPEG 自身が持っているので、形式によらず同じやり方で読める
+fn pick_for_target(
+    file: &mut File,
+    candidates: Vec<Candidate>,
+    target: u32,
+) -> Result<EmbeddedJpeg> {
     if candidates.is_empty() {
         return Err(GlimpseError::RawProcessing("no embedded JPEG found".into()));
     }
 
     let file_len = file.metadata()?.len();
-    candidates.retain(|c| c.length >= MIN_JPEG_BYTES && c.offset + c.length <= file_len);
-    candidates.sort_by_key(|c| std::cmp::Reverse(c.length));
+    let usable: Vec<(Candidate, Frame)> = candidates
+        .into_iter()
+        .filter(|c| c.length >= MIN_JPEG_BYTES && c.offset + c.length <= file_len)
+        .filter_map(|c| {
+            read_frame(file, c.offset, c.length)
+                .filter(Frame::is_decodable)
+                .map(|f| (c, f))
+        })
+        .collect();
 
-    for c in candidates {
-        let bytes = read_exact_at(file, c.offset, c.length as usize)?;
-        if looks_like_jpeg(&bytes) {
-            return Ok(EmbeddedJpeg {
-                bytes,
-                offset: c.offset,
-                width: c.width,
-                height: c.height,
-            });
-        }
+    let chosen = usable
+        .iter()
+        .filter(|(_, f)| f.long_side() >= target)
+        .min_by_key(|(c, f)| (f.pixels(), c.length))
+        .or_else(|| usable.iter().max_by_key(|(c, f)| (f.pixels(), c.length)));
+
+    let Some(&(c, frame)) = chosen else {
+        return Err(GlimpseError::RawProcessing(
+            "no embedded JPEG candidate is a decodable baseline/progressive JPEG".into(),
+        ));
+    };
+
+    let bytes = read_exact_at(file, c.offset, c.length as usize)?;
+    if !looks_like_jpeg(&bytes) {
+        return Err(GlimpseError::RawProcessing(
+            "embedded JPEG candidate was not a valid JPEG".into(),
+        ));
     }
-
-    Err(GlimpseError::RawProcessing(
-        "embedded JPEG candidates were not valid JPEG".into(),
-    ))
+    Ok(EmbeddedJpeg {
+        bytes,
+        offset: c.offset,
+        width: Some(frame.width),
+        height: Some(frame.height),
+    })
 }
 
 // ── RAF（Fujifilm）─────────────────────────────
@@ -543,12 +667,61 @@ mod tests {
     use super::*;
     use std::io::Write;
 
-    /// 中身のない JPEG らしきバイト列
+    /// 中身のない JPEG らしきバイト列。ベースライン（SOF0）で 1620x1080 を名乗る
     fn fake_jpeg(size: usize) -> Vec<u8> {
-        let mut v = vec![0xFF, 0xD8, 0xFF, 0xE0];
+        fake_jpeg_with_frame(size, 0xC0, 1620, 1080)
+    }
+
+    /// SOI → APP1（EXIF の代わり）→ SOFn → 詰め物 → EOI の JPEG らしきバイト列。
+    /// 選ぶ側はヘッダしか見ないので、中身は要らない。
+    /// `marker` に 0xC3 を渡すと、CR2・DNG の RAW 本体（ロスレス JPEG）を模したものになる。
+    fn fake_jpeg_with_frame(size: usize, marker: u8, width: u16, height: u16) -> Vec<u8> {
+        let mut v = vec![0xFF, 0xD8];
+        // APP1。SOF の前にセグメントがあっても飛ばせることを見る
+        v.extend_from_slice(&[0xFF, 0xE1, 0x00, 0x10]);
+        v.extend_from_slice(&[0u8; 14]);
+        // SOFn: 長さ 17、精度 8、高さ、幅、成分 3
+        v.extend_from_slice(&[0xFF, marker, 0x00, 0x11, 0x08]);
+        v.extend_from_slice(&height.to_be_bytes());
+        v.extend_from_slice(&width.to_be_bytes());
+        v.extend_from_slice(&[0x03, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1]);
         v.resize(size - 2, 0x5A);
         v.extend_from_slice(&[0xFF, 0xD9]);
         v
+    }
+
+    /// IFD を JPEG の数だけ鎖でつないだ TIFF を組む。
+    /// 各 IFD は JPEGInterchangeFormat / Length で JPEG を1つずつ指す。
+    fn tiff_with_jpegs(jpegs: &[&[u8]]) -> Vec<u8> {
+        const IFD_SIZE: usize = 2 + 2 * 12 + 4;
+        let mut out = Vec::new();
+        out.extend_from_slice(b"II\x2a\x00");
+        out.extend_from_slice(&8u32.to_le_bytes());
+
+        let data_at = 8 + IFD_SIZE * jpegs.len();
+        let mut jpeg_at = data_at;
+        for (i, jpeg) in jpegs.iter().enumerate() {
+            out.extend_from_slice(&2u16.to_le_bytes());
+            for (tag, value) in [(0x0201u16, jpeg_at), (0x0202, jpeg.len())] {
+                out.extend_from_slice(&tag.to_le_bytes());
+                out.extend_from_slice(&4u16.to_le_bytes());
+                out.extend_from_slice(&1u32.to_le_bytes());
+                out.extend_from_slice(&(value as u32).to_le_bytes());
+            }
+            let next = if i + 1 < jpegs.len() {
+                8 + IFD_SIZE * (i + 1)
+            } else {
+                0
+            };
+            out.extend_from_slice(&(next as u32).to_le_bytes());
+            jpeg_at += jpeg.len();
+        }
+
+        assert_eq!(out.len(), data_at);
+        for jpeg in jpegs {
+            out.extend_from_slice(jpeg);
+        }
+        out
     }
 
     /// IFD が1つだけの最小の TIFF を組む。
@@ -592,7 +765,7 @@ mod tests {
     fn extracts_jpeg_from_tiff_container() {
         let jpeg = fake_jpeg(20 * 1024);
         let path = write_temp("glimpse-test-tiff.nef", &minimal_tiff(&jpeg));
-        let got = extract_largest_jpeg(&path).unwrap();
+        let got = extract_embedded_jpeg(&path, 300).unwrap();
         assert_eq!(got.bytes.len(), jpeg.len());
         assert!(looks_like_jpeg(&got.bytes));
     }
@@ -602,10 +775,101 @@ mod tests {
         let jpeg = fake_jpeg(20 * 1024);
         let path = write_temp("glimpse-test-list.nef", &minimal_tiff(&jpeg));
         let listed = list_candidates(&path).unwrap();
-        let got = extract_largest_jpeg(&path).unwrap();
+        let got = extract_embedded_jpeg(&path, 300).unwrap();
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].offset, got.offset);
         assert_eq!(listed[0].length, jpeg.len() as u64);
+    }
+
+    /// 再発防止: CR2・DNG では RAW 本体がロスレス JPEG（SOF3）で入っていて、バイト長が最大になる。
+    /// SOI で始まるので「JPEG らしい」が、絵としてはデコードできない。これを選ぶと毎回現像に落ちる。
+    #[test]
+    fn skips_lossless_jpeg_even_when_it_is_the_largest() {
+        let lossless = fake_jpeg_with_frame(400 * 1024, 0xC3, 5760, 3840);
+        let preview = fake_jpeg_with_frame(60 * 1024, 0xC0, 5760, 3840);
+        let path = write_temp(
+            "glimpse-test-lossless.cr2",
+            &tiff_with_jpegs(&[&preview, &lossless]),
+        );
+
+        for target in [300, 2000, 10_000] {
+            let got = extract_embedded_jpeg(&path, target).unwrap();
+            assert_eq!(got.bytes, preview, "target {target} でロスレスを選んだ");
+        }
+    }
+
+    /// ロスレスしか無ければ、使える埋め込み JPEG は無い（呼び出し側が現像に落ちる）
+    #[test]
+    fn rejects_file_whose_only_jpeg_is_lossless() {
+        let lossless = fake_jpeg_with_frame(400 * 1024, 0xC3, 7392, 4950);
+        let path = write_temp(
+            "glimpse-test-lossless-only.dng",
+            &tiff_with_jpegs(&[&lossless]),
+        );
+        assert!(extract_embedded_jpeg(&path, 300).is_err());
+    }
+
+    /// 再発防止: NEF には 24MP と 1.7MP のプレビューが入っている。
+    /// 300px のサムネイルには 1.7MP で足りるので、24MP をデコードしない。
+    /// 2000px のプレビューには 1.7MP では足りないので、24MP を選ぶ。
+    #[test]
+    fn picks_the_smallest_jpeg_that_reaches_the_target() {
+        let full = fake_jpeg_with_frame(200 * 1024, 0xC0, 6016, 4016);
+        let medium = fake_jpeg_with_frame(150 * 1024, 0xC0, 1620, 1080);
+        let tiny = fake_jpeg_with_frame(10 * 1024, 0xC0, 160, 120);
+        let path = write_temp(
+            "glimpse-test-sizes.nef",
+            &tiff_with_jpegs(&[&tiny, &full, &medium]),
+        );
+
+        let thumb = extract_embedded_jpeg(&path, 300).unwrap();
+        assert_eq!((thumb.width, thumb.height), (Some(1620), Some(1080)));
+        assert_eq!(thumb.bytes, medium);
+
+        let preview = extract_embedded_jpeg(&path, 2000).unwrap();
+        assert_eq!((preview.width, preview.height), (Some(6016), Some(4016)));
+        assert_eq!(preview.bytes, full);
+    }
+
+    /// どれも target に届かなければ、いちばん大きいものを返す。
+    /// 呼び出し側は現像を試し、失敗したらこれを使う（何も出ないよりは良い）。
+    #[test]
+    fn falls_back_to_the_largest_when_none_reaches_the_target() {
+        let medium = fake_jpeg_with_frame(150 * 1024, 0xC0, 1620, 1080);
+        let small = fake_jpeg_with_frame(100 * 1024, 0xC0, 640, 480);
+        let path = write_temp(
+            "glimpse-test-fallback.arw",
+            &tiff_with_jpegs(&[&small, &medium]),
+        );
+        let got = extract_embedded_jpeg(&path, 2000).unwrap();
+        assert_eq!(got.bytes, medium);
+    }
+
+    /// プログレッシブ（SOF2）は image クレートでデコードできるので候補に残す
+    #[test]
+    fn accepts_progressive_jpeg() {
+        let progressive = fake_jpeg_with_frame(60 * 1024, 0xC2, 1620, 1080);
+        let path = write_temp(
+            "glimpse-test-progressive.nef",
+            &tiff_with_jpegs(&[&progressive]),
+        );
+        assert_eq!(
+            extract_embedded_jpeg(&path, 300).unwrap().bytes,
+            progressive
+        );
+    }
+
+    #[test]
+    fn reads_frame_after_other_segments() {
+        let jpeg = fake_jpeg_with_frame(20 * 1024, 0xC3, 7392, 4950);
+        let path = write_temp("glimpse-test-frame.bin", &jpeg);
+        let mut file = File::open(&path).unwrap();
+        let frame = read_frame(&mut file, 0, jpeg.len() as u64).unwrap();
+        assert_eq!(
+            (frame.marker, frame.width, frame.height),
+            (0xC3, 7392, 4950)
+        );
+        assert!(!frame.is_decodable());
     }
 
     #[test]
@@ -613,7 +877,7 @@ mod tests {
         // EXIF の小さなサムネイルだけがある状態。拡大表示に使えないので拾わない。
         let jpeg = fake_jpeg(1024);
         let path = write_temp("glimpse-test-small.nef", &minimal_tiff(&jpeg));
-        assert!(extract_largest_jpeg(&path).is_err());
+        assert!(extract_embedded_jpeg(&path, 300).is_err());
     }
 
     #[test]
@@ -627,7 +891,7 @@ mod tests {
         raf.extend_from_slice(&jpeg);
 
         let path = write_temp("glimpse-test.raf", &raf);
-        let got = extract_largest_jpeg(&path).unwrap();
+        let got = extract_embedded_jpeg(&path, 300).unwrap();
         assert_eq!(got.bytes.len(), jpeg.len());
     }
 
@@ -641,13 +905,13 @@ mod tests {
         raf.extend_from_slice(&vec![0x00; 20 * 1024]);
 
         let path = write_temp("glimpse-test-broken.raf", &raf);
-        assert!(extract_largest_jpeg(&path).is_err());
+        assert!(extract_embedded_jpeg(&path, 300).is_err());
     }
 
     #[test]
     fn rejects_unknown_container() {
         let path = write_temp("glimpse-test-unknown.xyz", &vec![0x11; 4096]);
-        assert!(extract_largest_jpeg(&path).is_err());
+        assert!(extract_embedded_jpeg(&path, 300).is_err());
     }
 
     #[test]
