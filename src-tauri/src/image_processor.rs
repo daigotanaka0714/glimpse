@@ -473,7 +473,7 @@ pub fn is_raw_format(extension: &str) -> bool {
 /// 計測（`tests/thumbnail_breakdown.rs`）はこの関数を工程に割って呼び直している。
 /// 順番や分岐を変えたら、そちらも合わせること（食い違うと出力の一致テストが落ちる）。
 fn load_raw_at_least(path: &Path, target: u32) -> Result<DynamicImage> {
-    let embedded = match raw_preview::extract_largest_jpeg(path) {
+    let embedded = match raw_preview::extract_embedded_jpeg(path, target) {
         Ok(jpeg) => match image::load_from_memory_with_format(&jpeg.bytes, ImageFormat::Jpeg) {
             Ok(img) => {
                 let oriented = apply_orientation(img, embedded_orientation(&jpeg.bytes, path));

@@ -155,7 +155,7 @@ struct Facts {
     orientation_in_jpeg: Option<bool>,
     /// 現像に落ちた理由と結果
     develop: Option<String>,
-    /// `extract_largest_jpeg` を丸ごと呼んだときの時間（I/O + 探索と比べる用）
+    /// `extract_embedded_jpeg` を丸ごと呼んだときの時間（I/O + 探索と比べる用）
     extract_whole: Option<Duration>,
     picked_offset: Option<u64>,
     output: Option<(u32, u32)>,
@@ -183,7 +183,7 @@ fn staged_raw_load(path: &Path, target: u32, t: &mut Timing, f: &mut Facts) -> D
 
     // 本体が呼ぶ関数そのもの。どの候補が選ばれたかと、丸ごとの時間を取る
     let start = Instant::now();
-    let extracted = raw_preview::extract_largest_jpeg(path);
+    let extracted = raw_preview::extract_embedded_jpeg(path, target);
     f.extract_whole = Some(start.elapsed());
 
     let mut embedded = None;
@@ -505,7 +505,7 @@ fn print_breakdown(target: Target, rows: &[Measured]) {
         );
     }
 
-    println!("\n| 拡張子 | ファイル | デコードした画素数 | 出力 | 向き | 現像 | `extract_largest_jpeg` 丸ごと | 参考: エンコードのみ（メモリ上） |");
+    println!("\n| 拡張子 | ファイル | デコードした画素数 | 出力 | 向き | 現像 | `extract_embedded_jpeg` 丸ごと | 参考: エンコードのみ（メモリ上） |");
     println!("|---|---|---|---|---|---|---|---|");
     for m in rows {
         let orient = match (m.facts.orientation, m.facts.orientation_in_jpeg) {
@@ -527,25 +527,33 @@ fn print_breakdown(target: Target, rows: &[Measured]) {
     }
 }
 
-fn print_candidates(files: &[PathBuf], picked: &[(String, Option<u64>)]) {
+/// (ファイル名, 本体が選んだ候補の offset)。サムネイル用とプレビュー用で選ぶものが違う
+type Picked = Vec<(String, Option<u64>)>;
+
+fn print_candidates(files: &[PathBuf], picked300: &Picked, picked2000: &Picked) {
     println!("\n### 埋め込み JPEG の候補\n");
-    println!("採用 = `pick_largest` が選んだもの（バイト長が最大）。");
+    println!(
+        "採用 300 / 採用 2000 = 本体（`extract_embedded_jpeg`）がその大きさのために選んだもの。"
+    );
     println!("300 / 2000 = 長辺がその大きさに足りる候補のうち、バイト長がいちばん小さいもの。\n");
-    println!("| 拡張子 | ファイル | offset | バイト長 | SOF | 画素数（SOF） | タグの画素数 | 採用 | 300 | 2000 |");
-    println!("|---|---|---|---|---|---|---|---|---|---|");
+    println!("| 拡張子 | ファイル | offset | バイト長 | SOF | 画素数（SOF） | タグの画素数 | 採用 300 | 採用 2000 | 300 | 2000 |");
+    println!("|---|---|---|---|---|---|---|---|---|---|---|");
     for path in files.iter().filter(|p| is_raw_format(&ext_of(p))) {
         let name = name_of(path);
         let rows = candidate_rows(path);
-        let chosen = picked
-            .iter()
-            .find(|(n, _)| *n == name)
-            .and_then(|(_, o)| *o);
+        let chosen = |picked: &Picked| {
+            picked
+                .iter()
+                .find(|(n, _)| *n == name)
+                .and_then(|(_, o)| *o)
+        };
+        let (chosen300, chosen2000) = (chosen(picked300), chosen(picked2000));
         let s300 = smallest_sufficient(&rows, THUMBNAIL_SIZE);
         let s2000 = smallest_sufficient(&rows, PREVIEW_SIZE);
         let mark = |b: bool| if b { "✓" } else { "" };
         if rows.is_empty() {
             println!(
-                "| {} | {name} | — | — | — | 候補なし | — | | | |",
+                "| {} | {name} | — | — | — | 候補なし | — | | | | |",
                 ext_of(path).to_uppercase()
             );
         }
@@ -555,7 +563,7 @@ fn print_candidates(files: &[PathBuf], picked: &[(String, Option<u64>)]) {
                 _ => "—".into(),
             };
             println!(
-                "| {} | {name} | {} | {} | {} | {} | {tag} | {} | {} | {} |",
+                "| {} | {name} | {} | {} | {} | {} | {tag} | {} | {} | {} | {} |",
                 ext_of(path).to_uppercase(),
                 r.info.offset,
                 r.info.length,
@@ -563,7 +571,8 @@ fn print_candidates(files: &[PathBuf], picked: &[(String, Option<u64>)]) {
                 r.dims
                     .map(|d| px(Some(d)))
                     .unwrap_or_else(|| "読めない".into()),
-                mark(chosen == Some(r.info.offset)),
+                mark(chosen300 == Some(r.info.offset)),
+                mark(chosen2000 == Some(r.info.offset)),
                 mark(s300 == Some(r.info.offset)),
                 mark(s2000 == Some(r.info.offset)),
             );
@@ -638,21 +647,23 @@ fn thumbnail_breakdown() {
         );
 
         let dir = tempfile::tempdir().unwrap();
-        let mut picked = Vec::new();
+        let (mut picked300, mut picked2000) = (Vec::new(), Vec::new());
         for target in [Target::Thumbnail, Target::Preview] {
             let rows: Vec<Measured> = files
                 .iter()
                 .filter(|p| applies(p, target))
                 .map(|p| measure(p, target, dir.path(), iters))
                 .collect();
-            if target == Target::Thumbnail {
-                picked = rows
-                    .iter()
-                    .map(|m| (m.name.clone(), m.facts.picked_offset))
-                    .collect();
+            let picked: Picked = rows
+                .iter()
+                .map(|m| (m.name.clone(), m.facts.picked_offset))
+                .collect();
+            match target {
+                Target::Thumbnail => picked300 = picked,
+                Target::Preview => picked2000 = picked,
             }
             print_breakdown(target, &rows);
         }
-        print_candidates(&files, &picked);
+        print_candidates(&files, &picked300, &picked2000);
     });
 }
