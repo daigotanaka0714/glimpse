@@ -37,6 +37,10 @@ export const ja: Translations = {
     noSubfolders: "サブフォルダにも画像は見つかりませんでした。",
   },
 
+  openError: {
+    title: "フォルダを開けませんでした",
+  },
+
   statusBar: {
     navigation: "移動",
     reject: "不採用",

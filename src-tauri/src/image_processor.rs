@@ -189,6 +189,14 @@ fn is_supported_image_extension(ext: &str) -> bool {
 
 /// Scan image files in a folder
 pub fn scan_folder(folder_path: &Path) -> Result<Vec<ImageInfo>> {
+    // A file dropped onto the window arrives here as-is. Say so, instead of letting
+    // read_dir fail with a bare "Not a directory (os error 20)".
+    if folder_path.is_file() {
+        return Err(GlimpseError::NotAFolder(
+            folder_path.to_string_lossy().into_owned(),
+        ));
+    }
+
     let mut images = Vec::new();
 
     for entry in std::fs::read_dir(folder_path)? {
@@ -767,6 +775,19 @@ mod tests {
         // Does not scan files in subdirectories
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].filename, "image.jpg");
+    }
+
+    #[test]
+    fn test_scan_folder_rejects_a_file_path() {
+        // Dragging photos (not their folder) onto the window hands us a file path
+        let dir = tempdir().unwrap();
+        let file = dir.path().join("image.jpg");
+        fs::write(&file, b"fake jpg").unwrap();
+
+        let err = scan_folder(&file).unwrap_err();
+
+        assert!(matches!(err, GlimpseError::NotAFolder(_)), "got {err:?}");
+        assert!(err.to_string().contains("image.jpg"));
     }
 
     #[test]

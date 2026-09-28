@@ -36,6 +36,10 @@ export const en: Translations = {
     noSubfolders: "No images in subfolders either.",
   },
 
+  openError: {
+    title: "Couldn't open the folder",
+  },
+
   statusBar: {
     navigation: "Navigate",
     reject: "Reject",

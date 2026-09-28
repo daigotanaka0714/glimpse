@@ -22,6 +22,9 @@ pub enum GlimpseError {
 
     #[error("Invalid path: {0}")]
     InvalidPath(String),
+
+    #[error("Not a folder: {0}")]
+    NotAFolder(String),
 }
 
 impl serde::Serialize for GlimpseError {
