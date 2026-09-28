@@ -42,6 +42,11 @@ export interface Translations {
     noSubfolders: string;
   };
 
+  // Shown when a folder could not be opened (e.g. a file was dropped)
+  openError: {
+    title: string;
+  };
+
   // Status Bar
   statusBar: {
     navigation: string;

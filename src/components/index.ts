@@ -7,6 +7,7 @@ export { ExportDialog } from "./ExportDialog";
 export { GalleryView } from "./GalleryView";
 export { Header } from "./Header";
 export { HelpDialog } from "./HelpDialog";
+export { OpenFolderError } from "./OpenFolderError";
 export { SettingsDialog } from "./SettingsDialog";
 export { StatusBar } from "./StatusBar";
 export { ThumbnailGrid } from "./ThumbnailGrid";

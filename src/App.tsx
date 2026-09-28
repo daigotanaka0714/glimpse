@@ -10,6 +10,7 @@ import {
   GalleryView,
   Header,
   HelpDialog,
+  OpenFolderError,
   SettingsDialog,
   StatusBar,
   ThumbnailGrid,
@@ -72,6 +73,7 @@ export default function App() {
     total: 0,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [openFolderError, setOpenFolderError] = useState<string | null>(null);
 
   // Phase 2 new features
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
@@ -116,10 +118,13 @@ export default function App() {
   const handleOpenFolderByPath = useCallback(async (path: string) => {
     try {
       setIsLoading(true);
-      setFolderPath(path);
+      setOpenFolderError(null);
 
       // Open folder via backend
       const result = await openFolder(path);
+      // Switch only once the backend accepted the path: a failed open (e.g. a
+      // dropped file) must leave the current folder, and what export reads, alone.
+      setFolderPath(path);
       setSubfolders(result.subfolders);
 
       // Save session info
@@ -148,6 +153,7 @@ export default function App() {
       setThumbnailProgress({ completed: 0, total: result.images.length });
     } catch (error) {
       console.error("Failed to open folder:", error);
+      setOpenFolderError(String(error));
     } finally {
       setIsLoading(false);
     }
@@ -503,6 +509,13 @@ export default function App() {
         onOpenSettings={() => setShowSettingsDialog(true)}
         onOpenHelp={() => setShowHelpDialog(true)}
       />
+
+      {openFolderError && (
+        <OpenFolderError
+          message={openFolderError}
+          onDismiss={() => setOpenFolderError(null)}
+        />
+      )}
 
       {images.length > 0 && (
         <Toolbar
