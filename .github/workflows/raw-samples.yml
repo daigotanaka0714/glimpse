@@ -26,6 +26,9 @@ on:
       - '.github/workflows/raw-samples.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   samples:
     strategy:
