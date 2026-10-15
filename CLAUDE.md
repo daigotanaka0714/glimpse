@@ -167,56 +167,9 @@ Biome 移行で指摘がゼロになったため、ラチェットは廃止し�
 フロントエンドのみの変更を反復する間は `--quick`（Rust をスキップ）を使ってよい。
 
 <!-- daigo-lab-ops:completion-criteria:start -->
-<!-- 自動生成。daigo-lab-ops/docs/completion-criteria.md が唯一の出どころ。
+<!-- 自動生成。daigo-lab-ops/docs/completion-criteria.md を参照する。
      ここを手で編集しない。`lab sync` で作り直す。 -->
 
-## エージェントの完了条件
-
-### Definition of done
-
-1. This repository's `bin/agent-check` returns `STATUS: PASS`
-2. The change stays within what was asked for
-3. The PR is opened from a branch other than main / master
-
-### Do not
-
-- **Never push directly to the default branch.** Always branch and open a PR.
-- **Never merge.** `git merge` and `gh pr merge` are a human's job.
-- **Never edit the gate to make it pass.** If the gate needs to be relaxed,
-  propose that as its own PR and explain why.
-- **Never silence a lint rule to get green.** Fix what it reports.
-
-### While working
-
-- **Do not chain shell commands with `&&` or `;`.** Run `cd` as its own call
-  too. The auto mode classifier reads a chained command as one unit and
-  blocks the whole thing (`cd <dir> && <script that creates a worktree>` was
-  blocked; the same commands run separately went through). A chained command
-  also stops matching the `Bash(...)` permission rules, which match by prefix
-
-### When writing
-
-Code comments, docs, commit messages and PR bodies.
-
-- Keep it short and factual. Do not restate what the diff already shows
-- Keep temporary circumstances (a staged rollout, a workaround until a fix
-  ships) out of code, comments and docs. Put them in the PR body if needed
-- Do not annotate only some items in a list. Match how the others are written
-- Do not write what you have not verified. Mark a guess as unverified
-
-### When opening a PR
-
-- Do not put a Claude session URL (`claude.ai/code/session_...`) or a
-  `Claude-Session:` line in the PR body or in any commit message
-- Do not add a `🤖 Generated with Claude Code` line to the PR body or to any
-  commit message. This is a backstop: the real fix is `attribution.pr: ""` in
-  the user's Claude Code settings, which is where the instruction comes from
-- **Always name the repository and include the URL when referring to a PR.**
-  `#24` alone does not identify anything when several repositories are in play
-- Stacked PRs: before merging the base PR, re-target the one stacked on top of
-  it to the default branch first (`gh pr edit <n> --base main`). Merging the
-  base deletes its branch, and that takes the stacked PR with it. Most of these
-  repositories delete the branch on merge automatically, so this is a step you
-  have to take, not an option you can decline
+@~/Desktop/daigo-lab-ops/docs/completion-criteria.md
 
 <!-- daigo-lab-ops:completion-criteria:end -->
