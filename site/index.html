@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glimpse — Fast, lightweight photo culling</title>
+<meta name="description" content="A lightweight photo checker for shoots that produce thousands of files — landscapes, stage, events. Mac and Windows, free.">
+<meta property="og:title" content="Glimpse — Fast, lightweight photo culling">
+<meta property="og:description" content="A lightweight photo checker for shoots that produce thousands of files — landscapes, stage, events. Mac and Windows, free.">
+<link rel="alternate" hreflang="en" href="https://daigotanaka0714.github.io/glimpse/">
+<link rel="alternate" hreflang="ja" href="https://daigotanaka0714.github.io/glimpse/ja/">
+<link rel="icon" href="glimpse.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+<p class="lang-hint" id="lang-hint" hidden lang="ja"><a href="ja/">日本語のページはこちら →</a></p>
+
+<header class="bar">
+  <div class="brand"><img src="glimpse.svg" alt="" width="28" height="28">Glimpse</div>
+  <nav class="lang-switch" aria-label="Language">
+    <a href="./" aria-current="page" hreflang="en">EN</a>
+    <a href="ja/" hreflang="ja">日本語</a>
+  </nav>
+</header>
+
+<main>
+
+<div class="hero">
+  <div>
+    <h1>Thousands of shots.<br>Sorted at a glimpse.</h1>
+    <p class="lead">Glimpse is a lightweight photo checker for shoots that pile up files — landscapes, stage and live shows, events. Step through heavy, high-resolution images without waiting, and pick up right where you left off.</p>
+
+    <div class="downloads">
+      <a class="btn btn-primary" id="dl-primary" href="https://github.com/daigotanaka0714/glimpse/releases/latest">
+        <span>Download for Mac</span>
+        <small id="dl-primary-note">Apple Silicon</small>
+      </a>
+      <span class="alt-link">
+        <span id="dl-mac-other-label">Intel Mac?</span>
+        <a id="dl-mac-other" href="https://github.com/daigotanaka0714/glimpse/releases/latest">Download here</a>
+      </span>
+      <a class="btn btn-secondary" id="dl-secondary" href="https://github.com/daigotanaka0714/glimpse/releases/latest">
+        <span>Download for Windows</span>
+        <small>64-bit</small>
+      </a>
+    </div>
+
+    <p class="meta" id="release-meta">Free · macOS 10.15+ · Windows 10+</p>
+  </div>
+
+  <div class="sheet" aria-hidden="true">
+    <div class="sheet-grid">
+      <div class="frame" style="--tone:#2b1d2e;--x:40%"></div>
+      <div class="frame rejected" style="--tone:#1d2433;--x:62%"></div>
+      <div class="frame" style="--tone:#33241b;--x:48%"></div>
+      <div class="frame" style="--tone:#1e2b28;--x:30%"></div>
+      <div class="frame" style="--tone:#2e1f1f;--x:55%"></div>
+      <div class="frame selected" style="--tone:#262038;--x:45%"></div>
+      <div class="frame rejected" style="--tone:#1f262e;--x:70%"></div>
+      <div class="frame" style="--tone:#302a1c;--x:38%"></div>
+      <div class="frame" style="--tone:#1c2230;--x:52%"></div>
+      <div class="frame" style="--tone:#2d2224;--x:60%"></div>
+      <div class="frame rejected" style="--tone:#23291f;--x:42%"></div>
+      <div class="frame" style="--tone:#281e30;--x:50%"></div>
+    </div>
+    <div class="sheet-status">
+      <span>DSC_4127.NEF</span>
+      <span>1,284 / 3,000 · <span class="x">412 rejected</span></span>
+    </div>
+    <div class="keys">
+      <span><kbd>←</kbd><kbd>→</kbd>move</span>
+      <span><kbd>1</kbd>reject</span>
+      <span><kbd>Enter</kbd>zoom</span>
+      <span><kbd>C</kbd>compare</span>
+    </div>
+  </div>
+</div>
+
+<section>
+  <h2>Built for big shoots</h2>
+  <div class="usecases">
+    <div class="usecase">
+      <h3>Landscape</h3>
+      <p class="spec">45MP+ · 50MB+ / file</p>
+      <p>Even when every file is huge, the grid stays light. Open full size only for the frames you need to check.</p>
+    </div>
+    <div class="usecase">
+      <h3>Stage &amp; live</h3>
+      <p class="spec">3,000–10,000 per show</p>
+      <p>Tear through burst-heavy sets with the keyboard alone. Put two similar frames side by side to pick the better one.</p>
+    </div>
+    <div class="usecase">
+      <h3>Events &amp; sports</h3>
+      <p class="spec">Days of shooting at once</p>
+      <p>Same-day turnaround: export just the keepers to a separate folder and move on to delivery.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Made for culling, nothing else</h2>
+  <div class="features">
+    <div>
+      <h3>No waiting</h3>
+      <p>Thumbnails are generated in parallel in the background, so you can start the moment a folder opens — even with tens of thousands of files.</p>
+    </div>
+    <div>
+      <h3>RAW as-is</h3>
+      <p>Open files straight from the card — no developing or converting first.</p>
+      <p class="formats">NEF · ARW · CR2 · CR3 · RAF · ORF · RW2 · PEF · DNG · SRW · JPEG</p>
+      <p class="note">The Windows version can’t display RAW files yet. JPEG works on both.</p>
+    </div>
+    <div>
+      <h3>Stop anytime</h3>
+      <p>Marks and position are saved automatically. Reopen the folder and you continue from the same frame.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>First launch</h2>
+  <div class="install">
+    <article>
+      <h3>Mac</h3>
+      <ol>
+        <li>Open the downloaded <strong>.dmg</strong></li>
+        <li>Drag <strong>Glimpse</strong> into Applications</li>
+        <li>Launch it from Applications. It’s notarized by Apple, so it opens normally</li>
+      </ol>
+    </article>
+    <article>
+      <h3>Windows</h3>
+      <ol>
+        <li>Run the downloaded <strong>-setup.exe</strong></li>
+        <li>If you see “Windows protected your PC”, click <strong>More info</strong></li>
+        <li>Click <strong>Run anyway</strong> and follow the installer</li>
+      </ol>
+    </article>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <span>© Daigo Lab</span>
+  <span>
+    <a href="https://github.com/daigotanaka0714/glimpse/releases">All releases</a>
+    ·
+    <a href="https://github.com/daigotanaka0714/glimpse">Source</a>
+  </span>
+</footer>
+
+</div>
+<script src="download.js"></script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glimpse — 大量の写真を、軽く速くチェック</title>
+<meta name="description" content="一度にたくさん撮る撮影のための軽量な写真チェッカー。高画素の風景写真も、数千枚の舞台写真も、待たずに次の1枚へ。Mac / Windows 対応、無料。">
+<meta property="og:title" content="Glimpse — 大量の写真を、軽く速くチェック">
+<meta property="og:description" content="一度にたくさん撮る撮影のための軽量な写真チェッカー。高画素の風景写真も、数千枚の舞台写真も、待たずに次の1枚へ。Mac / Windows 対応、無料。">
+<link rel="alternate" hreflang="en" href="https://daigotanaka0714.github.io/glimpse/">
+<link rel="alternate" hreflang="ja" href="https://daigotanaka0714.github.io/glimpse/ja/">
+<link rel="icon" href="../glimpse.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="bar">
+  <div class="brand"><img src="../glimpse.svg" alt="" width="28" height="28">Glimpse</div>
+  <nav class="lang-switch" aria-label="Language">
+    <a href="../" hreflang="en">EN</a>
+    <a href="./" aria-current="page" hreflang="ja">日本語</a>
+  </nav>
+</header>
+
+<main>
+
+<div class="hero">
+  <div>
+    <h1><span class="nw">何千枚撮っても、</span><span class="nw">見極めは一瞬。</span></h1>
+    <p class="lead">Glimpse は、一度にたくさん撮る撮影のための軽量な写真チェッカーです。高画素で重い風景写真も、連写で数千枚になった舞台写真も、待たずに次の1枚へ進めます。途中でやめても、続きから再開できます。</p>
+
+    <div class="downloads">
+      <a class="btn btn-primary" id="dl-primary" href="https://github.com/daigotanaka0714/glimpse/releases/latest">
+        <span>Mac 版をダウンロード</span>
+        <small id="dl-primary-note">Apple Silicon</small>
+      </a>
+      <span class="alt-link">
+        <span id="dl-mac-other-label">Intel 搭載の Mac は</span>
+        <a id="dl-mac-other" href="https://github.com/daigotanaka0714/glimpse/releases/latest">こちら</a>
+      </span>
+      <a class="btn btn-secondary" id="dl-secondary" href="https://github.com/daigotanaka0714/glimpse/releases/latest">
+        <span>Windows 版をダウンロード</span>
+        <small>64-bit</small>
+      </a>
+    </div>
+
+    <p class="meta" id="release-meta">無料 ／ macOS 10.15 以降・Windows 10 以降</p>
+  </div>
+
+  <div class="sheet" aria-hidden="true">
+    <div class="sheet-grid">
+      <div class="frame" style="--tone:#2b1d2e;--x:40%"></div>
+      <div class="frame rejected" style="--tone:#1d2433;--x:62%"></div>
+      <div class="frame" style="--tone:#33241b;--x:48%"></div>
+      <div class="frame" style="--tone:#1e2b28;--x:30%"></div>
+      <div class="frame" style="--tone:#2e1f1f;--x:55%"></div>
+      <div class="frame selected" style="--tone:#262038;--x:45%"></div>
+      <div class="frame rejected" style="--tone:#1f262e;--x:70%"></div>
+      <div class="frame" style="--tone:#302a1c;--x:38%"></div>
+      <div class="frame" style="--tone:#1c2230;--x:52%"></div>
+      <div class="frame" style="--tone:#2d2224;--x:60%"></div>
+      <div class="frame rejected" style="--tone:#23291f;--x:42%"></div>
+      <div class="frame" style="--tone:#281e30;--x:50%"></div>
+    </div>
+    <div class="sheet-status">
+      <span>DSC_4127.NEF</span>
+      <span>1,284 / 3,000 · <span class="x">412 rejected</span></span>
+    </div>
+    <div class="keys">
+      <span><kbd>←</kbd><kbd>→</kbd>移動</span>
+      <span><kbd>1</kbd>不採用</span>
+      <span><kbd>Enter</kbd>拡大</span>
+      <span><kbd>C</kbd>2枚比較</span>
+    </div>
+  </div>
+</div>
+
+<section>
+  <h2>こんな撮影に</h2>
+  <div class="usecases">
+    <div class="usecase">
+      <h3>風景</h3>
+      <p class="spec">45MP+ · 50MB+ / 枚</p>
+      <p>高画素で1枚が重くても、一覧はサムネイルで軽く流せます。拡大するのは確かめたい1枚だけ。</p>
+    </div>
+    <div class="usecase">
+      <h3>舞台・ライブ</h3>
+      <p class="spec">1公演 3,000〜10,000 枚</p>
+      <p>連写で膨らんだ枚数を、キーボードだけで一気に仕分けます。似たカットは2枚並べて比べられます。</p>
+    </div>
+    <div class="usecase">
+      <h3>イベント・スポーツ</h3>
+      <p class="spec">数日分をまとめて</p>
+      <p>撮り終えたその日のうちに、残す写真だけを別フォルダへ書き出して納品の準備へ。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>選別のためだけに作っています</h2>
+  <div class="features">
+    <div>
+      <h3>待たされない</h3>
+      <p>サムネイルは裏で並列に作られるので、フォルダを開いたらすぐ見始められます。数万枚でも一覧がもたつきません。</p>
+    </div>
+    <div>
+      <h3>RAW をそのまま</h3>
+      <p>現像や書き出しをせずに、カメラから取り込んだファイルをそのまま開けます。</p>
+      <p class="formats">NEF · ARW · CR2 · CR3 · RAF · ORF · RW2 · PEF · DNG · SRW · JPEG</p>
+      <p class="note">Windows 版は現在、RAW ファイルを表示できません。JPEG は表示できます。</p>
+    </div>
+    <div>
+      <h3>途中でやめられる</h3>
+      <p>付けた印と位置は自動で残ります。次に同じフォルダを開けば、続きの1枚から始まります。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>はじめて開くとき</h2>
+  <div class="install">
+    <article>
+      <h3>Mac</h3>
+      <ol>
+        <li>ダウンロードした <strong>.dmg</strong> を開く</li>
+        <li><strong>Glimpse</strong> を「アプリケーション」フォルダへドラッグする</li>
+        <li>アプリケーションから起動する。Apple の確認を受けたアプリなので、そのまま開けます</li>
+      </ol>
+    </article>
+    <article>
+      <h3>Windows</h3>
+      <ol>
+        <li>ダウンロードした <strong>-setup.exe</strong> を開く</li>
+        <li>「Windows によって PC が保護されました」と出たら <strong>詳細情報</strong> を押す</li>
+        <li><strong>実行</strong> を押してインストールを進める</li>
+      </ol>
+    </article>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <span>© Daigo Lab</span>
+  <span>
+    <a href="https://github.com/daigotanaka0714/glimpse/releases">過去のバージョン</a>
+    ·
+    <a href="https://github.com/daigotanaka0714/glimpse">ソースコード</a>
+  </span>
+</footer>
+
+</div>
+<script src="../download.js"></script>
+</body>
+</html>

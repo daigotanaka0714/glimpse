@@ -1,0 +1,43 @@
+name: Download page
+
+# 利用者向けのダウンロードページ（site/）を GitHub Pages に出す。
+#
+# URL は https://daigotanaka0714.github.io/glimpse/ 。
+# ブログ（daigotanaka0714.github.io）に daigo-lab.com を付けると、
+# このページは自動的に https://daigo-lab.com/glimpse/ へ移る
+# （daigo-lab-ops の docs/domains.md「人間が見るものは apex のパス配下」）。
+#
+# ページはリリースのたびに直す必要が無い。ボタンのリンク先は、
+# 開いた時点で GitHub API から最新の公開リリースを引いて決めている。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
