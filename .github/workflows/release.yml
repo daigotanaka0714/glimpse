@@ -170,8 +170,8 @@ jobs:
           #   1. .p12 を一時キーチェーンへ取り込む
           #   2. hardened runtime 付きで codesign する（公証の必須要件）
           #   3. notarytool へ投げて結果を待つ
-          #   4. stapler で公証チケットを .app と .dmg に貼る
-          # 手で codesign / notarytool を呼ぶ必要はない。
+          #   4. stapler で公証チケットを .app に貼る
+          # .dmg は署名だけで公証には出さないので、次のステップで公証する。
           #
           # APPLE_PASSWORD は Apple Account のパスワードではなく
           # app-specific password。通常のパスワードでは notarytool が弾く。
@@ -192,6 +192,35 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      # 利用者が受け取るのは dmg なので、dmg にもチケットを貼る。
+      - name: Notarize dmg
+        if: matrix.platform == 'macos-latest' && env.SIGN_MODE == 'developer-id'
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          RUST_TARGET: ${{ matrix.rust_targets }}
+        run: |
+          set -euo pipefail
+
+          found=$(find "src-tauri/target/$RUST_TARGET/release/bundle/dmg" -type f -name '*.dmg')
+          count=$(printf '%s' "$found" | grep -c . || true)
+          if [ "$count" -ne 1 ]; then
+            echo "$found"
+            echo "::error::Expected exactly one dmg, found $count"
+            exit 1
+          fi
+          echo "Found: $found"
+
+          # 公証が通らなければチケットが無いので staple が失敗する。
+          xcrun notarytool submit "$found" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait --timeout 1h
+          xcrun stapler staple "$found"
 
       # 公証が本当に通ったかを確かめる。
       #
@@ -267,3 +296,8 @@ jobs:
 
           cp "$found" "$FIXED"
           gh release upload "$TAG" "$FIXED" --clobber -R "$GITHUB_REPOSITORY"
+
+          # tauri-action が上げた版番号付きの dmg にはチケットが無いので置き換える。
+          case "$FIXED" in
+            *.dmg) gh release upload "$TAG" "$found" --clobber -R "$GITHUB_REPOSITORY" ;;
+          esac
