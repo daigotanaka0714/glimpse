@@ -5,13 +5,77 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'Create a draft release for v<version in tauri.conf.json>'
+        type: boolean
+        default: false
 
+# release=true runs get their own group and are never cancelled: cancelling one
+# mid-upload leaves a half-filled draft behind.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.release }}
+  cancel-in-progress: ${{ !inputs.release }}
 
 jobs:
+  # Decides the tag the build uploads to. Empty means build only.
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      # Draft releases are listed only for tokens with push access.
+      contents: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          RELEASE: ${{ inputs.release }}
+          REF_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT" = "push" ]; then
+            echo "tag=$REF_NAME" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$RELEASE" != "true" ]; then
+            echo "Build only (release=false)."
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          version=$(jq -r .version src-tauri/tauri.conf.json)
+          tag="v$version"
+          echo "Tag: $tag"
+
+          if gh api "repos/$REPO/git/ref/tags/$tag" >/dev/null 2>err.txt; then
+            echo "::error::Tag $tag already exists. Bump the version in src-tauri/tauri.conf.json."
+            exit 1
+          elif ! grep -q 'HTTP 404' err.txt; then
+            cat err.txt
+            echo "::error::Could not check whether tag $tag exists."
+            exit 1
+          fi
+
+          ids=$(gh api --paginate "repos/$REPO/releases?per_page=100" \
+            --jq ".[] | select(.tag_name == \"$tag\") | .html_url")
+          if [ -n "$ids" ]; then
+            echo "$ids"
+            echo "::error::A release for $tag already exists (draft or published). Delete the draft or bump the version."
+            exit 1
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: prepare
     permissions:
       contents: write
     strategy:
@@ -22,14 +86,17 @@ jobs:
             args: '--target aarch64-apple-darwin'
             rust_targets: 'aarch64-apple-darwin'
             name: 'macOS-arm64'
+            fixed_asset: 'Glimpse_macos_arm64.dmg'
           - platform: 'macos-latest'
             args: '--target x86_64-apple-darwin'
             rust_targets: 'x86_64-apple-darwin'
             name: 'macOS-x64'
+            fixed_asset: 'Glimpse_macos_x64.dmg'
           - platform: 'windows-latest'
             args: ''
             rust_targets: ''
             name: 'Windows-x64'
+            fixed_asset: 'Glimpse_windows_x64-setup.exe'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -118,8 +185,9 @@ jobs:
           APPLE_PASSWORD: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_PASSWORD || '' }}
           APPLE_TEAM_ID: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_TEAM_ID || '' }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Glimpse ${{ github.ref_name }}'
+          # Empty tagName makes tauri-action build without creating or uploading to a release.
+          tagName: ${{ needs.prepare.outputs.tag }}
+          releaseName: 'Glimpse ${{ needs.prepare.outputs.tag }}'
           releaseBody: 'See the assets below to download the installer for your platform.'
           releaseDraft: true
           prerelease: false
@@ -164,3 +232,38 @@ jobs:
             echo "--- stapler (dmg) ---"
             xcrun stapler validate "$dmg"
           fi
+
+      # Same installer under a version-independent name, so that
+      # https://github.com/<repo>/releases/latest/download/<fixed_asset>
+      # always serves the latest published release.
+      - name: Attach installer under a fixed name
+        if: needs.prepare.outputs.tag != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          FIXED: ${{ matrix.fixed_asset }}
+          RUST_TARGET: ${{ matrix.rust_targets }}
+        run: |
+          set -euo pipefail
+
+          version="${TAG#v}"
+          case "$FIXED" in
+            *.exe) pattern="*/nsis/*_${version}_*-setup.exe" ;;
+            *.dmg) pattern="*/dmg/*_${version}_*.dmg" ;;
+            *) echo "::error::Unknown asset type: $FIXED"; exit 1 ;;
+          esac
+
+          # Written for the bash 3.2 that macOS ships (no mapfile).
+          bundle="src-tauri/target/${RUST_TARGET:+$RUST_TARGET/}release/bundle"
+          found=$(find "$bundle" -type f -path "$pattern")
+          count=$(printf '%s' "$found" | grep -c . || true)
+          if [ "$count" -ne 1 ]; then
+            echo "$found"
+            echo "::error::Expected exactly one file matching $pattern, found $count"
+            exit 1
+          fi
+          echo "Found: $found"
+
+          cp "$found" "$FIXED"
+          gh release upload "$TAG" "$FIXED" --clobber -R "$GITHUB_REPOSITORY"
