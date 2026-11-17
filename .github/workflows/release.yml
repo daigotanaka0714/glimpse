@@ -153,37 +153,39 @@ jobs:
             echo "::warning::APPLE_CERTIFICATE is not set. Falling back to ad-hoc signing (not notarized)."
           fi
 
+      # 公証の資格情報が欠けていれば、ビルドと公証を始める前に落とす。
+      # 値はこのステップに渡さず、空かどうかだけを受け取る。
+      - name: Check notarization secrets
+        if: matrix.platform == 'macos-latest' && env.SIGN_MODE == 'developer-id'
+        shell: bash
+        env:
+          HAS_ISSUER: ${{ secrets.APPLE_API_ISSUER != '' }}
+          HAS_KEY_ID: ${{ secrets.APPLE_API_KEY != '' }}
+          HAS_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY != '' }}
+        run: |
+          missing=()
+          [ "$HAS_ISSUER" = "true" ] || missing+=(APPLE_API_ISSUER)
+          [ "$HAS_KEY_ID" = "true" ] || missing+=(APPLE_API_KEY)
+          [ "$HAS_PRIVATE_KEY" = "true" ] || missing+=(APPLE_API_PRIVATE_KEY)
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::公証に必要な Secret がありません: ${missing[*]}"
+            exit 1
+          fi
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS signing / notarization.
-          #
-          # 二段構えにしてある。APPLE_CERTIFICATE が設定されていれば Developer ID で
-          # 署名し公証まで通す。無ければ従来どおりアドホック署名に落ちる。
-          #
-          # なぜ落とせるようにするか: fork からのビルドと、証明書の期限切れ・失効時に
-          # リリース全体が落ちるのを避けるため。署名が弱くなるだけで、成果物は出る。
+          # macOS の署名は二段構え。APPLE_CERTIFICATE があれば Developer ID で
+          # hardened runtime 付きの署名をし、無ければアドホック署名（'-'）に落ちる。
+          # fork からのビルドや証明書の期限切れ・失効でリリース全体が落ちないようにするため。
           # アドホックでも「右クリック → 開く」で起動はできる（警告は出る）。
-          #
-          # Tauri CLI v2 が中でやること:
-          #   1. .p12 を一時キーチェーンへ取り込む
-          #   2. hardened runtime 付きで codesign する（公証の必須要件）
-          #   3. notarytool へ投げて結果を待つ
-          #   4. stapler で公証チケットを .app に貼る
-          # .dmg は署名だけで公証には出さないので、次のステップで公証する。
-          #
-          # APPLE_PASSWORD は Apple Account のパスワードではなく
-          # app-specific password。通常のパスワードでは notarytool が弾く。
           APPLE_CERTIFICATE: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE || '' }}
           APPLE_CERTIFICATE_PASSWORD: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
-          # 証明書が無いときは '-'（アドホック）へ落とす
           APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && (secrets.APPLE_SIGNING_IDENTITY || '-') || '' }}
-          # 公証の資格情報は、証明書があるときだけ渡す。
-          # アドホック署名のまま公証へ投げると必ず失敗するため。
-          APPLE_ID: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_ID || '' }}
-          APPLE_PASSWORD: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_TEAM_ID || '' }}
+          # 公証の資格情報（APPLE_API_KEY など）はここでは渡さない。Tauri は
+          # APPLE_API_KEY_PATH に .p8 のファイルを要求するので、渡すには鍵を
+          # ビルドの間ずっとディスクに置くことになる。公証は次のステップで行う。
         with:
           # Empty tagName makes tauri-action build without creating or uploading to a release.
           tagName: ${{ needs.prepare.outputs.tag }}
@@ -193,19 +195,23 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
-      # 利用者が受け取るのは dmg なので、dmg にもチケットを貼る。
-      - name: Notarize dmg
+      # .dmg を提出し、.dmg と中の .app の両方にチケットを貼る。
+      # .dmg の提出に .app も含まれるので、.app を別に提出する必要はない。
+      - name: Notarize
         if: matrix.platform == 'macos-latest' && env.SIGN_MODE == 'developer-id'
         shell: bash
+        # App Store Connect の API キーで認証する。名前は Tauri の
+        # APPLE_API_ISSUER / APPLE_API_KEY / APPLE_API_KEY_PATH に合わせる。
         env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
           RUST_TARGET: ${{ matrix.rust_targets }}
         run: |
           set -euo pipefail
 
-          found=$(find "src-tauri/target/$RUST_TARGET/release/bundle/dmg" -type f -name '*.dmg')
+          bundle="src-tauri/target/$RUST_TARGET/release/bundle"
+          found=$(find "$bundle/dmg" -type f -name '*.dmg')
           count=$(printf '%s' "$found" | grep -c . || true)
           if [ "$count" -ne 1 ]; then
             echo "$found"
@@ -214,13 +220,27 @@ jobs:
           fi
           echo "Found: $found"
 
+          app=$(find "$bundle/macos" -maxdepth 1 -type d -name '*.app' -print -quit)
+          if [ -z "$app" ]; then
+            echo "::error::No .app bundle found under $bundle/macos"
+            exit 1
+          fi
+          echo "Found: $app"
+
+          # .p8 の中身をファイルに書き出す。notarytool の --key はファイルのパスを取る。
+          APPLE_API_KEY_PATH="$RUNNER_TEMP/AuthKey_$APPLE_API_KEY.p8"
+          trap 'rm -f "$APPLE_API_KEY_PATH"' EXIT
+          (umask 077; printf '%s\n' "$APPLE_API_PRIVATE_KEY" > "$APPLE_API_KEY_PATH")
+          unset APPLE_API_PRIVATE_KEY
+
           # 公証が通らなければチケットが無いので staple が失敗する。
           xcrun notarytool submit "$found" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
+            --key "$APPLE_API_KEY_PATH" \
+            --key-id "$APPLE_API_KEY" \
+            --issuer "$APPLE_API_ISSUER" \
             --wait --timeout 1h
           xcrun stapler staple "$found"
+          xcrun stapler staple "$app"
 
       # 公証が本当に通ったかを確かめる。
       #

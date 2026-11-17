@@ -13,8 +13,9 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 // Runs the macOS release steps from release.yml, in workflow order, against fake
-// signing tools that behave as the real ones did in CI: Tauri signs the dmg but
-// does not notarize it, and `stapler validate` exits 65 until a ticket is stapled.
+// signing tools that behave as the real ones did in CI: Tauri signs the dmg and
+// the .app but does not notarize them, and `stapler validate` exits 65 until a
+// ticket is stapled. Submitting the dmg also notarizes the .app inside it.
 
 const WORKFLOW = readFileSync(".github/workflows/release.yml", "utf8");
 const TARGET = "aarch64-apple-darwin";
@@ -26,17 +27,27 @@ const FAKE_TOOLS: Record<string, string> = {
 tool="$1 $2"
 file="$3"
 case "$tool" in
-  "notarytool submit") touch "$file.accepted" ;;
+  "notarytool submit")
+    echo "$*" >> "$UPLOADS/../notarytool.log"
+    key=$(printf '%s\\n' "$@" | grep -A1 -x -- --key | tail -1)
+    # GNU first: GNU stat -f means --file-system and would print to stdout.
+    stat -c %a "$key" 2>/dev/null >> "$UPLOADS/../notarytool.log" \\
+      || stat -f %Lp "$key" >> "$UPLOADS/../notarytool.log"
+    cat "$key" >> "$UPLOADS/../notarytool.log"
+    touch "$UPLOADS/../notarized"
+    ;;
   "stapler staple")
-    [ -e "$file.accepted" ] || exit 65
-    printf TICKET >> "$file"
+    [ -e "$UPLOADS/../notarized" ] || exit 65
+    if [ -d "$file" ]; then touch "$file/TICKET"; else printf TICKET >> "$file"; fi
     ;;
   "stapler validate")
-    [ -d "$file" ] && exit 0
-    if ! grep -q TICKET "$file"; then
-      echo "$(basename "$file") does not have a ticket stapled to it."
-      exit 65
+    if [ -d "$file" ]; then
+      [ -e "$file/TICKET" ] && exit 0
+    elif grep -q TICKET "$file"; then
+      exit 0
     fi
+    echo "$(basename "$file") does not have a ticket stapled to it."
+    exit 65
     ;;
   *) echo "unexpected xcrun: $*"; exit 1 ;;
 esac
@@ -86,6 +97,12 @@ function buildSteps(): Step[] {
     });
 }
 
+function step(name: string): Step {
+  const found = buildSteps().find((s) => s.name === name);
+  if (!found) throw new Error(`No step named ${name}`);
+  return found;
+}
+
 function stepsAfterBuild(): Step[] {
   const steps = buildSteps();
   return steps.slice(steps.findIndex((s) => s.name === "Build Tauri app") + 1);
@@ -94,11 +111,14 @@ function stepsAfterBuild(): Step[] {
 describe.skipIf(process.platform === "win32")("release.yml macOS steps", () => {
   let root: string;
   let uploads: string;
+  let temp: string;
 
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), "glimpse-release-"));
     uploads = join(root, "uploads");
     mkdirSync(uploads);
+    temp = join(root, "runner-temp");
+    mkdirSync(temp);
 
     const bin = join(root, "bin");
     mkdirSync(bin);
@@ -118,7 +138,7 @@ describe.skipIf(process.platform === "win32")("release.yml macOS steps", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  function run(step: Step) {
+  function run(step: Step, extraEnv: Record<string, string> = {}) {
     return spawnSync("bash", ["-c", step.script], {
       cwd: root,
       encoding: "utf8",
@@ -126,13 +146,16 @@ describe.skipIf(process.platform === "win32")("release.yml macOS steps", () => {
         ...process.env,
         PATH: `${join(root, "bin")}:${process.env.PATH}`,
         UPLOADS: uploads,
-        APPLE_ID: "id",
-        APPLE_PASSWORD: "password",
-        APPLE_TEAM_ID: "team",
+        APPLE_API_ISSUER: "issuer-id",
+        APPLE_API_KEY: "KEYID123",
+        APPLE_API_PRIVATE_KEY:
+          "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----",
+        RUNNER_TEMP: temp,
         RUST_TARGET: TARGET,
         TAG: "v0.5.0",
         FIXED,
         GITHUB_REPOSITORY: "owner/repo",
+        ...extraEnv,
       },
     });
   }
@@ -158,7 +181,7 @@ describe.skipIf(process.platform === "win32")("release.yml macOS steps", () => {
 
   it("fails verification when the dmg has no ticket", () => {
     const failure = runAll(
-      stepsAfterBuild().filter((s) => s.name !== "Notarize dmg"),
+      stepsAfterBuild().filter((s) => s.name !== "Notarize"),
     );
 
     expect(failure?.failedAt).toBe("Verify notarization");
@@ -167,15 +190,52 @@ describe.skipIf(process.platform === "win32")("release.yml macOS steps", () => {
     expect(readdirSync(uploads)).toEqual([]);
   });
 
-  it("gives the notarize step its credentials and the verify step's condition", () => {
-    const steps = stepsAfterBuild();
-    const notarize = steps.find((s) => s.name === "Notarize dmg")?.text;
-    const verify = steps.find((s) => s.name === "Verify notarization")?.text;
+  it("authenticates with the API key and removes the key file", () => {
+    expect(runAll(stepsAfterBuild())).toBeNull();
 
-    for (const name of ["APPLE_ID", "APPLE_PASSWORD", "APPLE_TEAM_ID"]) {
+    const log = readFileSync(join(root, "notarytool.log"), "utf8");
+    expect(log).toContain(
+      `--key ${temp}/AuthKey_KEYID123.p8 --key-id KEYID123 --issuer issuer-id`,
+    );
+    expect(log).toContain("\n600\n-----BEGIN PRIVATE KEY-----\nabc\n");
+    expect(readdirSync(temp)).toEqual([]);
+  });
+
+  it("names every missing notarization secret", () => {
+    const check = step("Check notarization secrets");
+
+    const missing = run(check, {
+      HAS_ISSUER: "true",
+      HAS_KEY_ID: "false",
+      HAS_PRIVATE_KEY: "false",
+    });
+    expect(missing.status).toBe(1);
+    expect(missing.stdout).toContain("APPLE_API_KEY APPLE_API_PRIVATE_KEY");
+    expect(missing.stdout).not.toContain("APPLE_API_ISSUER");
+
+    const present = run(check, {
+      HAS_ISSUER: "true",
+      HAS_KEY_ID: "true",
+      HAS_PRIVATE_KEY: "true",
+    });
+    expect(present.status).toBe(0);
+  });
+
+  it("gives the notarize step its credentials and the verify step's condition", () => {
+    const notarize = step("Notarize").text;
+    const verify = step("Verify notarization").text;
+    const check = step("Check notarization secrets").text;
+
+    for (const name of [
+      "APPLE_API_ISSUER",
+      "APPLE_API_KEY",
+      "APPLE_API_PRIVATE_KEY",
+    ]) {
       expect(notarize).toContain(`${name}: \${{ secrets.${name} }}`);
     }
+    expect(WORKFLOW).not.toMatch(/APPLE_ID|APPLE_PASSWORD|APPLE_TEAM_ID/);
     const condition = /^ +if: .+$/m;
-    expect(notarize?.match(condition)?.[0]).toBe(verify?.match(condition)?.[0]);
+    expect(notarize.match(condition)?.[0]).toBe(verify.match(condition)?.[0]);
+    expect(check.match(condition)?.[0]).toBe(verify.match(condition)?.[0]);
   });
 });
